@@ -30,7 +30,7 @@ export const userSchema = new Schema(
 
 export type UserSchemaType = InferSchemaType<typeof userSchema>;
 export type UserDocument = HydratedDocument<UserSchemaType>;
-export type CreateUserDto = Omit<UserSchemaType, "createdAt" | "updatedAt">;
+export type CreateUserDto = Omit<UserSchemaType, "createdAt" | "updatedAt" | "emailIsVerified" | "status">;
 
 const UserModel = model('User', userSchema);
 export default UserModel;
