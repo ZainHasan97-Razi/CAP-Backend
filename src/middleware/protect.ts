@@ -1,31 +1,32 @@
-import { NextFunction, Request, Response } from 'express';
-import ErrorHandler from './error.handler';
-import { ARequest } from '../types/auth.request.type';
-import { IUser } from '../types/req.user.type';
-import { verifyToken } from '../utils/jwt';
+import { NextFunction, Request, Response } from "express";
+import { ARequest } from "../types/auth.request.type";
+import { IUser } from "../types/req.user.type";
+import { verifyToken } from "../utils/jwt";
+import { ApiError } from "./validate.request";
 
 export const protect = async (
   req: Request,
   res: Response,
-  next: NextFunction,
+  next: NextFunction
 ) => {
-  const token = req.headers.authorization?.split(' ')[1];
+  const token = req.headers.authorization?.split(" ")[1];
 
-  if (!token)
-    return next(new ErrorHandler('Not authorized to access this route', 401));
+  if (!token) {
+    return next(ApiError.unauthorized("Not authorized to access this route"));
+  }
 
   try {
-    const decoded: IUser = verifyToken(token);
+    const decoded = verifyToken(token) as IUser;
 
     if (!decoded) {
-      return next(new ErrorHandler('Invalid Tokens', 401));
+      return next(ApiError.unauthorized("Invalid token"));
     }
 
     (req as ARequest).user = decoded;
 
-    return next();
+    next();
   } catch (err) {
-    console.log(err);
-    return next(new ErrorHandler('Not authorized to access this route', 401));
+    console.error("JWT Error:", err);
+    return next(ApiError.unauthorized("Not authorized to access this route"));
   }
 };
