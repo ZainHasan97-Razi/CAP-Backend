@@ -31,6 +31,10 @@ export class ApiError extends Error {
   static notFound(message: string = "Not Found") {
     return new ApiError(404, message, "Not Found");
   }
+
+  static internalServer(message: string = "Internal Server") {
+    return new ApiError(500, message, "Internal Server");
+  }
 }
 
 export const validateRequest = (validations: any[]) => {

@@ -1,0 +1,20 @@
+import ControlModel, { CreateControlDto, UpdateControlDto } from "../models/control.model";
+import { MongoIdType } from "types/mongoid.type";
+
+const findById = async (id: string|MongoIdType) => {
+  return await ControlModel.findById(id);
+};
+
+const create = async (user: CreateControlDto) => {
+  return await ControlModel.create(user);
+};
+
+const update = async (id: string|MongoIdType, data: UpdateControlDto) => {
+  return await ControlModel.findByIdAndUpdate(id, data);
+};
+
+export default {
+  findById,
+  create,
+  update,
+}
