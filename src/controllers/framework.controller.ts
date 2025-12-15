@@ -7,7 +7,7 @@ export const create = async (req: ARequest, res: Response, next: NextFunction) =
   try {
     const framework = await framewaorkService.create(req.body)
 
-    res.json({ message: 'Request success', framework });
+    res.json(framework);
   } catch (error) {
     console.error(error);
     next(error); // pass to global handler
@@ -23,7 +23,7 @@ export const update = async (req: ARequest, res: Response, next: NextFunction) =
       throw ApiError.badRequest("Invalid framwork id");
     }
 
-    res.json({ message: 'Request success', framework });
+    res.json(framework);
   } catch (error) {
     console.error(error);
     next(error); // pass to global handler
