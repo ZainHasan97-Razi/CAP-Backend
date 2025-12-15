@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { create, update } from '../../controllers/framework.controller';
+import { create, update } from '../../controllers/control.controller';
 import { createControl_validation, updateControl_validation } from '../validators/control.validator';
 
 

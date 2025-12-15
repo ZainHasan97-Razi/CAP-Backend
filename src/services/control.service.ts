@@ -5,8 +5,10 @@ const findById = async (id: string|MongoIdType) => {
   return await ControlModel.findById(id);
 };
 
-const create = async (user: CreateControlDto) => {
-  return await ControlModel.create(user);
+const create = async (data: CreateControlDto) => {
+  console.log("comingggggggggg");
+  
+  return await ControlModel.create(data);
 };
 
 const update = async (id: string|MongoIdType, data: UpdateControlDto) => {

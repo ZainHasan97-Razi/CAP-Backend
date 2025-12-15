@@ -7,6 +7,8 @@ import framewaorkService from "../../services/framewaork.service";
 export const createControl_validation = validateRequest([
   body("controlId").trim().not().isEmpty().withMessage("Invalid control id"),
   body("displayName").trim().not().isEmpty().withMessage("Invalid framework name"),
+  body("groupId").trim().not().isEmpty().withMessage("Invalid group id"),
+  body("groupName").trim().not().isEmpty().withMessage("Invalid group name"),
   body("frameworkId").trim().isMongoId().withMessage("Invalid framework has incorrect format")
   .custom(async (id) => {
     let framework = await framewaorkService.findById(id);

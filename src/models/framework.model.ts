@@ -19,5 +19,5 @@ export type FrameworkDocument = HydratedDocument<FrameworkSchemaType>;
 export type CreateFrameworkDto = Omit<FrameworkSchemaType, "createdAt" | "updatedAt" | "status">;
 export type UpdateFrameworkDto = Omit<FrameworkSchemaType, "createdAt" | "updatedAt">;
 
-const FrameworkModel = model('Framewaork', frameworkSchema);
+const FrameworkModel = model('Framework', frameworkSchema);
 export default FrameworkModel;
