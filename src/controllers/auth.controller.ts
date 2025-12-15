@@ -56,7 +56,7 @@ export const login = async (req: Request, res: Response, next: NextFunction) => 
     }
 
     // In a real app, you would generate a JWT token here and send it back
-    res.json({ message: 'Logged in', user, token });
+    res.json({ user, token: token.token });
   } catch (error) {
     console.error(error);
     next(error); // pass to global handler
