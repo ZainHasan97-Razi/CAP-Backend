@@ -1,4 +1,4 @@
-import { HydratedDocument, InferSchemaType, model, Schema } from 'mongoose';
+import mongoose, { HydratedDocument, InferSchemaType, model, Schema } from 'mongoose';
 
 export enum UserStatusEnum {
   pending = "pending",
@@ -23,6 +23,7 @@ export const userSchema = new Schema(
     status: { type: String, enum: UserStatusEnum, default: UserStatusEnum.active },
     password: { type: String, required: true },
     role: { type: String, required: true, enum: UserRoleEnum },
+    departmentId: { type: mongoose.Types.ObjectId, ref: "Department", default: null },
     department: { type: String, default: null },
   },
   { timestamps: true },
