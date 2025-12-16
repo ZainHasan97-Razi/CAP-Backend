@@ -6,8 +6,6 @@ const findById = async (id: string|MongoIdType) => {
 };
 
 const create = async (data: CreateControlDto) => {
-  console.log("comingggggggggg");
-  
   return await ControlModel.create(data);
 };
 
