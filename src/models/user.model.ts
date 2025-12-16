@@ -1,18 +1,18 @@
 import mongoose, { HydratedDocument, InferSchemaType, model, Schema } from 'mongoose';
 
-export enum UserStatusEnum {
-  pending = "pending",
-  active = "active",
-  inactive = "inactive"
-}
+export const UserStatusEnum = {
+  pending: "pending",
+  active: "active",
+  inactive: "inactive"
+} as const
 export type UserStatusEnumType = keyof typeof UserStatusEnum;
 
-export enum UserRoleEnum {
-  executive = "executive",
-  auditor = "auditor",
-  team_lead = "team_lead",
-  team_member = "team_member"
-}
+export const UserRoleEnum = {
+  executive: "executive",
+  auditor: "auditor",
+  team_lead: "team_lead",
+  team_member: "team_member"
+} as const
 export type UserRoleEnumType = keyof typeof UserRoleEnum;
 
 export const userSchema = new Schema(

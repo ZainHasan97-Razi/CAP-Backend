@@ -1,9 +1,9 @@
 import { HydratedDocument, InferSchemaType, model, Schema } from 'mongoose';
 
-export enum DepartmentStatusEnum {
-  active = "active",
-  inactive = "inactive"
-}
+export const DepartmentStatusEnum = {
+  active: "active",
+  inactive: "inactive"
+} as const
 export type DepartmentStatusEnumType = keyof typeof DepartmentStatusEnum;
 
 // Departments are primarily made to search user when creating an assismnent accordingly

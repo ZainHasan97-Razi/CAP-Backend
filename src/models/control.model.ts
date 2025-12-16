@@ -1,9 +1,9 @@
 import mongoose, { HydratedDocument, InferSchemaType, model, Schema } from 'mongoose';
 
-export enum ControlStatusEnum {
-  active = "active",
-  inactive = "inactive"
-}
+export const ControlStatusEnum = {
+  active: "active",
+  inactive: "inactive"
+} as const
 export type ControlStatusEnumType = keyof typeof ControlStatusEnum;
 
 export const controlSchema = new Schema(

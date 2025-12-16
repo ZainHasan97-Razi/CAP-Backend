@@ -1,9 +1,9 @@
 import { HydratedDocument, InferSchemaType, model, Schema } from 'mongoose';
 
-export enum FrameworkStatusEnum {
-  active = "active",
-  inactive = "inactive"
-}
+export const FrameworkStatusEnum = {
+  active: "active",
+  inactive: "inactive"
+} as const
 export type FrameworkStatusEnumType = keyof typeof FrameworkStatusEnum;
 
 export const frameworkSchema = new Schema(
