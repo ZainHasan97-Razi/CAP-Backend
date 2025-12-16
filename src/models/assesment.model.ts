@@ -1,19 +1,20 @@
 import mongoose, { HydratedDocument, InferSchemaType, model, Schema } from 'mongoose';
+import { ExtractAndFix } from 'types/inferred.schema.type';
 
-export enum AssesmentStatusEnum {
-  open = "open",
-  in_progress = "in_progress",
-  closed = "closed",
-  discard = "discard",
-}
+export const AssesmentStatusEnum = {
+  open: "open",
+  in_progress: "in_progress",
+  closed: "closed",
+  discard: "discard",
+} as const
 export type AssesmentStatusEnumType = keyof typeof AssesmentStatusEnum;
 
-export enum PriorityStatusEnum {
-  high = "high",
-  medium = "medium",
-  low = "low",
-}
-export type PriorityStatusEnumType = keyof typeof PriorityStatusEnum;
+export const PriorityEnum = {
+  high: "high",
+  medium: "medium",
+  low: "low",
+} as const
+export type PriorityEnumType = keyof typeof PriorityEnum;
 
 export const assesmentSchema = new Schema(
   {
@@ -28,14 +29,15 @@ export const assesmentSchema = new Schema(
     participants: {type: [String], default: []},
     attachments: {type: [String], default: []},
     status: { type: String, enum: AssesmentStatusEnum, default: AssesmentStatusEnum.open },
-    priority: { type: String, enum: PriorityStatusEnum },
-    dueDate: {type: Number, required: true}, // unix
+    priority: { type: String, enum: PriorityEnum, required: true },
+    dueDate: {type: Number, required: true}, // unix seconds
     createdBy: {type: String, required: true}, // some auditor person
   },
   { timestamps: true },
 );
 
-export type AssesmentSchemaType = InferSchemaType<typeof assesmentSchema>;
+// export type AssesmentSchemaType = InferSchemaType<typeof assesmentSchema>;
+export type AssesmentSchemaType = ExtractAndFix<InferSchemaType<typeof assesmentSchema>>;
 export type AssesmentDocument = HydratedDocument<AssesmentSchemaType>;
 export type CreateAssesmentDto = Omit<AssesmentSchemaType, "createdAt" | "updatedAt" | "status">;
 export type UpdateAssesmentDto = Omit<AssesmentSchemaType, "createdAt" | "updatedAt">;

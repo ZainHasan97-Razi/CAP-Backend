@@ -1,6 +1,6 @@
 import { body, param, check, query } from "express-validator";
 import { validateRequest } from "../../middleware/validate.request";
-import { AssesmentStatusEnum, PriorityStatusEnum } from "../../models/assesment.model";
+import { AssesmentStatusEnum, PriorityEnum } from "../../models/assesment.model";
 // import framewaorkService from "../../services/framewaork.service";
 
 export const createAssesment_validation = validateRequest([
@@ -18,8 +18,8 @@ export const createAssesment_validation = validateRequest([
   body('attachments').optional({ nullable: true, checkFalsy: true })
     .if(val => val !== null && Array.isArray(val) && val.length > 0)
     .isArray().withMessage('Invalid attachments!'),
-  body("priority").optional({ nullable: true, checkFalsy: true }).isIn([Object.values(PriorityStatusEnum)]).withMessage("Invalid priority"),
-  body("dueDate").isInt({min:1}).withMessage('Invalid due date!'),
+  body("priority").optional({ nullable: true, checkFalsy: true }).isIn(Object.values(PriorityEnum)).withMessage("Invalid priority"),
+  body("dueDate").isInt({min:1}).withMessage('Invalid due date!'), // seconds
 
 
 //   .custom(async (id) => {

@@ -5,8 +5,8 @@ const findById = async (id: string|MongoIdType) => {
   return await AssesmentModel.findById(id);
 };
 
-const create = async (user: CreateAssesmentDto) => {
-  return await AssesmentModel.create(user);
+const create = async (payload: CreateAssesmentDto) => {
+  return await AssesmentModel.create(payload);
 };
 
 const update = async (id: string|MongoIdType, data: UpdateAssesmentDto) => {

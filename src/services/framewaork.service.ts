@@ -1,7 +1,7 @@
-import FrameworkModel, { CreateFrameworkDto, UpdateFrameworkDto } from "../models/framework.model";
+import FrameworkModel, { CreateFrameworkDto, FrameworkDocument, UpdateFrameworkDto } from "../models/framework.model";
 import { MongoIdType } from "types/mongoid.type";
 
-const findById = async (id: string|MongoIdType) => {
+const findById = async (id: string|MongoIdType): Promise<FrameworkDocument|null> => {
   return await FrameworkModel.findById(id);
 };
 
