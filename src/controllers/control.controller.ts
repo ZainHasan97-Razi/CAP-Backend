@@ -28,3 +28,16 @@ export const update = async (req: ARequest, res: Response, next: NextFunction) =
     next(error); // pass to global handler
   }
 }
+
+export const findActiveByFramework = async (req: ARequest, res: Response, next: NextFunction) => {
+  try {
+    console.log('cominggggggggggg');
+    
+    const controls = await controlService.findActiveByFramework(req.params.frameworkId)
+
+    res.json(controls);
+  } catch (error) {
+    console.error(error);
+    next(error); // pass to global handler
+  }
+}

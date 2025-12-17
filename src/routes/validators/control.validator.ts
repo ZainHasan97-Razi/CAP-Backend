@@ -24,3 +24,7 @@ export const updateControl_validation = validateRequest([
   body("status").optional({ nullable: true, checkFalsy: true }).isIn([Object.values(ControlStatusEnum)]).withMessage("Invalid status"),
 //   query('page').optional({ nullable: true, checkFalsy: true }).if(val => val !== null).isInt({min:1}).withMessage('Invalid page!')
 ]);
+
+export const frameworkId_validation = validateRequest([
+  param("frameworkId").trim().isMongoId().withMessage("Invalid framework id"),
+]);
