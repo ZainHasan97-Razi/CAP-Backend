@@ -31,8 +31,6 @@ export const update = async (req: ARequest, res: Response, next: NextFunction) =
 
 export const findActiveByFramework = async (req: ARequest, res: Response, next: NextFunction) => {
   try {
-    console.log('cominggggggggggg');
-    
     const controls = await controlService.findActiveByFramework(req.params.frameworkId)
 
     res.json(controls);
