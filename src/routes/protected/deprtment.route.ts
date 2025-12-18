@@ -7,6 +7,6 @@ const router = Router();
 
 router.post('/create', createDepartment_validation, create);
 router.patch('/update', updateDepartment_validation, update);
-router.get('/active', updateDepartment_validation, findActiveDepts);
+router.get('/list', findActiveDepts);
 
 export default router;

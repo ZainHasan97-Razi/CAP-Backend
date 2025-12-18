@@ -14,7 +14,9 @@ const update = async (id: string|MongoIdType, data: UpdateDepartmentDto) => {
 };
 
 const findActiveDepts = async () => {
-  return await DepartmentModel.find({status: DepartmentStatusEnum.active}).sort({displayName: -1}).lean();
+  return await DepartmentModel.find({status: DepartmentStatusEnum.active}).sort({displayName: -1})
+  .select("displayName")
+  .lean();
 }
 
 export default {
