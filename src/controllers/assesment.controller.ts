@@ -5,6 +5,7 @@ import { ApiError } from "../middleware/validate.request";
 import { CreateAssesmentDto, PriorityEnumType } from "../models/assesment.model";
 import framewaorkService from "../services/framewaork.service";
 import controlService from "../services/control.service";
+import departmentService from "../services/department.service";
 import { IUser } from "types/req.user.type";
 
 type CreateRequestDto = {
@@ -13,6 +14,7 @@ type CreateRequestDto = {
   description: string;
   framework: string;
   control: string;
+  department: string;
   participants?: string[];
   attachments?: string[];
   priority: PriorityEnumType;
@@ -30,6 +32,10 @@ export const create = async (req: ARequest, res: Response, next: NextFunction) =
     if(!control) {
       throw ApiError.badRequest("Invalid control id");
     }
+    const department = await departmentService.findById(body.department)
+    if(!department) {
+      throw ApiError.badRequest("Invalid department id");
+    }
     const payload: CreateAssesmentDto = {
       assesmentId: body.assesmentId,
       name: body.name,
@@ -39,6 +45,8 @@ export const create = async (req: ARequest, res: Response, next: NextFunction) =
       control: control._id,
       controlId: control.controlId,
       controlName: control.displayName,
+      department: department._id,
+      departmentName: department.displayName,
       participants: body.participants || [],
       attachments: body.attachments || [],
       priority: body.priority,
@@ -79,6 +87,16 @@ export const findById = async (req: ARequest, res: Response, next: NextFunction)
     }
 
     res.json({ message: 'Request success', user });
+  } catch (error) {
+    console.error(error);
+    next(error); // pass to global handler
+  }
+}
+
+export const dashboardList = async (req: ARequest, res: Response, next: NextFunction) => {
+  try {
+    const assesments = await assesmentService.dashboardList();
+    res.json(assesments);
   } catch (error) {
     console.error(error);
     next(error); // pass to global handler

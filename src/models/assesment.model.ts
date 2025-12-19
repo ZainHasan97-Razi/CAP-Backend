@@ -26,6 +26,8 @@ export const assesmentSchema = new Schema(
     control: {type: mongoose.Types.ObjectId, required: true, ref: "Control"},
     controlId: {type: String, required: true},
     controlName: {type: String, required: true},
+    department: {type: mongoose.Types.ObjectId, required: true, ref: "Department"},
+    departmentName: {type: String, required: true},
     participants: {type: [String], default: []},
     attachments: {type: [String], default: []},
     status: { type: String, enum: AssesmentStatusEnum, default: AssesmentStatusEnum.open },
