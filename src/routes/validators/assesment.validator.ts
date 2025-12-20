@@ -12,7 +12,7 @@ export const createAssesment_validation = validateRequest([
   body("control").trim().isMongoId().withMessage("Invalid control has incorrect format"),
   // body("controlId").trim().not().isEmpty().withMessage("Invalid framework name"),
   // body("controlName").trim().not().isEmpty().withMessage("Invalid framework name"),
-  body("department").trim().isMongoId().withMessage("Invalid control has incorrect format"),
+  body("department").trim().isMongoId().withMessage("Invalid department"),
   body('participants').optional({ nullable: true, checkFalsy: true })
     .if(val => val !== null && Array.isArray(val) && val.length > 0)
     .isArray().withMessage('Invalid participants!'),
