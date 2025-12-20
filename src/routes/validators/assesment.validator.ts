@@ -4,9 +4,9 @@ import { AssesmentStatusEnum, PriorityEnum } from "../../models/assesment.model"
 // import framewaorkService from "../../services/framewaork.service";
 
 export const createAssesment_validation = validateRequest([
-  body("assesmentId").trim().not().isEmpty().isLength({min: 1, max: 255}).withMessage("Assessment ID is required"),
-  body("name").trim().not().isEmpty().isLength({min: 1, max: 255}).withMessage("Assessment name is required"),
-  body("description").trim().not().isEmpty().isLength({min: 1, max: 1000}).withMessage("Assessment description is required"),
+  body("assesmentId").trim().not().isEmpty().withMessage("Assessment ID is required").isLength({min: 1, max: 255}).withMessage("Assessment ID must be between 1-255 characters"),
+  body("name").trim().not().isEmpty().withMessage("Assessment name is required").isLength({min: 1, max: 255}).withMessage("Assessment name must be between 1-255 characters"),
+  body("description").trim().not().isEmpty().withMessage("Assessment description is required").isLength({min: 1, max: 1000}).withMessage("Assessment description must be between 1-1000 characters"),
   body("framework").trim().isMongoId().withMessage("Framework must be a valid ID"),
   body("control").trim().isMongoId().withMessage("Control must be a valid ID"),
   body("department").trim().isMongoId().withMessage("Department must be a valid ID"),
@@ -28,6 +28,6 @@ export const createAssesment_validation = validateRequest([
 ]);
 
 export const updateAssesment_validation = validateRequest([
-  body("displayName").optional({ nullable: true, checkFalsy: true }).trim().not().isEmpty().isLength({min: 1, max: 255}).withMessage("Display name cannot be empty"),
+  body("displayName").optional({ nullable: true, checkFalsy: true }).trim().not().isEmpty().withMessage("Display name cannot be empty").isLength({min: 1, max: 255}).withMessage("Display name must be between 1-255 characters"),
   body("status").optional({ nullable: true, checkFalsy: true }).isIn(Object.values(AssesmentStatusEnum)).withMessage("Status must be a valid value"),
 ]);
