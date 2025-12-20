@@ -4,23 +4,18 @@ import { AssesmentStatusEnum, PriorityEnum } from "../../models/assesment.model"
 // import framewaorkService from "../../services/framewaork.service";
 
 export const createAssesment_validation = validateRequest([
-  body("assesmentId").trim().not().isEmpty().withMessage("Invalid control id"),
-  body("name").trim().not().isEmpty().withMessage("Invalid framework name"),
-  body("description").trim().not().isEmpty().withMessage("Invalid framework name"),
-  body("framework").trim().isMongoId().withMessage("Invalid framework has incorrect format"),
-  // // body("frameworkName").trim().not().isEmpty().withMessage("Invalid framework name"),
-  body("control").trim().isMongoId().withMessage("Invalid control has incorrect format"),
-  // body("controlId").trim().not().isEmpty().withMessage("Invalid framework name"),
-  // body("controlName").trim().not().isEmpty().withMessage("Invalid framework name"),
-  body("department").trim().isMongoId().withMessage("Invalid department"),
+  body("assesmentId").trim().not().isEmpty().isLength({min: 1, max: 255}).withMessage("Assessment ID is required"),
+  body("name").trim().not().isEmpty().isLength({min: 1, max: 255}).withMessage("Assessment name is required"),
+  body("description").trim().not().isEmpty().isLength({min: 1, max: 1000}).withMessage("Assessment description is required"),
+  body("framework").trim().isMongoId().withMessage("Framework must be a valid ID"),
+  body("control").trim().isMongoId().withMessage("Control must be a valid ID"),
+  body("department").trim().isMongoId().withMessage("Department must be a valid ID"),
   body('participants').optional({ nullable: true, checkFalsy: true })
-    .if(val => val !== null && Array.isArray(val) && val.length > 0)
-    .isArray().withMessage('Invalid participants!'),
+    .isArray().withMessage('Participants must be an array'),
   body('attachments').optional({ nullable: true, checkFalsy: true })
-    .if(val => val !== null && Array.isArray(val) && val.length > 0)
-    .isArray().withMessage('Invalid attachments!'),
-  body("priority").optional({ nullable: true, checkFalsy: true }).isIn(Object.values(PriorityEnum)).withMessage("Invalid priority"),
-  body("dueDate").isInt({min:1}).withMessage('Invalid due date!'), // seconds
+    .isArray().withMessage('Attachments must be an array'),
+  body("priority").optional({ nullable: true, checkFalsy: true }).isIn(Object.values(PriorityEnum)).withMessage("Priority must be a valid value"),
+  body("dueDate").isInt({min:1}).withMessage('Due date must be a valid timestamp'), // seconds
 
 
 //   .custom(async (id) => {
@@ -33,7 +28,6 @@ export const createAssesment_validation = validateRequest([
 ]);
 
 export const updateAssesment_validation = validateRequest([
-  body("displayName").optional({ nullable: true, checkFalsy: true }).trim().not().isEmpty().withMessage("Invalid framework name"),
-  body("status").optional({ nullable: true, checkFalsy: true }).isIn([Object.values(AssesmentStatusEnum)]).withMessage("Invalid status"),
-//   query('page').optional({ nullable: true, checkFalsy: true }).if(val => val !== null).isInt({min:1}).withMessage('Invalid page!')
+  body("displayName").optional({ nullable: true, checkFalsy: true }).trim().not().isEmpty().isLength({min: 1, max: 255}).withMessage("Display name cannot be empty"),
+  body("status").optional({ nullable: true, checkFalsy: true }).isIn(Object.values(AssesmentStatusEnum)).withMessage("Status must be a valid value"),
 ]);
