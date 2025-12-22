@@ -11,11 +11,6 @@ const PORT = process.env.PORT || 3000;
 
 app.use((req, res, next) => allowingCors(req, res, next));
 
-// Test endpoint
-app.get('/test', (req, res) => {
-  res.json({ message: 'CORS is working!' });
-});
-
 // Middleware
 app.use(express.json());
 app.use("/api", rootRouter)
