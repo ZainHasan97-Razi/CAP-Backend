@@ -11,19 +11,17 @@ const PORT = process.env.PORT || 3000;
 
 app.use((req, res, next) => allowingCors(req, res, next));
 
+// Test endpoint
+app.get('/test', (req, res) => {
+  res.json({ message: 'CORS is working!' });
+});
+
 // Middleware
-// app.use(cors({
-//   origin: process.env.FRONTEND_URL || '*',
-//   credentials: true,
-//   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-//   allowedHeaders: ['Content-Type', 'Authorization']
-// }));
 app.use(express.json());
 app.use("/api", rootRouter)
 app.use(errorHandler);
 connectDB();
 
 app.listen(PORT, () => {
-  // console.log(`Server is running on port: \x1b[35m${PORT}\x1b[0m`);
   console.log(`\x1b[34mServer is running on port:\x1b[0m \x1b[35m${PORT}\x1b[0m`);
 });
