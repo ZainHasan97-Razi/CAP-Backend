@@ -1,21 +1,23 @@
 import express from "express";
-import cors from 'cors';
 import dotenv from 'dotenv';
 import rootRouter from './routes/root.route';
 import { connectDB } from "./database";
 import { errorHandler } from "./middleware/error.handler";
+import { allowingCors } from "./utils/allow.cors";
 
 dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+app.use((req, res, next) => allowingCors(req, res, next));
+
 // Middleware
-app.use(cors({
-  origin: process.env.FRONTEND_URL || '*',
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
-}));
+// app.use(cors({
+//   origin: process.env.FRONTEND_URL || '*',
+//   credentials: true,
+//   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+//   allowedHeaders: ['Content-Type', 'Authorization']
+// }));
 app.use(express.json());
 app.use("/api", rootRouter)
 app.use(errorHandler);
