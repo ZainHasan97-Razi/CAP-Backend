@@ -27,7 +27,14 @@ export const createAssesment_validation = validateRequest([
 //   }),
 ]);
 
-export const updateAssesment_validation = validateRequest([
-  body("displayName").optional({ nullable: true, checkFalsy: true }).trim().not().isEmpty().withMessage("Display name cannot be empty").isLength({min: 1, max: 255}).withMessage("Display name must be between 1-255 characters"),
-  body("status").optional({ nullable: true, checkFalsy: true }).isIn(Object.values(AssesmentStatusEnum)).withMessage("Status must be a valid value"),
+export const dashboardList_validation = validateRequest([
+  query('status').optional().isIn(Object.values(AssesmentStatusEnum)).withMessage('Invalid status value'),
+  query('department').optional().isMongoId().withMessage('Department must be a valid ID'),
+  query('priority').optional().isIn(Object.values(PriorityEnum)).withMessage('Invalid priority value'),
+  query('dateFrom').optional().isInt({min: 1}).withMessage('Date from must be a valid timestamp'),
+  query('dateTo').optional().isInt({min: 1}).withMessage('Date to must be a valid timestamp'),
+  query('dueDateFrom').optional().isInt({min: 1}).withMessage('Due date from must be a valid timestamp'),
+  query('dueDateTo').optional().isInt({min: 1}).withMessage('Due date to must be a valid timestamp'),
+  query('page').optional().isInt({min: 1}).withMessage('Page must be a positive integer'),
+  query('limit').optional().isInt({min: 1, max: 100}).withMessage('Limit must be between 1-100')
 ]);

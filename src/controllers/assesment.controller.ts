@@ -95,10 +95,22 @@ export const findById = async (req: ARequest, res: Response, next: NextFunction)
 
 export const dashboardList = async (req: ARequest, res: Response, next: NextFunction) => {
   try {
-    const assesments = await assesmentService.dashboardList();
-    res.json(assesments);
+    const filters = {
+      status: req.query.status as string,
+      department: req.query.department as string,
+      priority: req.query.priority as string,
+      dateFrom: req.query.dateFrom ? parseInt(req.query.dateFrom as string) : undefined,
+      dateTo: req.query.dateTo ? parseInt(req.query.dateTo as string) : undefined,
+      dueDateFrom: req.query.dueDateFrom ? parseInt(req.query.dueDateFrom as string) : undefined,
+      dueDateTo: req.query.dueDateTo ? parseInt(req.query.dueDateTo as string) : undefined,
+      page: req.query.page ? parseInt(req.query.page as string) : 1,
+      limit: req.query.limit ? parseInt(req.query.limit as string) : 10
+    };
+    
+    const result = await assesmentService.dashboardList(filters);
+    res.json(result);
   } catch (error) {
     console.error(error);
-    next(error); // pass to global handler
+    next(error);
   }
 }
