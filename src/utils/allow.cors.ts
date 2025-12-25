@@ -1,5 +1,7 @@
 import { Request, Response, NextFunction } from "express";
+import dotenv from 'dotenv';
 
+dotenv.config();
 export const allowingCors = (req: Request, res: Response, next: NextFunction) => {
   res.setHeader("Access-Control-Allow-Origin", process.env.FRONTEND_URL || "https://cap-dashboard.vercel.app");
   res.setHeader("Access-Control-Allow-Credentials", "true");
