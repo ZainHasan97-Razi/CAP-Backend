@@ -2,7 +2,6 @@ import { ARequest } from "types/auth.request.type";
 import { NextFunction, Response } from 'express';
 import assesmentCommentService from "../services/assesment-comment.service";
 import { ApiError } from "../middleware/validate.request";
-import { CreateAssesmentCommentDto } from "../models/assesment-comment.model";
 import { IUser } from "types/req.user.type";
 
 export const getComments = async (req: ARequest, res: Response, next: NextFunction) => {
@@ -19,16 +18,13 @@ export const getComments = async (req: ARequest, res: Response, next: NextFuncti
 export const createComment = async (req: ARequest, res: Response, next: NextFunction) => {
   try {
     const { assessmentId } = req.params;
-    const { content, attachments } = req.body;
     const user = req.user as IUser;
     
-    const payload: CreateAssesmentCommentDto = {
+    const payload = {
+      ...req.body,
       assessmentId,
-      parentCommentId: null,
-      content,
       author: user.userName,
-      authorName: user.displayName || user.userName,
-      attachments: attachments || [],
+      authorName: user.userName,
     };
     
     const comment = await assesmentCommentService.create(payload);
@@ -42,16 +38,14 @@ export const createComment = async (req: ARequest, res: Response, next: NextFunc
 export const createReply = async (req: ARequest, res: Response, next: NextFunction) => {
   try {
     const { assessmentId, commentId } = req.params;
-    const { content, attachments } = req.body;
     const user = req.user as IUser;
     
-    const payload: CreateAssesmentCommentDto = {
+    const payload = {
+      ...req.body,
       assessmentId,
       parentCommentId: commentId,
-      content,
       author: user.userName,
-      authorName: user.displayName || user.userName,
-      attachments: attachments || [],
+      authorName: user.userName,
     };
     
     const reply = await assesmentCommentService.create(payload);
@@ -65,7 +59,6 @@ export const createReply = async (req: ARequest, res: Response, next: NextFuncti
 export const updateComment = async (req: ARequest, res: Response, next: NextFunction) => {
   try {
     const { commentId } = req.params;
-    const { content, attachments } = req.body;
     
     const comment = await assesmentCommentService.findById(commentId);
     if (!comment) {
@@ -77,11 +70,7 @@ export const updateComment = async (req: ARequest, res: Response, next: NextFunc
       throw ApiError.forbidden("You can only edit your own comments");
     }
     
-    const updatedComment = await assesmentCommentService.update(commentId, {
-      content,
-      attachments,
-    });
-    
+    const updatedComment = await assesmentCommentService.update(commentId, req.body);
     res.json({ message: 'Comment updated successfully', comment: updatedComment });
   } catch (error) {
     console.error(error);

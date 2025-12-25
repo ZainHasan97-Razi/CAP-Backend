@@ -18,7 +18,7 @@ export const assesmentCommentSchema = new Schema(
 export type AssesmentCommentSchemaType = ExtractAndFix<InferSchemaType<typeof assesmentCommentSchema>>;
 export type AssesmentCommentDocument = HydratedDocument<AssesmentCommentSchemaType>;
 export type CreateAssesmentCommentDto = Omit<AssesmentCommentSchemaType, "createdAt" | "updatedAt" | "isEdited" | "editedAt">;
-export type UpdateAssesmentCommentDto = Pick<AssesmentCommentSchemaType, "content" | "attachments" | "isEdited" | "editedAt">;
+export type UpdateAssesmentCommentDto = Omit<AssesmentCommentSchemaType, "createdAt" | "updatedAt">;
 
 const AssesmentCommentModel = model('AssesmentComment', assesmentCommentSchema);
 export default AssesmentCommentModel;

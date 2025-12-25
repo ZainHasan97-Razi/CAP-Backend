@@ -17,9 +17,9 @@ import {
 const router = Router();
 
 router.get('/:assessmentId/comments', getComments_validation, getComments);
-router.post('/:assessmentId/comments', createComment_validation, createComment);
+router.post('/:assessmentId/comments/create', createComment_validation, createComment);
 router.post('/:assessmentId/comments/:commentId/reply', createReply_validation, createReply);
-router.put('/comments/:commentId', updateComment_validation, updateComment);
-router.delete('/comments/:commentId', deleteComment_validation, deleteComment);
+router.put('/comments/:commentId/update', updateComment_validation, updateComment);
+router.delete('/comments/:commentId/delete', deleteComment_validation, deleteComment);
 
 export default router;
