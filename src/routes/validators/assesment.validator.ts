@@ -27,6 +27,10 @@ export const createAssesment_validation = validateRequest([
 //   }),
 ]);
 
+export const findById_validation = validateRequest([
+  param('id').isMongoId().withMessage('ID must be a valid MongoDB ObjectId')
+]);
+
 export const dashboardList_validation = validateRequest([
   query('status').optional().isIn(Object.values(AssesmentStatusEnum)).withMessage('Invalid status value'),
   query('department').optional().isMongoId().withMessage('Department must be a valid ID'),

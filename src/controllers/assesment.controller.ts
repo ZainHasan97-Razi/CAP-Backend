@@ -81,12 +81,12 @@ export const findById = async (req: ARequest, res: Response, next: NextFunction)
   try {
     const { id } = req.params;
 
-    const user = await assesmentService.findById(id);
-    if (!user) {
+    const assesment = await assesmentService.findById(id);
+    if (!assesment) {
       throw ApiError.badRequest("Assesment not found");
     }
 
-    res.json({ message: 'Request success', user });
+    res.json(assesment);
   } catch (error) {
     console.error(error);
     next(error); // pass to global handler
