@@ -1,5 +1,6 @@
 import { NextFunction, Request, Response } from 'express';
 import userService from "../services/user.service";
+import departmentService from "../services/department.service";
 import { CreateUserDto } from "../models/user.model";
 import { issueJwt } from "../utils/jwt";
 import { ApiError } from '../middleware/validate.request';
@@ -12,24 +13,31 @@ export const register = async (req: Request, res: Response, next: NextFunction) 
     // Check if user exists
     const existingUser = await userService.findByEmail(body.email);
     if (existingUser) {
-      // return res.status(400).json({ error: 'User already exists' });
       throw ApiError.badRequest("User already exists");
     }
 
-    // In a real app, HASH the password here with bcrypt!
+    // Get department name
+    const department = await departmentService.findById(body.departmentId);
+    if (!department) {
+      throw ApiError.badRequest("Invalid department ID");
+    }
+
+    // Hash password
     const hashedpassword = await bcrypt.hash(body.password, 12);
 
-    let payload: CreateUserDto = req.body;
-    payload.password = hashedpassword;
-    payload.email = payload.email.toLowerCase();
+    let payload: CreateUserDto = {
+      ...req.body,
+      password: hashedpassword,
+      email: body.email.toLowerCase(),
+      department: department.displayName,
+    };
 
     const newUser = await userService.createUser(payload);
 
-    // In a real app, you would generate a JWT token here and send it back
     res.status(201).json({ message: 'User created', userId: newUser.id });
   } catch (error) {
     console.error(error);
-    next(error); // pass to global handler
+    next(error);
   }
 } 
 
