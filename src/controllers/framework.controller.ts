@@ -32,7 +32,8 @@ export const update = async (req: ARequest, res: Response, next: NextFunction) =
 
 export const findAllActive = async (req: ARequest, res: Response, next: NextFunction) => {
   try {
-    const frameworks = await framewaorkService.findAllActive()
+    const { type } = req.query;
+    const frameworks = await framewaorkService.findAllActive(type as string)
 
     res.json(frameworks);
   } catch (error) {

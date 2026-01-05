@@ -13,8 +13,12 @@ const update = async (id: string|MongoIdType, data: UpdateFrameworkDto) => {
   return await FrameworkModel.findByIdAndUpdate(id, data);
 };
 
-const findAllActive = async () => {
-  return await FrameworkModel.find({status: FrameworkStatusEnum.active}).select("displayName").lean();
+const findAllActive = async (type?: string) => {
+  const filter: any = { status: FrameworkStatusEnum.active };
+  if (type) {
+    filter.type = type;
+  }
+  return await FrameworkModel.find(filter).select("displayName").lean();
 }
 
 export default {

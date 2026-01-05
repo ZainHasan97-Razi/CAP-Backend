@@ -6,9 +6,17 @@ export const FrameworkStatusEnum = {
 } as const
 export type FrameworkStatusEnumType = keyof typeof FrameworkStatusEnum;
 
+export const FrameworkTypeEnum = {
+  regulatory_assessment: "regulatory_assessment",
+  internal_policy_procedure: "internal_policy_procedure",
+  international_standards: "international_standards"
+} as const
+export type FrameworkTypeEnumType = keyof typeof FrameworkTypeEnum;
+
 export const frameworkSchema = new Schema(
   {
     displayName: {type: String, required: true},
+    type: { type: String, enum: FrameworkTypeEnum, required: true },
     status: { type: String, enum: FrameworkStatusEnum, default: FrameworkStatusEnum.active },
   },
   { timestamps: true },
