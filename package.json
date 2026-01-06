@@ -7,7 +7,11 @@
     "dev": "nodemon src/index.ts",
     "build": "tsc",
     "start:prod": "node ./dist/src/index.js",
-    "start:dev": "ts-node-dev --respawn --transpile-only ./src/index.ts"
+    "start:dev": "ts-node-dev --respawn --transpile-only ./src/index.ts",
+    "seed": "ts-node src/seeders/index.ts",
+    "seed:sama": "ts-node src/seeders/index.ts seed \"SAMA CSF\"",
+    "seed:reset": "ts-node src/seeders/index.ts reset",
+    "seed:remove": "ts-node src/seeders/index.ts remove"
   },
   "repository": {
     "type": "git",
