@@ -1,4 +1,8 @@
 import { seedSamaCSF, removeSamaCSF } from './sama-csf.seeder';
+import { seedISO27001, removeISO27001 } from './iso27001.seeder';
+import { seedISO27002, removeISO27002 } from './iso27002.seeder';
+import { seedNCACC, removeNCACC } from './nca-cc.seeder';
+import { seedSAMAPSP, removeSAMAPSP } from './sama-psp.seeder';
 import { connectDB } from '../database'; // Ensure database connection
 import dotenv from 'dotenv';
 
@@ -23,18 +27,27 @@ export const frameworkSeeders: FrameworkSeeder[] = [
     name: 'SAMA CSF',
     seed: seedSamaCSF,
     remove: removeSamaCSF
+  },
+  {
+    name: 'ISO 27001',
+    seed: seedISO27001,
+    remove: removeISO27001
+  },
+  {
+    name: 'ISO 27002',
+    seed: seedISO27002,
+    remove: removeISO27002
+  },
+  {
+    name: 'NCA CC',
+    seed: seedNCACC,
+    remove: removeNCACC
+  },
+  {
+    name: 'SAMA PSP',
+    seed: seedSAMAPSP,
+    remove: removeSAMAPSP
   }
-  // Add more frameworks here as needed
-  // {
-  //   name: 'ISO 27001',
-  //   seed: seedISO27001,
-  //   remove: removeISO27001
-  // },
-  // {
-  //   name: 'NIST CSF',
-  //   seed: seedNISTCSF,
-  //   remove: removeNISTCSF
-  // }
 ];
 
 export const seedAllFrameworks = async (): Promise<SeederResult[]> => {

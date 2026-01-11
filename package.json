@@ -10,6 +10,10 @@
     "start:dev": "ts-node-dev --respawn --transpile-only ./src/index.ts",
     "seed": "ts-node src/seeders/index.ts",
     "seed:sama": "ts-node src/seeders/index.ts seed \"SAMA CSF\"",
+    "seed:iso27001": "ts-node src/seeders/index.ts seed \"ISO 27001\"",
+    "seed:iso27002": "ts-node src/seeders/index.ts seed \"ISO 27002\"",
+    "seed:nca": "ts-node src/seeders/index.ts seed \"NCA CC\"",
+    "seed:psp": "ts-node src/seeders/index.ts seed \"SAMA PSP\"",
     "seed:reset": "ts-node src/seeders/index.ts reset",
     "seed:remove": "ts-node src/seeders/index.ts remove"
   },

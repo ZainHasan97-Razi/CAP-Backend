@@ -7,290 +7,204 @@ export const samaCsfFrameworkData = {
 };
 
 export const samaCsfControlsData = [
-  // Domain 1: Cybersecurity Governance
+  // 3.1 Cyber Security Governance
   {
-    controlId: "CG-1.1",
-    displayName: "Board Oversight",
-    groupId: "CG-1",
-    groupName: "Cybersecurity Governance"
+    controlId: "3.1.1",
+    displayName: "Cyber Security Governance",
+    groupId: "3.1",
+    groupName: "Cyber Security Governance"
   },
   {
-    controlId: "CG-1.2",
-    displayName: "Cybersecurity Strategy",
-    groupId: "CG-1",
-    groupName: "Cybersecurity Governance"
+    controlId: "3.1.2",
+    displayName: "Cyber Security Strategy",
+    groupId: "3.1",
+    groupName: "Cyber Security Governance"
   },
   {
-    controlId: "CG-1.3",
-    displayName: "Organizational Structure",
-    groupId: "CG-1",
-    groupName: "Cybersecurity Governance"
+    controlId: "3.1.3",
+    displayName: "Cyber Security Policy",
+    groupId: "3.1",
+    groupName: "Cyber Security Governance"
   },
   {
-    controlId: "CG-1.4",
-    displayName: "Cybersecurity Policy",
-    groupId: "CG-1",
-    groupName: "Cybersecurity Governance"
+    controlId: "3.1.4",
+    displayName: "Cyber Security Roles and Responsibilities",
+    groupId: "3.1",
+    groupName: "Cyber Security Governance"
   },
   {
-    controlId: "CG-1.5",
-    displayName: "Risk Management Framework",
-    groupId: "CG-1",
-    groupName: "Cybersecurity Governance"
-  },
-
-  // Domain 2: Cybersecurity Defense - Asset Management
-  {
-    controlId: "CD-2.1",
-    displayName: "Asset Inventory",
-    groupId: "CD-2",
-    groupName: "Asset Management"
+    controlId: "3.1.5",
+    displayName: "Cyber Security in Project Management",
+    groupId: "3.1",
+    groupName: "Cyber Security Governance"
   },
   {
-    controlId: "CD-2.2",
-    displayName: "Asset Classification",
-    groupId: "CD-2",
-    groupName: "Asset Management"
+    controlId: "3.1.6",
+    displayName: "Cyber Security Awareness",
+    groupId: "3.1",
+    groupName: "Cyber Security Governance"
   },
   {
-    controlId: "CD-2.3",
-    displayName: "Asset Handling",
-    groupId: "CD-2",
-    groupName: "Asset Management"
+    controlId: "3.1.7",
+    displayName: "Cyber Security Training",
+    groupId: "3.1",
+    groupName: "Cyber Security Governance"
   },
 
-  // Domain 2: Cybersecurity Defense - Access Control
+  // 3.2 Cyber Security Risk Management and Compliance
   {
-    controlId: "CD-3.1",
-    displayName: "Access Control Policy",
-    groupId: "CD-3",
-    groupName: "Access Control"
+    controlId: "3.2.1",
+    displayName: "Cyber Security Risk Management",
+    groupId: "3.2",
+    groupName: "Cyber Security Risk Management and Compliance"
   },
   {
-    controlId: "CD-3.2",
-    displayName: "User Access Management",
-    groupId: "CD-3",
-    groupName: "Access Control"
+    controlId: "3.2.2",
+    displayName: "Regulatory Compliance",
+    groupId: "3.2",
+    groupName: "Cyber Security Risk Management and Compliance"
   },
   {
-    controlId: "CD-3.3",
-    displayName: "Privileged Access Management",
-    groupId: "CD-3",
-    groupName: "Access Control"
+    controlId: "3.2.3",
+    displayName: "Compliance with (inter)national industry standards",
+    groupId: "3.2",
+    groupName: "Cyber Security Risk Management and Compliance"
   },
   {
-    controlId: "CD-3.4",
-    displayName: "Authentication",
-    groupId: "CD-3",
-    groupName: "Access Control"
+    controlId: "3.2.4",
+    displayName: "Cyber Security Review",
+    groupId: "3.2",
+    groupName: "Cyber Security Risk Management and Compliance"
+  },
+  {
+    controlId: "3.2.5",
+    displayName: "Cyber Security Audits",
+    groupId: "3.2",
+    groupName: "Cyber Security Risk Management and Compliance"
   },
 
-  // Domain 2: Cybersecurity Defense - Data Protection
+  // 3.3 Cyber Security Operations and Technology
   {
-    controlId: "CD-4.1",
-    displayName: "Data Classification",
-    groupId: "CD-4",
-    groupName: "Data Protection"
+    controlId: "3.3.1",
+    displayName: "Human Resources",
+    groupId: "3.3",
+    groupName: "Cyber Security Operations and Technology"
   },
   {
-    controlId: "CD-4.2",
-    displayName: "Data Handling",
-    groupId: "CD-4",
-    groupName: "Data Protection"
+    controlId: "3.3.2",
+    displayName: "Physical Security",
+    groupId: "3.3",
+    groupName: "Cyber Security Operations and Technology"
   },
   {
-    controlId: "CD-4.3",
-    displayName: "Data Loss Prevention",
-    groupId: "CD-4",
-    groupName: "Data Protection"
+    controlId: "3.3.3",
+    displayName: "Asset Management",
+    groupId: "3.3",
+    groupName: "Cyber Security Operations and Technology"
   },
   {
-    controlId: "CD-4.4",
+    controlId: "3.3.4",
+    displayName: "Cyber Security Architecture",
+    groupId: "3.3",
+    groupName: "Cyber Security Operations and Technology"
+  },
+  {
+    controlId: "3.3.5",
+    displayName: "Identity and Access Management",
+    groupId: "3.3",
+    groupName: "Cyber Security Operations and Technology"
+  },
+  {
+    controlId: "3.3.6",
+    displayName: "Application Security",
+    groupId: "3.3",
+    groupName: "Cyber Security Operations and Technology"
+  },
+  {
+    controlId: "3.3.7",
+    displayName: "Change Management",
+    groupId: "3.3",
+    groupName: "Cyber Security Operations and Technology"
+  },
+  {
+    controlId: "3.3.8",
+    displayName: "Infrastructure Security",
+    groupId: "3.3",
+    groupName: "Cyber Security Operations and Technology"
+  },
+  {
+    controlId: "3.3.9",
     displayName: "Cryptography",
-    groupId: "CD-4",
-    groupName: "Data Protection"
-  },
-
-  // Domain 2: Cybersecurity Defense - Network Security
-  {
-    controlId: "CD-5.1",
-    displayName: "Network Architecture",
-    groupId: "CD-5",
-    groupName: "Network Security"
+    groupId: "3.3",
+    groupName: "Cyber Security Operations and Technology"
   },
   {
-    controlId: "CD-5.2",
-    displayName: "Network Monitoring",
-    groupId: "CD-5",
-    groupName: "Network Security"
+    controlId: "3.3.10",
+    displayName: "Bring Your Own Device (BYOD)",
+    groupId: "3.3",
+    groupName: "Cyber Security Operations and Technology"
   },
   {
-    controlId: "CD-5.3",
-    displayName: "Network Access Control",
-    groupId: "CD-5",
-    groupName: "Network Security"
-  },
-
-  // Domain 2: Cybersecurity Defense - Systems Security
-  {
-    controlId: "CD-6.1",
-    displayName: "Endpoint Protection",
-    groupId: "CD-6",
-    groupName: "Systems Security"
+    controlId: "3.3.11",
+    displayName: "Secure Disposal of Information Assets",
+    groupId: "3.3",
+    groupName: "Cyber Security Operations and Technology"
   },
   {
-    controlId: "CD-6.2",
-    displayName: "System Hardening",
-    groupId: "CD-6",
-    groupName: "Systems Security"
+    controlId: "3.3.12",
+    displayName: "Payment Systems",
+    groupId: "3.3",
+    groupName: "Cyber Security Operations and Technology"
   },
   {
-    controlId: "CD-6.3",
+    controlId: "3.3.13",
+    displayName: "Electronic Banking Services",
+    groupId: "3.3",
+    groupName: "Cyber Security Operations and Technology"
+  },
+  {
+    controlId: "3.3.14",
+    displayName: "Cyber Security Event Management",
+    groupId: "3.3",
+    groupName: "Cyber Security Operations and Technology"
+  },
+  {
+    controlId: "3.3.15",
+    displayName: "Cyber Security Incident Management",
+    groupId: "3.3",
+    groupName: "Cyber Security Operations and Technology"
+  },
+  {
+    controlId: "3.3.16",
+    displayName: "Threat Management",
+    groupId: "3.3",
+    groupName: "Cyber Security Operations and Technology"
+  },
+  {
+    controlId: "3.3.17",
     displayName: "Vulnerability Management",
-    groupId: "CD-6",
-    groupName: "Systems Security"
-  },
-  {
-    controlId: "CD-6.4",
-    displayName: "Patch Management",
-    groupId: "CD-6",
-    groupName: "Systems Security"
+    groupId: "3.3",
+    groupName: "Cyber Security Operations and Technology"
   },
 
-  // Domain 2: Cybersecurity Defense - Application Security
+  // 3.4 Third Party Cyber Security
   {
-    controlId: "CD-7.1",
-    displayName: "Secure Development",
-    groupId: "CD-7",
-    groupName: "Application Security"
+    controlId: "3.4.1",
+    displayName: "Contract and Vendor Management",
+    groupId: "3.4",
+    groupName: "Third Party Cyber Security"
   },
   {
-    controlId: "CD-7.2",
-    displayName: "Application Testing",
-    groupId: "CD-7",
-    groupName: "Application Security"
+    controlId: "3.4.2",
+    displayName: "Outsourcing",
+    groupId: "3.4",
+    groupName: "Third Party Cyber Security"
   },
   {
-    controlId: "CD-7.3",
-    displayName: "Application Deployment",
-    groupId: "CD-7",
-    groupName: "Application Security"
-  },
-
-  // Domain 3: Cybersecurity Resilience - Business Continuity
-  {
-    controlId: "CR-8.1",
-    displayName: "Business Continuity Planning",
-    groupId: "CR-8",
-    groupName: "Business Continuity"
-  },
-  {
-    controlId: "CR-8.2",
-    displayName: "Backup and Recovery",
-    groupId: "CR-8",
-    groupName: "Business Continuity"
-  },
-  {
-    controlId: "CR-8.3",
-    displayName: "Disaster Recovery",
-    groupId: "CR-8",
-    groupName: "Business Continuity"
-  },
-  {
-    controlId: "CR-8.4",
-    displayName: "Testing and Validation",
-    groupId: "CR-8",
-    groupName: "Business Continuity"
-  },
-
-  // Domain 4: Dealing with Cybersecurity Events - Incident Response
-  {
-    controlId: "CE-9.1",
-    displayName: "Incident Response Planning",
-    groupId: "CE-9",
-    groupName: "Incident Response"
-  },
-  {
-    controlId: "CE-9.2",
-    displayName: "Incident Detection",
-    groupId: "CE-9",
-    groupName: "Incident Response"
-  },
-  {
-    controlId: "CE-9.3",
-    displayName: "Incident Analysis",
-    groupId: "CE-9",
-    groupName: "Incident Response"
-  },
-  {
-    controlId: "CE-9.4",
-    displayName: "Incident Containment",
-    groupId: "CE-9",
-    groupName: "Incident Response"
-  },
-  {
-    controlId: "CE-9.5",
-    displayName: "Incident Recovery",
-    groupId: "CE-9",
-    groupName: "Incident Response"
-  },
-  {
-    controlId: "CE-9.6",
-    displayName: "Incident Communication",
-    groupId: "CE-9",
-    groupName: "Incident Response"
-  },
-
-  // Domain 4: Dealing with Cybersecurity Events - Monitoring
-  {
-    controlId: "CE-10.1",
-    displayName: "Security Monitoring",
-    groupId: "CE-10",
-    groupName: "Security Monitoring"
-  },
-  {
-    controlId: "CE-10.2",
-    displayName: "Log Management",
-    groupId: "CE-10",
-    groupName: "Security Monitoring"
-  },
-  {
-    controlId: "CE-10.3",
-    displayName: "Threat Intelligence",
-    groupId: "CE-10",
-    groupName: "Security Monitoring"
-  },
-
-  // Domain 5: Third Party Cybersecurity Risk Management
-  {
-    controlId: "TP-11.1",
-    displayName: "Third Party Risk Assessment",
-    groupId: "TP-11",
-    groupName: "Third Party Risk Management"
-  },
-  {
-    controlId: "TP-11.2",
-    displayName: "Vendor Management",
-    groupId: "TP-11",
-    groupName: "Third Party Risk Management"
-  },
-  {
-    controlId: "TP-11.3",
-    displayName: "Contractual Requirements",
-    groupId: "TP-11",
-    groupName: "Third Party Risk Management"
-  },
-  {
-    controlId: "TP-11.4",
-    displayName: "Third Party Monitoring",
-    groupId: "TP-11",
-    groupName: "Third Party Risk Management"
-  },
-  {
-    controlId: "TP-11.5",
-    displayName: "Supply Chain Security",
-    groupId: "TP-11",
-    groupName: "Third Party Risk Management"
+    controlId: "3.4.3",
+    displayName: "Cloud Computing",
+    groupId: "3.4",
+    groupName: "Third Party Cyber Security"
   }
 ];
 
