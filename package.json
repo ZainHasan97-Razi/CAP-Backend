@@ -20,6 +20,8 @@
     "seed:otccmm1": "ts-node src/seeders/index.ts seed \"OTCCMM-1\"",
     "seed:dcc1": "ts-node src/seeders/index.ts seed \"DCC-1\"",
     "seed:ccc2": "ts-node src/seeders/index.ts seed \"CCC-2\"",
+    "seed:samabcm": "ts-node src/seeders/index.ts seed \"SAMA BCM\"",
+    "seed:itg": "ts-node src/seeders/index.ts seed \"ITG\"",
     "seed:reset": "ts-node src/seeders/index.ts reset",
     "seed:remove": "ts-node src/seeders/index.ts remove"
   },

@@ -9,6 +9,8 @@ import { seedOSMACC1, removeOSMACC1 } from './osmacc1.seeder';
 import { seedOTCCMM1, removeOTCCMM1 } from './otccmm1.seeder';
 import { seedDCC1, removeDCC1 } from './dcc1.seeder';
 import { seedCCC2, removeCCC2 } from './ccc2.seeder';
+import { seedSAMABCM, removeSAMABCM } from './sama-bcm.seeder';
+import { seedITG, removeITG } from './itg.seeder';
 import { connectDB } from '../database'; // Ensure database connection
 import dotenv from 'dotenv';
 
@@ -83,6 +85,16 @@ export const frameworkSeeders: FrameworkSeeder[] = [
     name: 'CCC-2',
     seed: seedCCC2,
     remove: removeCCC2
+  },
+  {
+    name: 'SAMA BCM',
+    seed: seedSAMABCM,
+    remove: removeSAMABCM
+  },
+  {
+    name: 'ITG',
+    seed: seedITG,
+    remove: removeITG
   }
 ];
 
