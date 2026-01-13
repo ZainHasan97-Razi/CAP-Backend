@@ -14,6 +14,12 @@
     "seed:iso27002": "ts-node src/seeders/index.ts seed \"ISO 27002\"",
     "seed:nca": "ts-node src/seeders/index.ts seed \"NCA CC\"",
     "seed:psp": "ts-node src/seeders/index.ts seed \"SAMA PSP\"",
+    "seed:tcc1": "ts-node src/seeders/index.ts seed \"TCC-1\"",
+    "seed:otcc1": "ts-node src/seeders/index.ts seed \"OTCC-1\"",
+    "seed:osmacc1": "ts-node src/seeders/index.ts seed \"OSMACC-1\"",
+    "seed:otccmm1": "ts-node src/seeders/index.ts seed \"OTCCMM-1\"",
+    "seed:dcc1": "ts-node src/seeders/index.ts seed \"DCC-1\"",
+    "seed:ccc2": "ts-node src/seeders/index.ts seed \"CCC-2\"",
     "seed:reset": "ts-node src/seeders/index.ts reset",
     "seed:remove": "ts-node src/seeders/index.ts remove"
   },

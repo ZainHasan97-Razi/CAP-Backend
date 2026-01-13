@@ -3,6 +3,12 @@ import { seedISO27001, removeISO27001 } from './iso27001.seeder';
 import { seedISO27002, removeISO27002 } from './iso27002.seeder';
 import { seedNCACC, removeNCACC } from './nca-cc.seeder';
 import { seedSAMAPSP, removeSAMAPSP } from './sama-psp.seeder';
+import { seedTCC1, removeTCC1 } from './tcc1.seeder';
+import { seedOTCC1, removeOTCC1 } from './otcc1.seeder';
+import { seedOSMACC1, removeOSMACC1 } from './osmacc1.seeder';
+import { seedOTCCMM1, removeOTCCMM1 } from './otccmm1.seeder';
+import { seedDCC1, removeDCC1 } from './dcc1.seeder';
+import { seedCCC2, removeCCC2 } from './ccc2.seeder';
 import { connectDB } from '../database'; // Ensure database connection
 import dotenv from 'dotenv';
 
@@ -47,6 +53,36 @@ export const frameworkSeeders: FrameworkSeeder[] = [
     name: 'SAMA PSP',
     seed: seedSAMAPSP,
     remove: removeSAMAPSP
+  },
+  {
+    name: 'TCC-1',
+    seed: seedTCC1,
+    remove: removeTCC1
+  },
+  {
+    name: 'OTCC-1',
+    seed: seedOTCC1,
+    remove: removeOTCC1
+  },
+  {
+    name: 'OSMACC-1',
+    seed: seedOSMACC1,
+    remove: removeOSMACC1
+  },
+  {
+    name: 'OTCCMM-1',
+    seed: seedOTCCMM1,
+    remove: removeOTCCMM1
+  },
+  {
+    name: 'DCC-1',
+    seed: seedDCC1,
+    remove: removeDCC1
+  },
+  {
+    name: 'CCC-2',
+    seed: seedCCC2,
+    remove: removeCCC2
   }
 ];
 
