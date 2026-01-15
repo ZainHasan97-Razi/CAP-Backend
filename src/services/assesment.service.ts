@@ -31,7 +31,7 @@ const dashboardList = async (filters: DashboardFilters = {}) => {
   const query: any = {};
   
   if (status) query.status = status;
-  if (department) query.department = department;
+  if (department) query['departments.id'] = department;
   if (priority) query.priority = priority;
   
   if (dateFrom || dateTo) {

@@ -19,8 +19,13 @@ const findActiveDepts = async () => {
   .lean();
 }
 
+const findByIds = async (ids: (string|MongoIdType)[]) => {
+  return await DepartmentModel.find({ _id: { $in: ids } });
+};
+
 export default {
   findById,
+  findByIds,
   create,
   update,
   findActiveDepts,

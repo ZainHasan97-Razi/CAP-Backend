@@ -14,7 +14,7 @@ type CreateRequestDto = {
   description: string;
   framework: string;
   control: string;
-  department: string;
+  departments: string[];
   participants?: string[];
   attachments?: string[];
   priority: PriorityEnumType;
@@ -32,9 +32,9 @@ export const create = async (req: ARequest, res: Response, next: NextFunction) =
     if(!control) {
       throw ApiError.badRequest("Invalid control id");
     }
-    const department = await departmentService.findById(body.department)
-    if(!department) {
-      throw ApiError.badRequest("Invalid department id");
+    const departments = await departmentService.findByIds(body.departments);
+    if(!departments || departments.length !== body.departments.length) {
+      throw ApiError.badRequest("Invalid department id(s)");
     }
     const payload: CreateAssesmentDto = {
       assesmentId: body.assesmentId,
@@ -45,8 +45,7 @@ export const create = async (req: ARequest, res: Response, next: NextFunction) =
       control: control._id,
       controlId: control.controlId,
       controlName: control.displayName,
-      department: department._id,
-      departmentName: department.displayName,
+      departments: departments.map(d => ({ id: d._id, name: d.displayName })),
       participants: body.participants || [],
       attachments: body.attachments || [],
       priority: body.priority,
@@ -83,7 +82,7 @@ export const findById = async (req: ARequest, res: Response, next: NextFunction)
 
     const assesment = await assesmentService.findById(id);
     if (!assesment) {
-      throw ApiError.badRequest("Assesment not found");
+      throw ApiError.notFound("Assesment not found");
     }
 
     res.json(assesment);
