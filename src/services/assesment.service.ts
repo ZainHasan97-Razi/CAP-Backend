@@ -1,18 +1,6 @@
 import AssesmentModel, { CreateAssesmentDto, UpdateAssesmentDto } from "../models/assesment.model";
 import { MongoIdType } from "types/mongoid.type";
 
-const findById = async (id: string|MongoIdType) => {
-  return await AssesmentModel.findById(id);
-};
-
-const create = async (payload: CreateAssesmentDto) => {
-  return await AssesmentModel.create(payload);
-};
-
-const update = async (id: string|MongoIdType, data: UpdateAssesmentDto) => {
-  return await AssesmentModel.findByIdAndUpdate(id, data);
-};
-
 interface DashboardFilters {
   status?: string;
   department?: string;
@@ -24,6 +12,18 @@ interface DashboardFilters {
   page?: number;
   limit?: number;
 }
+
+const findById = async (id: string|MongoIdType) => {
+  return await AssesmentModel.findById(id);
+};
+
+const create = async (payload: CreateAssesmentDto) => {
+  return await AssesmentModel.create(payload);
+};
+
+const update = async (id: string|MongoIdType, data: UpdateAssesmentDto) => {
+  return await AssesmentModel.findByIdAndUpdate(id, data);
+};
 
 const dashboardList = async (filters: DashboardFilters = {}) => {
   const { status, department, priority, dateFrom, dateTo, dueDateFrom, dueDateTo, page = 1, limit = 10 } = filters;
@@ -68,9 +68,35 @@ const dashboardList = async (filters: DashboardFilters = {}) => {
   };
 }
 
+const findRecentByControlId = async (controlId: string, controlName?: string) => {
+  const currentYear = new Date().getFullYear();
+  const yearStart = new Date(currentYear, 0, 1);
+  
+  const query: any = {
+    status: 'closed',
+    updatedAt: { $gte: yearStart }
+  };
+  
+  if (controlName) {
+    query.$or = [
+      { controlId: controlId },
+      { controlName: { $regex: controlName, $options: 'i' } }
+    ];
+  } else {
+    query.controlId = controlId;
+  }
+  
+  return await AssesmentModel.find(query)
+    .select('name description frameworkName controlId controlName updatedAt status priority attachments')
+    .sort({ updatedAt: -1 })
+    .limit(10)
+    .lean();
+};
+
 export default {
   findById,
   create,
   update,
   dashboardList,
+  findRecentByControlId,
 }

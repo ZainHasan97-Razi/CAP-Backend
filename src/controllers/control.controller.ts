@@ -29,6 +29,21 @@ export const update = async (req: ARequest, res: Response, next: NextFunction) =
   }
 }
 
+export const findByControlIdWithAssessments = async (req: ARequest, res: Response, next: NextFunction) => {
+  try {
+    const control = await controlService.findByControlIdWithAssessments(req.params.controlId);
+    
+    if (!control) {
+      throw ApiError.badRequest("Control not found");
+    }
+
+    res.json(control);
+  } catch (error) {
+    console.error(error);
+    next(error);
+  }
+}
+
 export const findActiveByFramework = async (req: ARequest, res: Response, next: NextFunction) => {
   try {
     const controls = await controlService.findActiveByFramework(req.params.frameworkId)
