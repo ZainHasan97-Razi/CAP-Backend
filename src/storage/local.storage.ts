@@ -3,12 +3,26 @@ import fs from "fs";
 import path from "path";
 
 export default class LocalDiskStorage implements StorageService {
+  private ensureUploadDir() {
+    const uploadDir = path.join(process.cwd(), "uploads");
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir, { recursive: true });
+    }
+    return uploadDir;
+  }
+
   async uploadFile(file: Express.Multer.File): Promise<string> {
-    const uploadPath = path.join("uploads", Date.now() + "-" + file.originalname);
+    const uploadDir = this.ensureUploadDir();
+    const fileName = Date.now() + "-" + file.originalname;
+    const uploadPath = path.join(uploadDir, fileName);
 
     fs.writeFileSync(uploadPath, file.buffer);
 
-    return uploadPath;
+    const baseUrl = process.env.NODE_ENV === 'production' 
+      ? process.env.BACKEND_URL || 'http://localhost:9000'
+      : `http://localhost:${process.env.PORT || 9000}`;
+    
+    return `${baseUrl}/uploads/${fileName}`;
   }
 
   async uploadMultipleFiles(files: Express.Multer.File[]): Promise<string[]> {

@@ -1,5 +1,6 @@
 import express from "express";
 import dotenv from 'dotenv';
+import path from 'path';
 import rootRouter from './routes/root.route';
 import { connectDB } from "./database";
 import { errorHandler } from "./middleware/error.handler";
@@ -13,6 +14,10 @@ app.use((req, res, next) => allowingCors(req, res, next));
 
 // Middleware
 app.use(express.json());
+
+// Serve uploaded files statically
+app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
+
 app.use("/api", rootRouter)
 app.use(errorHandler);
 connectDB();
