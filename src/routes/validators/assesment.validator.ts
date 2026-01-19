@@ -16,7 +16,24 @@ export const createAssesment_validation = validateRequest([
   body('attachments').optional({ nullable: true, checkFalsy: true })
     .isArray().withMessage('Attachments must be an array'),
   body("priority").optional({ nullable: true, checkFalsy: true }).isIn(Object.values(PriorityEnum)).withMessage("Priority must be a valid value"),
-  body("dueDate").isInt({min:1}).withMessage('Due date must be a valid timestamp'), // seconds
+  body("startDate").isInt({min:1}).withMessage('Start date must be a valid timestamp').custom((value, { req }) => {
+    if (value <= Math.floor(Date.now() / 1000)) {
+      throw new Error('Start date must be in the future');
+    }
+    if (req.body.dueDate && value >= req.body.dueDate) {
+      throw new Error('Start date must be before due date');
+    }
+    return true;
+  }),
+  body("dueDate").isInt({min:1}).withMessage('Due date must be a valid timestamp').custom((value, { req }) => {
+    if (value <= Math.floor(Date.now() / 1000)) {
+      throw new Error('Due date must be in the future');
+    }
+    if (req.body.startDate && value <= req.body.startDate) {
+      throw new Error('Due date must be after start date');
+    }
+    return true;
+  }), // seconds
 
 
 //   .custom(async (id) => {
@@ -38,6 +55,8 @@ export const dashboardList_validation = validateRequest([
   query('priority').optional().isIn(Object.values(PriorityEnum)).withMessage('Invalid priority value'),
   query('dateFrom').optional().isInt({min: 1}).withMessage('Date from must be a valid timestamp'),
   query('dateTo').optional().isInt({min: 1}).withMessage('Date to must be a valid timestamp'),
+  query('startDateFrom').optional().isInt({min: 1}).withMessage('Start date from must be a valid timestamp'),
+  query('startDateTo').optional().isInt({min: 1}).withMessage('Start date to must be a valid timestamp'),
   query('dueDateFrom').optional().isInt({min: 1}).withMessage('Due date from must be a valid timestamp'),
   query('dueDateTo').optional().isInt({min: 1}).withMessage('Due date to must be a valid timestamp'),
   query('page').optional().isInt({min: 1}).withMessage('Page must be a positive integer'),

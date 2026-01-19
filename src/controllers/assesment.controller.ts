@@ -18,6 +18,7 @@ type CreateRequestDto = {
   participants?: string[];
   attachments?: string[];
   priority: PriorityEnumType;
+  startDate: number;
   dueDate: number;
 }
 
@@ -49,6 +50,7 @@ export const create = async (req: ARequest, res: Response, next: NextFunction) =
       participants: body.participants || [],
       attachments: body.attachments || [],
       priority: body.priority,
+      startDate: body.startDate,
       dueDate: body.dueDate,
       createdBy: (req.user as IUser).userName,
     }
@@ -100,6 +102,8 @@ export const dashboardList = async (req: ARequest, res: Response, next: NextFunc
       priority: req.query.priority as string,
       dateFrom: req.query.dateFrom ? parseInt(req.query.dateFrom as string) : undefined,
       dateTo: req.query.dateTo ? parseInt(req.query.dateTo as string) : undefined,
+      startDateFrom: req.query.startDateFrom ? parseInt(req.query.startDateFrom as string) : undefined,
+      startDateTo: req.query.startDateTo ? parseInt(req.query.startDateTo as string) : undefined,
       dueDateFrom: req.query.dueDateFrom ? parseInt(req.query.dueDateFrom as string) : undefined,
       dueDateTo: req.query.dueDateTo ? parseInt(req.query.dueDateTo as string) : undefined,
       page: req.query.page ? parseInt(req.query.page as string) : 1,

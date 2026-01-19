@@ -7,6 +7,8 @@ interface DashboardFilters {
   priority?: string;
   dateFrom?: number;
   dateTo?: number;
+  startDateFrom?: number;
+  startDateTo?: number;
   dueDateFrom?: number;
   dueDateTo?: number;
   page?: number;
@@ -26,7 +28,7 @@ const update = async (id: string|MongoIdType, data: UpdateAssesmentDto) => {
 };
 
 const dashboardList = async (filters: DashboardFilters = {}) => {
-  const { status, department, priority, dateFrom, dateTo, dueDateFrom, dueDateTo, page = 1, limit = 10 } = filters;
+  const { status, department, priority, dateFrom, dateTo, startDateFrom, startDateTo, dueDateFrom, dueDateTo, page = 1, limit = 10 } = filters;
   
   const query: any = {};
   
@@ -38,6 +40,12 @@ const dashboardList = async (filters: DashboardFilters = {}) => {
     query.createdAt = {};
     if (dateFrom) query.createdAt.$gte = new Date(dateFrom * 1000);
     if (dateTo) query.createdAt.$lte = new Date(dateTo * 1000);
+  }
+  
+  if (startDateFrom || startDateTo) {
+    query.startDate = {};
+    if (startDateFrom) query.startDate.$gte = startDateFrom;
+    if (startDateTo) query.startDate.$lte = startDateTo;
   }
   
   if (dueDateFrom || dueDateTo) {

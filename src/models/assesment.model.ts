@@ -31,6 +31,7 @@ export const assesmentSchema = new Schema(
     attachments: {type: [String], default: []},
     status: { type: String, enum: AssesmentStatusEnum, default: AssesmentStatusEnum.open },
     priority: { type: String, enum: PriorityEnum, required: true },
+    startDate: {type: Number, required: true}, // unix seconds
     dueDate: {type: Number, required: true}, // unix seconds
     createdBy: {type: String, required: true}, // some auditor person
   },
