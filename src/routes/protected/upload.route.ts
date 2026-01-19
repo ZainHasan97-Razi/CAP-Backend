@@ -1,6 +1,6 @@
 import { Router } from "express";
 import upload from "../../config/multer.config";
-import { uploadSingle, uploadMultiple } from "../../controllers/upload.controller";
+import { uploadSingle, uploadMultiple, deleteFile } from "../../controllers/upload.controller";
 
 const router = Router();
 
@@ -9,5 +9,8 @@ router.post("/single", upload.single("file"), uploadSingle);
 
 // Multiple files upload
 router.post("/multiple", upload.array("files", 10), uploadMultiple);
+
+// Delete file
+router.delete("/delete", deleteFile);
 
 export default router;

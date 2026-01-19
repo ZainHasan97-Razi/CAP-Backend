@@ -29,4 +29,17 @@ export default class GCPStorage implements StorageService {
   async uploadMultipleFiles(files: Express.Multer.File[]): Promise<string[]> {
     return Promise.all(files.map((f) => this.uploadFile(f)));
   }
+
+  async deleteFile(fileUrl: string): Promise<boolean> {
+    try {
+      const fileName = fileUrl.split('/').pop();
+      if (!fileName) return false;
+      
+      const file = this.bucket.file(fileName);
+      await file.delete();
+      return true;
+    } catch (error) {
+      return false;
+    }
+  }
 }

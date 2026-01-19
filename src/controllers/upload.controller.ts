@@ -55,3 +55,23 @@ export const uploadMultiple = async (req: Request, res: Response, next: NextFunc
     next(err);
   }
 };
+
+export const deleteFile = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { fileUrl } = req.body;
+
+    if (!fileUrl) {
+      throw ApiError.badRequest("File URL is required");
+    }
+
+    const deleted = await storage.deleteFile(fileUrl);
+
+    if (!deleted) {
+      throw ApiError.notFound("File not found or could not be deleted");
+    }
+
+    return res.json({ success: true, message: "File deleted successfully" });
+  } catch (err: any) {
+    next(err);
+  }
+};

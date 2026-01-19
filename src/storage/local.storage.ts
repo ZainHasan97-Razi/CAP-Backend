@@ -28,4 +28,22 @@ export default class LocalDiskStorage implements StorageService {
   async uploadMultipleFiles(files: Express.Multer.File[]): Promise<string[]> {
     return Promise.all(files.map((f) => this.uploadFile(f)));
   }
+
+  async deleteFile(fileUrl: string): Promise<boolean> {
+    try {
+      const fileName = fileUrl.split('/uploads/').pop();
+      if (!fileName) return false;
+      
+      const filePath = path.join(process.cwd(), "uploads", fileName);
+      
+      if (fs.existsSync(filePath)) {
+        fs.unlinkSync(filePath);
+        return true;
+      }
+      
+      return false;
+    } catch (error) {
+      return false;
+    }
+  }
 }

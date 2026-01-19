@@ -17,4 +17,15 @@ export default class OnPremStorage implements StorageService {
   async uploadMultipleFiles(files: Express.Multer.File[]): Promise<string[]> {
     return Promise.all(files.map((f) => this.uploadFile(f)));
   }
+
+  async deleteFile(fileUrl: string): Promise<boolean> {
+    try {
+      const response = await axios.delete(process.env.ONPREM_DELETE_URL!, {
+        data: { fileUrl }
+      });
+      return response.status === 200;
+    } catch (error) {
+      return false;
+    }
+  }
 }
