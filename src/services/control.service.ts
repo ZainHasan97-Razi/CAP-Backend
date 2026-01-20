@@ -18,8 +18,10 @@ const update = async (id: string|MongoIdType, data: UpdateControlDto) => {
 const findActiveByFramework = async (frameworkId: MongoIdType|string, search?: string, status?: string) => {
   let query: any = {frameworkId};
   
-  // Add status filter - default to active if not specified
-  query.status = status || ControlStatusEnum.active;
+  // Add status filter only if specified
+  if (status) {
+    query.status = status;
+  }
   
   if (search) {
     query.$or = [
