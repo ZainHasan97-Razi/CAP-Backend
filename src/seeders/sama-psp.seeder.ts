@@ -388,7 +388,8 @@ export const seedSAMAPSP = async () => {
 
     const controlsWithFrameworkId = samaPspControlsData.map(control => ({
       ...control,
-      frameworkId: framework._id
+      frameworkId: framework._id,
+      frameworkName: framework.displayName
     }));
 
     const controls = await ControlModel.insertMany(controlsWithFrameworkId);

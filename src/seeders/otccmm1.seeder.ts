@@ -396,7 +396,8 @@ export const seedOTCCMM1 = async () => {
 
     const controlsWithFrameworkId = otccmm1ControlsData.map(control => ({
       ...control,
-      frameworkId: framework._id
+      frameworkId: framework._id,
+      frameworkName: framework.displayName
     }));
 
     const controls = await ControlModel.insertMany(controlsWithFrameworkId);

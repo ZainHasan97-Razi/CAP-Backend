@@ -565,7 +565,8 @@ export async function seedCcc2Framework() {
     // Create controls
     const controlsWithFrameworkId = ccc2ControlsData.map(control => ({
       ...control,
-      frameworkId: framework._id
+      frameworkId: framework._id,
+      frameworkName: framework.displayName
     }));
 
     await ControlModel.insertMany(controlsWithFrameworkId);

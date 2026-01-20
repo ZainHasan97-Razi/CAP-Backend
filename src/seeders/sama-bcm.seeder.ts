@@ -335,7 +335,8 @@ export async function seedSamaBcmFramework() {
     // Create controls
     const controlsWithFrameworkId = samaBcmControlsData.map(control => ({
       ...control,
-      frameworkId: framework._id
+      frameworkId: framework._id,
+      frameworkName: framework.displayName
     }));
 
     await ControlModel.insertMany(controlsWithFrameworkId);

@@ -381,7 +381,8 @@ export async function seedDcc1Framework() {
     // Create controls
     const controlsWithFrameworkId = dcc1ControlsData.map(control => ({
       ...control,
-      frameworkId: framework._id
+      frameworkId: framework._id,
+      frameworkName: framework.displayName
     }));
 
     await ControlModel.insertMany(controlsWithFrameworkId);

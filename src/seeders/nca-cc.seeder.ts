@@ -422,7 +422,8 @@ export const seedNCACC = async () => {
 
     const controlsWithFrameworkId = ncaCcControlsData.map(control => ({
       ...control,
-      frameworkId: framework._id
+      frameworkId: framework._id,
+      frameworkName: framework.displayName
     }));
 
     const controls = await ControlModel.insertMany(controlsWithFrameworkId);

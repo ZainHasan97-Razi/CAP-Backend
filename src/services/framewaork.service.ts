@@ -99,7 +99,8 @@ const createFromCsv = async (displayName: string, type: string, csvBuffer: Buffe
           
           const controlsWithFrameworkId = controls.map(control => ({
             ...control,
-            frameworkId: framework._id
+            frameworkId: framework._id,
+            frameworkName: framework.displayName
           }));
 
           const createdControls = await ControlModel.insertMany(controlsWithFrameworkId);

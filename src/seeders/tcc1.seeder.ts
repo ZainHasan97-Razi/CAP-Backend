@@ -480,7 +480,8 @@ export const seedTCC1 = async () => {
 
     const controlsWithFrameworkId = tcc1ControlsData.map(control => ({
       ...control,
-      frameworkId: framework._id
+      frameworkId: framework._id,
+      frameworkName: framework.displayName
     }));
 
     const controls = await ControlModel.insertMany(controlsWithFrameworkId);

@@ -595,7 +595,8 @@ export const seedISO27001 = async () => {
 
     // Check if controls already exist for this framework
     const existingControlsCount = await ControlModel.countDocuments({ 
-      frameworkId: framework._id 
+      frameworkId: framework._id,
+      frameworkName: framework.displayName
     });
 
     if (existingControlsCount > 0) {
@@ -610,7 +611,8 @@ export const seedISO27001 = async () => {
     // Create controls with framework reference
     const controlsWithFrameworkId = iso27001ControlsData.map(control => ({
       ...control,
-      frameworkId: framework._id
+      frameworkId: framework._id,
+      frameworkName: framework.displayName
     }));
 
     const controls = await ControlModel.insertMany(controlsWithFrameworkId);
