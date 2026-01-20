@@ -15,9 +15,21 @@ const update = async (id: string|MongoIdType, data: UpdateControlDto) => {
   return await ControlModel.findByIdAndUpdate(id, data);
 };
 
-const findActiveByFramework = async (frameworkId: MongoIdType|string) => {
-  const controls = await ControlModel.find({frameworkId, status: ControlStatusEnum.active})
-    .select("controlId displayName groupId groupName")
+const findActiveByFramework = async (frameworkId: MongoIdType|string, search?: string, status?: string) => {
+  let query: any = {frameworkId};
+  
+  // Add status filter - default to active if not specified
+  query.status = status || ControlStatusEnum.active;
+  
+  if (search) {
+    query.$or = [
+      { controlId: { $regex: search, $options: 'i' } },
+      { displayName: { $regex: search, $options: 'i' } }
+    ];
+  }
+  
+  const controls = await ControlModel.find(query)
+    .select("controlId displayName groupId groupName status")
     .lean();
   
   return sortControlsByControlId(controls);

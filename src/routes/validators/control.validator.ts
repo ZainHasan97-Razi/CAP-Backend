@@ -35,4 +35,6 @@ export const updateControl_validation = validateRequest([
 
 export const frameworkId_validation = validateRequest([
   param("frameworkId").trim().isMongoId().withMessage("Invalid framework id"),
+  query("search").optional().trim().isLength({ min: 1 }).withMessage("Search term must be at least 1 character"),
+  query("status").optional().isIn(Object.values(ControlStatusEnum)).withMessage("Invalid status")
 ]);

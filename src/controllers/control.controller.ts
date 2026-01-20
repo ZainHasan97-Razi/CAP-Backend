@@ -46,7 +46,8 @@ export const findByControlIdWithAssessments = async (req: ARequest, res: Respons
 
 export const findActiveByFramework = async (req: ARequest, res: Response, next: NextFunction) => {
   try {
-    const controls = await controlService.findActiveByFramework(req.params.frameworkId)
+    const { search, status } = req.query;
+    const controls = await controlService.findActiveByFramework(req.params.frameworkId, search as string, status as string)
 
     res.json(controls);
   } catch (error) {
