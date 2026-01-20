@@ -20,9 +20,17 @@ export const createControl_validation = validateRequest([
 ]);
 
 export const updateControl_validation = validateRequest([
+  param("id").trim().isMongoId().withMessage("Invalid control id"),
   body("displayName").optional({ nullable: true, checkFalsy: true }).trim().not().isEmpty().withMessage("Invalid framework name"),
   body("status").optional({ nullable: true, checkFalsy: true }).isIn([Object.values(ControlStatusEnum)]).withMessage("Invalid status"),
-//   query('page').optional({ nullable: true, checkFalsy: true }).if(val => val !== null).isInt({min:1}).withMessage('Invalid page!')
+  body().custom((value, { req }) => {
+    const allowedFields = ['displayName', 'status'];
+    const extraFields = Object.keys(req.body).filter(field => !allowedFields.includes(field));
+    if (extraFields.length > 0) {
+      throw new Error(`Unexpected fields: ${extraFields.join(', ')}`);
+    }
+    return true;
+  })
 ]);
 
 export const frameworkId_validation = validateRequest([
