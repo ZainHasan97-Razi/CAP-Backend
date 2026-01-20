@@ -9,6 +9,7 @@ export type ControlStatusEnumType = keyof typeof ControlStatusEnum;
 export const controlSchema = new Schema(
   {
     frameworkId: {type: mongoose.Types.ObjectId, required: true, ref: "Framework"},
+    frameworkName: {type: String, required: true},
     controlId: {type: String, required: true},
     displayName: {type: String, required: true},
     groupId: {type: String, required: true},
