@@ -102,6 +102,7 @@ export const dashboardList = async (req: ARequest, res: Response, next: NextFunc
       frameworkType: req.query.frameworkType as string,
       department: req.query.department as string,
       priority: req.query.priority as string,
+      search: req.query.search as string,
       dateFrom: req.query.dateFrom ? parseInt(req.query.dateFrom as string) : undefined,
       dateTo: req.query.dateTo ? parseInt(req.query.dateTo as string) : undefined,
       startDateFrom: req.query.startDateFrom ? parseInt(req.query.startDateFrom as string) : undefined,
