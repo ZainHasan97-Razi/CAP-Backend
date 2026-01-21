@@ -41,6 +41,7 @@ export const create = async (req: ARequest, res: Response, next: NextFunction) =
       assesmentId: body.assesmentId,
       name: body.name,
       description: body.description,
+      frameworkType: framework.type,
       framework: framework._id,
       frameworkName: framework.displayName,
       control: control._id,
@@ -98,6 +99,7 @@ export const dashboardList = async (req: ARequest, res: Response, next: NextFunc
   try {
     const filters = {
       status: req.query.status as string,
+      frameworkType: req.query.frameworkType as string,
       department: req.query.department as string,
       priority: req.query.priority as string,
       dateFrom: req.query.dateFrom ? parseInt(req.query.dateFrom as string) : undefined,

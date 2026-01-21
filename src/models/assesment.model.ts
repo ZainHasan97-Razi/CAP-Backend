@@ -1,5 +1,6 @@
 import mongoose, { HydratedDocument, InferSchemaType, model, Schema } from 'mongoose';
 import { ExtractAndFix } from 'types/inferred.schema.type';
+import { FrameworkTypeEnum, FrameworkTypeEnumType } from './framework.model';
 
 export const AssesmentStatusEnum = {
   open: "open",
@@ -21,6 +22,7 @@ export const assesmentSchema = new Schema(
     assesmentId: {type: String, required: true}, // uuid so we can group multiple controlIds over an assesmentId (like one assesment)
     name: {type: String, required: true},
     description: {type: String, required: true},
+    frameworkType: { type: String, enum: FrameworkTypeEnum, required: true },
     framework: {type: mongoose.Types.ObjectId, required: true, ref: "Framework"},
     frameworkName: {type: String, required: true},
     control: {type: mongoose.Types.ObjectId, required: true, ref: "Control"},

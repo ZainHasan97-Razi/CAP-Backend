@@ -3,6 +3,7 @@ import { MongoIdType } from "types/mongoid.type";
 
 interface DashboardFilters {
   status?: string;
+  frameworkType?: string;
   department?: string;
   priority?: string;
   dateFrom?: number;
@@ -28,11 +29,12 @@ const update = async (id: string|MongoIdType, data: UpdateAssesmentDto) => {
 };
 
 const dashboardList = async (filters: DashboardFilters = {}) => {
-  const { status, department, priority, dateFrom, dateTo, startDateFrom, startDateTo, dueDateFrom, dueDateTo, page = 1, limit = 10 } = filters;
+  const { status, frameworkType, department, priority, dateFrom, dateTo, startDateFrom, startDateTo, dueDateFrom, dueDateTo, page = 1, limit = 10 } = filters;
   
   const query: any = {};
   
   if (status) query.status = status;
+  if (frameworkType) query.frameworkType = frameworkType;
   if (department) query['departments.id'] = department;
   if (priority) query.priority = priority;
   
