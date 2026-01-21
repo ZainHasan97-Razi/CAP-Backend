@@ -6,7 +6,7 @@ import { ApiError } from "../middleware/validate.request";
 export const create = async (req: ARequest, res: Response, next: NextFunction) => {
   try {
     const commonControl = await commonControlService.create(req.body);
-    res.status(201).json({ message: 'Common control created successfully', commonControl });
+    res.status(201).json(commonControl);
   } catch (error) {
     console.error(error);
     next(error);
@@ -22,7 +22,7 @@ export const findById = async (req: ARequest, res: Response, next: NextFunction)
       throw ApiError.badRequest("Common control not found");
     }
 
-    res.json({ message: 'Request success', commonControl });
+    res.json(commonControl);
   } catch (error) {
     console.error(error);
     next(error);
@@ -38,7 +38,7 @@ export const update = async (req: ARequest, res: Response, next: NextFunction) =
       throw ApiError.badRequest("Common control not found");
     }
 
-    res.json({ message: 'Common control updated successfully', commonControl });
+    res.json(commonControl);
   } catch (error) {
     console.error(error);
     next(error);
@@ -66,7 +66,7 @@ export const findByFramework = async (req: ARequest, res: Response, next: NextFu
   try {
     const { frameworkId } = req.params;
     const commonControls = await commonControlService.findByFramework(frameworkId);
-    res.json({ message: 'Request success', commonControls });
+    res.json(commonControls);
   } catch (error) {
     console.error(error);
     next(error);
@@ -77,7 +77,7 @@ export const findByControl = async (req: ARequest, res: Response, next: NextFunc
   try {
     const { controlId } = req.params;
     const commonControls = await commonControlService.findCommonControlsByControlId(controlId);
-    res.json({ message: 'Request success', commonControls });
+    res.json(commonControls);
   } catch (error) {
     console.error(error);
     next(error);
