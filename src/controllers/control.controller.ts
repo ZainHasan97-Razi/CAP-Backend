@@ -44,6 +44,22 @@ export const findByControlIdWithAssessments = async (req: ARequest, res: Respons
   }
 }
 
+export const findById = async (req: ARequest, res: Response, next: NextFunction) => {
+  try {
+    const { id } = req.params;
+    const control = await controlService.findById(id);
+    
+    if (!control) {
+      throw ApiError.notFound("Control not found");
+    }
+
+    res.json(control);
+  } catch (error) {
+    console.error(error);
+    next(error);
+  }
+}
+
 export const findActiveByFramework = async (req: ARequest, res: Response, next: NextFunction) => {
   try {
     const { search, status } = req.query;
