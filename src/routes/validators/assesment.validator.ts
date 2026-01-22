@@ -6,7 +6,7 @@ import { AssesmentStatusEnum, PriorityEnum } from "../../models/assesment.model"
 export const createAssesment_validation = validateRequest([
   body("assesmentId").trim().not().isEmpty().withMessage("Assessment ID is required").isLength({min: 1, max: 255}).withMessage("Assessment ID must be between 1-255 characters"),
   body("name").trim().not().isEmpty().withMessage("Assessment name is required").isLength({min: 1, max: 255}).withMessage("Assessment name must be between 1-255 characters"),
-  body("description").trim().not().isEmpty().withMessage("Assessment description is required").isLength({min: 1, max: 1000}).withMessage("Assessment description must be between 1-1000 characters"),
+  body("description").trim().not().isEmpty().withMessage("Assessment description is required"),
   body("framework").trim().isMongoId().withMessage("Framework must be a valid ID"),
   body("control").trim().isMongoId().withMessage("Control must be a valid ID"),
   body("departments").isArray({min: 1}).withMessage("At least one department is required"),
@@ -53,7 +53,7 @@ export const updateAssesment_validation = validateRequest([
   param('id').isMongoId().withMessage('ID must be a valid MongoDB ObjectId'),
   body('priority').optional().isIn(Object.values(PriorityEnum)).withMessage('Invalid priority value'),
   body('attachments').optional().isArray().withMessage('Attachments must be an array'),
-  body('description').optional().trim().isLength({min: 1, max: 1000}).withMessage('Description must be between 1-1000 characters'),
+  body('description').optional().trim(),
   body('status').optional().isIn(Object.values(AssesmentStatusEnum)).withMessage('Invalid status value'),
   body().custom((value, { req }) => {
     const allowedFields = ['priority', 'attachments', 'description', 'status'];

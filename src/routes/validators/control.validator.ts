@@ -9,7 +9,7 @@ export const createControl_validation = validateRequest([
   body("displayName").trim().not().isEmpty().withMessage("Invalid framework name"),
   body("groupId").trim().not().isEmpty().withMessage("Invalid group id"),
   body("groupName").trim().not().isEmpty().withMessage("Invalid group name"),
-  body("description").optional().trim().isLength({max: 1000}).withMessage("Description must be max 1000 characters"),
+  body("description").optional().trim(),
   body("frameworkId").trim().isMongoId().withMessage("Invalid framework has incorrect format")
   .custom(async (id) => {
     let framework = await framewaorkService.findById(id);
@@ -23,7 +23,7 @@ export const createControl_validation = validateRequest([
 export const updateControl_validation = validateRequest([
   param("id").trim().isMongoId().withMessage("Invalid control id"),
   body("displayName").optional({ nullable: true, checkFalsy: true }).trim().not().isEmpty().withMessage("Invalid framework name"),
-  body("description").optional({ nullable: true, checkFalsy: true }).trim().isLength({max: 1000}).withMessage("Description must be max 1000 characters"),
+  body("description").optional({ nullable: true, checkFalsy: true }).trim(),
   body("status").optional({ nullable: true, checkFalsy: true }).isIn(["active", "inactive"]).withMessage("Invalid status"),
   body().custom((value, { req }) => {
     const allowedFields = ['displayName', 'description', 'status'];
