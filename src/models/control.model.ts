@@ -14,7 +14,7 @@ export const controlSchema = new Schema(
     displayName: {type: String, required: true},
     groupId: {type: String, required: true},
     groupName: {type: String, required: true},
-    // description: {type: String, required: true},
+    description: {type: String, default: ""},
     status: { type: String, enum: ControlStatusEnum, default: ControlStatusEnum.active },
   },
   { timestamps: true },
