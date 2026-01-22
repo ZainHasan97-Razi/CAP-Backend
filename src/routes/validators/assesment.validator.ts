@@ -49,6 +49,22 @@ export const findById_validation = validateRequest([
   param('id').isMongoId().withMessage('ID must be a valid MongoDB ObjectId')
 ]);
 
+export const updateAssesment_validation = validateRequest([
+  param('id').isMongoId().withMessage('ID must be a valid MongoDB ObjectId'),
+  body('priority').optional().isIn(Object.values(PriorityEnum)).withMessage('Invalid priority value'),
+  body('attachments').optional().isArray().withMessage('Attachments must be an array'),
+  body('description').optional().trim().isLength({min: 1, max: 1000}).withMessage('Description must be between 1-1000 characters'),
+  body('status').optional().isIn(Object.values(AssesmentStatusEnum)).withMessage('Invalid status value'),
+  body().custom((value, { req }) => {
+    const allowedFields = ['priority', 'attachments', 'description', 'status'];
+    const extraFields = Object.keys(req.body).filter(field => !allowedFields.includes(field));
+    if (extraFields.length > 0) {
+      throw new Error(`Unexpected fields: ${extraFields.join(', ')}`);
+    }
+    return true;
+  })
+]);
+
 export const dashboardList_validation = validateRequest([
   query('status').optional().isIn(Object.values(AssesmentStatusEnum)).withMessage('Invalid status value'),
   query('department').optional().isMongoId().withMessage('Department must be a valid ID'),

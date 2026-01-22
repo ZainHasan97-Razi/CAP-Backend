@@ -29,7 +29,7 @@ const create = async (payload: CreateAssesmentDto) => {
 };
 
 const update = async (id: string | MongoIdType, data: UpdateAssesmentDto) => {
-  return await AssesmentModel.findByIdAndUpdate(id, data);
+  return await AssesmentModel.findByIdAndUpdate(id, data, { new: true });
 };
 
 const dashboardList = async (filters: DashboardFilters = {}) => {

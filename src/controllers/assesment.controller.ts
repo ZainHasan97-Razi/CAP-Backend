@@ -2,11 +2,18 @@ import { ARequest } from "types/auth.request.type";
 import { NextFunction, Response } from 'express';
 import assesmentService from "../services/assesment.service";
 import { ApiError } from "../middleware/validate.request";
-import { CreateAssesmentDto, PriorityEnumType } from "../models/assesment.model";
+import { CreateAssesmentDto, PriorityEnumType, AssesmentStatusEnumType } from "../models/assesment.model";
 import framewaorkService from "../services/framewaork.service";
 import controlService from "../services/control.service";
 import departmentService from "../services/department.service";
 import { IUser } from "types/req.user.type";
+
+type UpdateRequestDto = {
+  priority?: PriorityEnumType;
+  attachments?: string[];
+  description?: string;
+  status?: AssesmentStatusEnumType;
+}
 
 type CreateRequestDto = {
   assesmentId: string;
@@ -63,21 +70,22 @@ export const create = async (req: ARequest, res: Response, next: NextFunction) =
   }
 }
 
-// export const update = async (req: ARequest, res: Response, next: NextFunction) => {
-//   try {
-//     const { id } = req.params;
-//     const framework = await controlService.update(id, req.body)
-//     if (!framework) {
-//       // return res.status(401).json({ error: 'Invalid framwork id' });
-//       throw ApiError.badRequest("Invalid framwork id");
-//     }
+export const update = async (req: ARequest, res: Response, next: NextFunction) => {
+  try {
+    const { id } = req.params;
+    const body = req.body as UpdateRequestDto;
+    
+    const assesment = await assesmentService.update(id, body as any);
+    if (!assesment) {
+      throw ApiError.notFound("Assessment not found");
+    }
 
-//     res.json({ message: 'Request success', framework });
-//   } catch (error) {
-//     console.error(error);
-//     next(error); // pass to global handler
-//   }
-// }
+    res.json(assesment);
+  } catch (error) {
+    console.error(error);
+    next(error);
+  }
+}
 
 export const findById = async (req: ARequest, res: Response, next: NextFunction) => {
   try {
