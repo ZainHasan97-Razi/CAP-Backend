@@ -2,6 +2,7 @@ import ControlModel, { ControlStatusEnum, CreateControlDto, UpdateControlDto } f
 import { MongoIdType } from "types/mongoid.type";
 import { sortControlsByControlId } from "../utils/control.util";
 import assesmentService from "./assesment.service";
+import commonControlService from "./common-control.service";
 
 const findById = async (id: string|MongoIdType) => {
   return await ControlModel.findById(id);
@@ -42,7 +43,23 @@ const findByControlIdWithAssessments = async (controlId: string) => {
   
   if (!control) return null;
   
-  const recentAssessments = await assesmentService.findRecentByControlId(controlId, control.displayName);
+  // Find common controls that include this control
+  const commonControls = await commonControlService.findCommonControlsByControlId(control._id);
+  
+  // Collect all related control IDs
+  const relatedControlIds: MongoIdType[] = [control._id];
+  
+  commonControls.forEach(commonControl => {
+    commonControl.mappedControls.forEach(mappedControl => {
+      const controlObjectId = mappedControl.controlId as any;
+      if (controlObjectId._id?.toString() !== control._id.toString()) {
+        relatedControlIds.push(controlObjectId._id || controlObjectId);
+      }
+    });
+  });
+  
+  // Get recent assessments for all related controls
+  const recentAssessments = await assesmentService.findRecentByMultipleControlIds(relatedControlIds);
   
   return {
     ...control,

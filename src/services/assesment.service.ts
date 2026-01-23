@@ -130,10 +130,30 @@ const findRecentByControlId = async (
     .lean();
 };
 
+const findRecentByMultipleControlIds = async (
+  controlIds: (string | MongoIdType)[]
+) => {
+  const currentYear = new Date().getFullYear();
+  const yearStart = new Date(currentYear, 0, 1);
+
+  return await AssesmentModel.find({
+    control: { $in: controlIds },
+    status: "closed",
+    updatedAt: { $gte: yearStart },
+  })
+    .select(
+      "name description frameworkName controlId controlName updatedAt status priority attachments",
+    )
+    .sort({ updatedAt: -1 })
+    .limit(10)
+    .lean();
+};
+
 export default {
   findById,
   create,
   update,
   dashboardList,
   findRecentByControlId,
+  findRecentByMultipleControlIds,
 };
