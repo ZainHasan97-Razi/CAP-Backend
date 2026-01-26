@@ -9,24 +9,27 @@ export const systemLogMiddleware = (operation: string) => {
     
     let responseData: any;
     let responseCode: number = 200;
+    let logged = false;
 
     // Intercept response
     res.send = function (data) {
       responseData = data;
       responseCode = res.statusCode;
+      logResponse();
       return originalSend.call(this, data);
     };
 
     res.json = function (data) {
       responseData = data;
       responseCode = res.statusCode;
+      logResponse();
       return originalJson.call(this, data);
     };
 
-    // Override res.end to capture final response
-    const originalEnd = res.end;
-    res.end = function (chunk?: any, encoding?: BufferEncoding, cb?: () => void) {
-      // Log the request/response
+    const logResponse = () => {
+      if (logged) return;
+      logged = true;
+      
       const logData = {
         apiUrl: req.originalUrl,
         requestData: { body: req.body, params: req.params, query: req.query },
@@ -38,17 +41,6 @@ export const systemLogMiddleware = (operation: string) => {
         systemLogService.logError(operation, responseData || 'Unknown error', logData);
       } else {
         systemLogService.logSuccess(operation, responseData, logData);
-      }
-
-      // Call original end with proper arguments
-      if (arguments.length === 0) {
-        return originalEnd.call(this);
-      } else if (arguments.length === 1) {
-        return originalEnd.call(this, chunk);
-      } else if (arguments.length === 2) {
-        return originalEnd.call(this, chunk, encoding);
-      } else {
-        return originalEnd.call(this, chunk, encoding, cb);
       }
     };
 
