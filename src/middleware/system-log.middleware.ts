@@ -25,7 +25,7 @@ export const systemLogMiddleware = (operation: string) => {
 
     // Override res.end to capture final response
     const originalEnd = res.end;
-    res.end = function (chunk?: any, encoding?: BufferEncoding | (() => void), cb?: () => void) {
+    res.end = function (chunk?: any, encoding?: BufferEncoding, cb?: () => void) {
       // Log the request/response
       const logData = {
         apiUrl: req.originalUrl,
@@ -41,7 +41,11 @@ export const systemLogMiddleware = (operation: string) => {
       }
 
       // Call original end with proper arguments
-      if (typeof encoding === 'function') {
+      if (arguments.length === 0) {
+        return originalEnd.call(this);
+      } else if (arguments.length === 1) {
+        return originalEnd.call(this, chunk);
+      } else if (arguments.length === 2) {
         return originalEnd.call(this, chunk, encoding);
       } else {
         return originalEnd.call(this, chunk, encoding, cb);
