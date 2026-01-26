@@ -11,7 +11,7 @@ export function SystemLog(operation: string) {
       const originalJson = res.json;
       
       let responseData: any;
-      let responseCode: number;
+      let responseCode: number = 200; // Initialize with default value
 
       // Intercept response
       res.send = function (data) {
@@ -35,7 +35,7 @@ export function SystemLog(operation: string) {
           apiUrl: req.originalUrl,
           requestData: { body: req.body, params: req.params, query: req.query },
           userId: req.user?.userName,
-          responseCode
+          responseCode: responseCode || res.statusCode
         });
 
         return result;
