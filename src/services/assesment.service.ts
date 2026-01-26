@@ -29,13 +29,14 @@ const findById = async (id: string | MongoIdType) => {
 const create = async (payload: CreateAssesmentDto & { commonAssessmentId?: string }, userId: string, userName: string) => {
   const { commonAssessmentId, ...assessmentData } = payload;
   
-  // Set status to in_progress if commonAssessmentId is provided
-  if (commonAssessmentId) {
-    assessmentData.status = "in_progress";
-  }
+  // Create assessment data with status
+  const createData = {
+    ...assessmentData,
+    ...(commonAssessmentId && { status: "in_progress" as const })
+  };
   
   // Create the assessment first
-  const assessment = await AssesmentModel.create(assessmentData);
+  const assessment = await AssesmentModel.create(createData);
   
   // Copy comments if commonAssessmentId is provided
   if (commonAssessmentId) {
