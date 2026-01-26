@@ -1,6 +1,7 @@
 import AssesmentModel, {
   CreateAssesmentDto,
   UpdateAssesmentDto,
+  AssesmentStatusEnum,
 } from "../models/assesment.model";
 import { MongoIdType } from "types/mongoid.type";
 import assesmentCommentService from "./assesment-comment.service";
@@ -32,7 +33,7 @@ const create = async (payload: CreateAssesmentDto & { commonAssessmentId?: strin
   // Create assessment data with status
   const createData = {
     ...assessmentData,
-    ...(commonAssessmentId && { status: "in_progress" as const })
+    ...(commonAssessmentId && { status: AssesmentStatusEnum.in_progress })
   };
   
   // Create the assessment first
