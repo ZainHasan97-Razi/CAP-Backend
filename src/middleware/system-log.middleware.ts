@@ -8,7 +8,7 @@ export const systemLogMiddleware = (operation: string) => {
     const originalJson = res.json;
     
     let responseData: any;
-    let responseCode: number;
+    let responseCode: number = 200;
 
     // Intercept response
     res.send = function (data) {
@@ -25,7 +25,7 @@ export const systemLogMiddleware = (operation: string) => {
 
     // Override res.end to capture final response
     const originalEnd = res.end;
-    res.end = function (...args) {
+    res.end = function (chunk?: any, encoding?: BufferEncoding | (() => void), cb?: () => void) {
       // Log the request/response
       const logData = {
         apiUrl: req.originalUrl,
@@ -34,13 +34,18 @@ export const systemLogMiddleware = (operation: string) => {
         responseCode: responseCode || res.statusCode
       };
 
-      if (responseCode >= 400) {
+      if ((responseCode || res.statusCode) >= 400) {
         systemLogService.logError(operation, responseData || 'Unknown error', logData);
       } else {
         systemLogService.logSuccess(operation, responseData, logData);
       }
 
-      return originalEnd.apply(this, args);
+      // Call original end with proper arguments
+      if (typeof encoding === 'function') {
+        return originalEnd.call(this, chunk, encoding);
+      } else {
+        return originalEnd.call(this, chunk, encoding, cb);
+      }
     };
 
     next();
