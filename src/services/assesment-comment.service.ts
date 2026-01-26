@@ -50,10 +50,38 @@ const findByAssessmentId = async (assessmentId: string | MongoIdType) => {
   return topLevelComments;
 };
 
+const copyCommentsFromAssessment = async (
+  sourceAssessmentId: string | MongoIdType,
+  targetAssessmentId: string | MongoIdType,
+  userId: string,
+  userName: string
+) => {
+  const sourceComments = await AssesmentCommentModel.find({ 
+    assessmentId: sourceAssessmentId,
+    parentCommentId: null
+  }).lean();
+  
+  const copiedComments = sourceComments.map(comment => ({
+    assessmentId: targetAssessmentId,
+    parentCommentId: null,
+    content: comment.content,
+    author: userId,
+    authorName: userName,
+    attachments: comment.attachments || []
+  }));
+  
+  if (copiedComments.length > 0) {
+    return await AssesmentCommentModel.insertMany(copiedComments);
+  }
+  
+  return [];
+};
+
 export default {
   findById,
   create,
   update,
   deleteById,
   findByAssessmentId,
+  copyCommentsFromAssessment,
 };

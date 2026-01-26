@@ -21,6 +21,7 @@ type CreateRequestDto = {
   description: string;
   framework: string;
   control: string;
+  commonAssessmentId?: string;
   departments: string[];
   participants?: string[];
   attachments?: string[];
@@ -62,7 +63,11 @@ export const create = async (req: ARequest, res: Response, next: NextFunction) =
       dueDate: body.dueDate,
       createdBy: (req.user as IUser).userName,
     }
-    const assesment = await assesmentService.create(payload)
+    const assesment = await assesmentService.create(
+      { ...payload, commonAssessmentId: body.commonAssessmentId },
+      (req.user as IUser).userName,
+      (req.user as IUser).userName
+    )
     res.json({ message: 'Request success', assesment });
   } catch (error) {
     console.error(error);

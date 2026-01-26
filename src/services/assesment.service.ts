@@ -3,6 +3,8 @@ import AssesmentModel, {
   UpdateAssesmentDto,
 } from "../models/assesment.model";
 import { MongoIdType } from "types/mongoid.type";
+import assesmentCommentService from "./assesment-comment.service";
+import systemLogService from "./system-log.service";
 
 interface DashboardFilters {
   status?: string;
@@ -24,8 +26,37 @@ const findById = async (id: string | MongoIdType) => {
   return await AssesmentModel.findById(id);
 };
 
-const create = async (payload: CreateAssesmentDto) => {
-  return await AssesmentModel.create(payload);
+const create = async (payload: CreateAssesmentDto & { commonAssessmentId?: string }, userId: string, userName: string) => {
+  const { commonAssessmentId, ...assessmentData } = payload;
+  
+  // Set status to in_progress if commonAssessmentId is provided
+  if (commonAssessmentId) {
+    assessmentData.status = "in_progress";
+  }
+  
+  // Create the assessment first
+  const assessment = await AssesmentModel.create(assessmentData);
+  
+  // Copy comments if commonAssessmentId is provided
+  if (commonAssessmentId) {
+    try {
+      await assesmentCommentService.copyCommentsFromAssessment(
+        commonAssessmentId,
+        assessment._id,
+        userId,
+        userName
+      );
+    } catch (error) {
+      // Log the error but don't fail the assessment creation
+      await systemLogService.logError("copy_assessment_comments", error, {
+        serviceName: "AssessmentService",
+        requestData: { sourceAssessmentId: commonAssessmentId, targetAssessmentId: assessment._id },
+        userId
+      });
+    }
+  }
+  
+  return assessment;
 };
 
 const update = async (id: string | MongoIdType, data: UpdateAssesmentDto) => {
