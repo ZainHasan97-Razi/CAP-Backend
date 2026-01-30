@@ -182,6 +182,130 @@ const findRecentByMultipleControlIds = async (
     .lean();
 };
 
+const getAnalytics = async (filters: { startDate?: number; endDate?: number } = {}) => {
+  const { startDate, endDate } = filters;
+  const currentTime = Math.floor(Date.now() / 1000);
+  
+  const matchStage: any = {};
+  
+  if (startDate) {
+    matchStage.startDate = { $gte: startDate };
+  }
+  if (endDate) {
+    matchStage.dueDate = { $lte: endDate };
+  }
+  
+  const pipeline = [
+    ...(Object.keys(matchStage).length > 0 ? [{ $match: matchStage }] : []),
+    {
+      $group: {
+        _id: "$assesmentId",
+        priority: { $first: "$priority" },
+        dueDate: { $first: "$dueDate" },
+        statuses: { $push: "$status" },
+        totalControls: { $sum: 1 },
+        closedControls: {
+          $sum: { $cond: [{ $eq: ["$status", "closed"] }, 1, 0] }
+        },
+        inProgressControls: {
+          $sum: { $cond: [{ $eq: ["$status", "in_progress"] }, 1, 0] }
+        }
+      }
+    },
+    {
+      $addFields: {
+        assessmentStatus: {
+          $cond: [
+            { $eq: ["$closedControls", "$totalControls"] },
+            "closed",
+            {
+              $cond: [
+                { $gt: ["$inProgressControls", 0] },
+                "in_progress",
+                "open"
+              ]
+            }
+          ]
+        },
+        isOverdue: {
+          $and: [
+            { $lt: ["$dueDate", currentTime] },
+            { $ne: ["$closedControls", "$totalControls"] }
+          ]
+        }
+      }
+    },
+    {
+      $group: {
+        _id: null,
+        totalAssessments: { $sum: 1 },
+        completedAssessments: {
+          $sum: { $cond: [{ $eq: ["$assessmentStatus", "closed"] }, 1, 0] }
+        },
+        inProgressAssessments: {
+          $sum: { $cond: [{ $eq: ["$assessmentStatus", "in_progress"] }, 1, 0] }
+        },
+        openAssessments: {
+          $sum: { $cond: [{ $eq: ["$assessmentStatus", "open"] }, 1, 0] }
+        },
+        overdueAssessments: {
+          $sum: { $cond: ["$isOverdue", 1, 0] }
+        },
+        compliantControls: {
+          $sum: { $cond: [{ $ne: ["$assessmentStatus", "closed"] }, "$closedControls", 0] }
+        },
+        nonCompliantControls: {
+          $sum: { $cond: [{ $ne: ["$assessmentStatus", "closed"] }, "$inProgressControls", 0] }
+        },
+        highPriority: {
+          $sum: { $cond: [{ $eq: ["$priority", "high"] }, 1, 0] }
+        },
+        mediumPriority: {
+          $sum: { $cond: [{ $eq: ["$priority", "medium"] }, 1, 0] }
+        },
+        lowPriority: {
+          $sum: { $cond: [{ $eq: ["$priority", "low"] }, 1, 0] }
+        }
+      }
+    }
+  ];
+  
+  const result = await AssesmentModel.aggregate(pipeline);
+  
+  if (result.length === 0) {
+    return {
+      totalAssessments: 0,
+      completedAssessments: 0,
+      inProgressAssessments: 0,
+      openAssessments: 0,
+      overdueAssessments: 0,
+      compliantControls: 0,
+      nonCompliantControls: 0,
+      priorityDistribution: {
+        high: 0,
+        medium: 0,
+        low: 0
+      }
+    };
+  }
+  
+  const data = result[0];
+  return {
+    totalAssessments: data.totalAssessments,
+    completedAssessments: data.completedAssessments,
+    inProgressAssessments: data.inProgressAssessments,
+    openAssessments: data.openAssessments,
+    overdueAssessments: data.overdueAssessments,
+    compliantControls: data.compliantControls,
+    nonCompliantControls: data.nonCompliantControls,
+    priorityDistribution: {
+      high: data.highPriority,
+      medium: data.mediumPriority,
+      low: data.lowPriority
+    }
+  };
+};
+
 export default {
   findById,
   create,
@@ -189,4 +313,5 @@ export default {
   dashboardList,
   findRecentByControlId,
   findRecentByMultipleControlIds,
+  getAnalytics,
 };

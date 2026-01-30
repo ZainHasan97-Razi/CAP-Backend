@@ -133,3 +133,18 @@ export const dashboardList = async (req: ARequest, res: Response, next: NextFunc
     next(error);
   }
 }
+
+export const getAnalytics = async (req: ARequest, res: Response, next: NextFunction) => {
+  try {
+    const filters = {
+      startDate: req.query.startDate ? parseInt(req.query.startDate as string) : undefined,
+      endDate: req.query.endDate ? parseInt(req.query.endDate as string) : undefined
+    };
+    
+    const analytics = await assesmentService.getAnalytics(filters);
+    res.json(analytics);
+  } catch (error) {
+    console.error(error);
+    next(error);
+  }
+}

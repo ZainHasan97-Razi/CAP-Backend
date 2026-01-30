@@ -79,3 +79,8 @@ export const dashboardList_validation = validateRequest([
   query('page').optional().isInt({min: 1}).withMessage('Page must be a positive integer'),
   query('limit').optional().isInt({min: 1, max: 100}).withMessage('Limit must be between 1-100')
 ]);
+
+export const analytics_validation = validateRequest([
+  query('startDate').optional().isInt({min: 1}).withMessage('Start date must be a valid timestamp'),
+  query('endDate').optional().isInt({min: 1}).withMessage('End date must be a valid timestamp')
+]);
