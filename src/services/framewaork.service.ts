@@ -9,7 +9,9 @@ const findById = async (id: string|MongoIdType): Promise<FrameworkDocument|null>
 };
 
 const create = async (user: CreateFrameworkDto) => {
-  return await FrameworkModel.create(user);
+  const lastFramework = await FrameworkModel.findOne().sort({ displayId: -1 }).select('displayId');
+  const nextDisplayId = lastFramework ? parseInt(lastFramework.displayId) + 1 : 1;
+  return await FrameworkModel.create({ ...user, displayId: nextDisplayId.toString() });
 };
 
 const update = async (id: string|MongoIdType, data: UpdateFrameworkDto) => {
@@ -95,7 +97,9 @@ const createFromCsv = async (displayName: string, type: string, csvBuffer: Buffe
             return reject(new Error('No valid controls found in CSV'));
           }
 
-          const framework = await FrameworkModel.create({ displayName, type });
+          const lastFramework = await FrameworkModel.findOne().sort({ displayId: -1 }).select('displayId');
+          const nextDisplayId = lastFramework ? parseInt(lastFramework.displayId) + 1 : 1;
+          const framework = await FrameworkModel.create({ displayName, type, displayId: nextDisplayId.toString() });
           
           const controlsWithFrameworkId = controls.map(control => ({
             ...control,

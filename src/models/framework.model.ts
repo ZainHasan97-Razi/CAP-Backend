@@ -15,6 +15,7 @@ export type FrameworkTypeEnumType = keyof typeof FrameworkTypeEnum;
 
 export const frameworkSchema = new Schema(
   {
+    displayId: {type: String, required: true, unique: true},
     displayName: {type: String, required: true},
     type: { type: String, enum: FrameworkTypeEnum, required: true },
     status: { type: String, enum: FrameworkStatusEnum, default: FrameworkStatusEnum.active },
@@ -24,8 +25,8 @@ export const frameworkSchema = new Schema(
 
 export type FrameworkSchemaType = InferSchemaType<typeof frameworkSchema>;
 export type FrameworkDocument = HydratedDocument<FrameworkSchemaType>;
-export type CreateFrameworkDto = Omit<FrameworkSchemaType, "createdAt" | "updatedAt" | "status">;
-export type UpdateFrameworkDto = Omit<FrameworkSchemaType, "createdAt" | "updatedAt">;
+export type CreateFrameworkDto = Omit<FrameworkSchemaType, "createdAt" | "updatedAt" | "status" | "displayId">;
+export type UpdateFrameworkDto = Omit<FrameworkSchemaType, "createdAt" | "updatedAt" | "displayId">;
 
 const FrameworkModel = model('Framework', frameworkSchema);
 export default FrameworkModel;
