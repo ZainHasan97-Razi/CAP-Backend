@@ -23,7 +23,7 @@ const findAllActive = async (type?: string) => {
   if (type) {
     filter.type = type;
   }
-  return await FrameworkModel.find(filter).select("displayName type").lean();
+  return await FrameworkModel.find(filter).select("displayId displayName type").lean();
 }
 
 const createFromCsv = async (displayName: string, type: string, csvBuffer: Buffer) => {
