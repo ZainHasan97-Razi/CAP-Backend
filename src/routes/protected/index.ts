@@ -8,6 +8,7 @@ import assesmentRoute from './assesment.route';
 import assesmentCommentRoute from './assesment-comment.route';
 import uploadRoute from './upload.route';
 import seederRoute from './seeder.route';
+import emailRoute from './email.route';
 
 const router = Router();
 
@@ -20,5 +21,6 @@ router.use('/assesment', assesmentRoute)
 router.use('/assesment-comment', assesmentCommentRoute)
 router.use('/upload', uploadRoute)
 router.use('/seeder', seederRoute)
+router.use('/email', emailRoute)
 
 export default router;
