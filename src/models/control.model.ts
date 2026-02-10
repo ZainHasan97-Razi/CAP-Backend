@@ -20,6 +20,8 @@ export const controlSchema = new Schema(
   { timestamps: true },
 );
 
+controlSchema.index({ frameworkId: 1, controlId: 1 }, { unique: true });
+
 export type ControlSchemaType = InferSchemaType<typeof controlSchema>;
 export type ControlDocument = HydratedDocument<ControlSchemaType>;
 export type CreateControlDto = Omit<ControlSchemaType, "createdAt" | "updatedAt" | "status">;
