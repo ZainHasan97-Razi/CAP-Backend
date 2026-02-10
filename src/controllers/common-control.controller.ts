@@ -83,3 +83,23 @@ export const findByControl = async (req: ARequest, res: Response, next: NextFunc
     next(error);
   }
 };
+
+export const bulkUpload = async (req: ARequest, res: Response, next: NextFunction) => {
+  try {
+    if (!req.file) {
+      throw ApiError.badRequest("CSV file is required");
+    }
+
+    const result = await commonControlService.bulkCreateFromCSV(req.file.buffer);
+    res.status(201).json(result);
+  } catch (error: any) {
+    if (error.validationErrors) {
+      return res.status(400).json({
+        message: "CSV validation failed",
+        errors: error.validationErrors
+      });
+    }
+    console.error(error);
+    next(error);
+  }
+};

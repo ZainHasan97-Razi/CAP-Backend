@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { create, findById, update, list, findByFramework, findByControl } from '../../controllers/common-control.controller';
+import { create, findById, update, list, findByFramework, findByControl, bulkUpload } from '../../controllers/common-control.controller';
 import { 
   create_validation, 
   update_validation, 
@@ -8,10 +8,12 @@ import {
   findByFramework_validation,
   findByControl_validation
 } from '../validators/common-control.validator';
+import { uploadMiddleware } from '../../middleware/multer';
 
 const router = Router();
 
 router.post('/', create_validation, create);
+router.post('/bulk-upload', uploadMiddleware, bulkUpload);
 router.get('/list', list_validation, list);
 router.get('/framework/:frameworkId', findByFramework_validation, findByFramework);
 router.get('/control/:controlId', findByControl_validation, findByControl);
