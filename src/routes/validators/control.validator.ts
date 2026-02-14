@@ -5,10 +5,12 @@ import { ControlStatusEnum } from "../../models/control.model";
 import framewaorkService from "../../services/framewaork.service";
 
 export const createControl_validation = validateRequest([
-  body("controlId").trim().not().isEmpty().withMessage("Invalid control id"),
-  body("displayName").trim().not().isEmpty().withMessage("Invalid framework name"),
-  body("groupId").trim().not().isEmpty().withMessage("Invalid group id"),
-  body("groupName").trim().not().isEmpty().withMessage("Invalid group name"),
+  body("controlCode").trim().not().isEmpty().withMessage("Invalid control code"),
+  body("controlName").trim().not().isEmpty().withMessage("Invalid control name"),
+  body("domainCode").trim().not().isEmpty().withMessage("Invalid domain code"),
+  body("domainName").trim().not().isEmpty().withMessage("Invalid domain name"),
+  body("subdomainCode").trim().not().isEmpty().withMessage("Invalid subdomain code"),
+  body("subdomainName").trim().not().isEmpty().withMessage("Invalid subdomain name"),
   body("description").optional().trim(),
   body("frameworkId").trim().isMongoId().withMessage("Invalid framework has incorrect format")
   .custom(async (id) => {
@@ -22,11 +24,11 @@ export const createControl_validation = validateRequest([
 
 export const updateControl_validation = validateRequest([
   param("id").trim().isMongoId().withMessage("Invalid control id"),
-  body("displayName").optional({ nullable: true, checkFalsy: true }).trim().not().isEmpty().withMessage("Invalid framework name"),
+  body("controlName").optional({ nullable: true, checkFalsy: true }).trim().not().isEmpty().withMessage("Invalid control name"),
   body("description").optional({ nullable: true, checkFalsy: true }).trim(),
   body("status").optional({ nullable: true, checkFalsy: true }).isIn(["active", "inactive"]).withMessage("Invalid status"),
   body().custom((value, { req }) => {
-    const allowedFields = ['displayName', 'description', 'status'];
+    const allowedFields = ['controlName', 'description', 'status'];
     const extraFields = Object.keys(req.body).filter(field => !allowedFields.includes(field));
     if (extraFields.length > 0) {
       throw new Error(`Unexpected fields: ${extraFields.join(', ')}`);

@@ -1,6 +1,6 @@
 import ControlModel, { ControlStatusEnum, CreateControlDto, UpdateControlDto } from "../models/control.model";
 import { MongoIdType } from "types/mongoid.type";
-import { sortControlsByControlId } from "../utils/control.util";
+import { sortControlsByControlCode } from "../utils/control.util";
 import assesmentService from "./assesment.service";
 import commonControlService from "./common-control.service";
 
@@ -26,20 +26,20 @@ const findActiveByFramework = async (frameworkId: MongoIdType|string, search?: s
   
   if (search) {
     query.$or = [
-      { controlId: { $regex: search, $options: 'i' } },
-      { displayName: { $regex: search, $options: 'i' } }
+      { controlCode: { $regex: search, $options: 'i' } },
+      { controlName: { $regex: search, $options: 'i' } }
     ];
   }
   
   const controls = await ControlModel.find(query)
-    .select("controlId displayName groupId groupName status")
+    .select("controlCode controlName domainCode domainName subdomainCode subdomainName status")
     .lean();
   
-  return sortControlsByControlId(controls);
+  return sortControlsByControlCode(controls);
 }
 
-const findByControlIdWithAssessments = async (controlId: string) => {
-  const control = await ControlModel.findOne({ controlId }).lean();
+const findByControlCodeWithAssessments = async (controlCode: string) => {
+  const control = await ControlModel.findOne({ controlCode }).lean();
   
   if (!control) return null;
   
@@ -67,8 +67,8 @@ const findByControlIdWithAssessments = async (controlId: string) => {
   };
 };
 
-const findByControlId = async (controlId: string) => {
-  return await ControlModel.findOne({ controlId }).lean();
+const findByControlCode = async (controlCode: string) => {
+  return await ControlModel.findOne({ controlCode }).lean();
 };
 
 export default {
@@ -76,6 +76,6 @@ export default {
   create,
   update,
   findActiveByFramework,
-  findByControlId,
-  findByControlIdWithAssessments,
+  findByControlCode,
+  findByControlCodeWithAssessments,
 }

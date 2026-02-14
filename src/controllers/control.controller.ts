@@ -29,9 +29,9 @@ export const update = async (req: ARequest, res: Response, next: NextFunction) =
   }
 }
 
-export const findByControlIdWithAssessments = async (req: ARequest, res: Response, next: NextFunction) => {
+export const findByControlCodeWithAssessments = async (req: ARequest, res: Response, next: NextFunction) => {
   try {
-    const control = await controlService.findByControlIdWithAssessments(req.params.controlId);
+    const control = await controlService.findByControlCodeWithAssessments(req.params.controlCode);
     
     if (!control) {
       throw ApiError.badRequest("Control not found");

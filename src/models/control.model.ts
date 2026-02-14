@@ -10,17 +10,19 @@ export const controlSchema = new Schema(
   {
     frameworkId: {type: mongoose.Types.ObjectId, required: true, ref: "Framework"},
     frameworkName: {type: String, required: true},
-    controlId: {type: String, required: true},
-    displayName: {type: String, required: true},
-    groupId: {type: String, required: true},
-    groupName: {type: String, required: true},
+    domainCode: {type: String, required: true},
+    domainName: {type: String, required: true},
+    subdomainCode: {type: String, required: true},
+    subdomainName: {type: String, required: true},
+    controlCode: {type: String, required: true},
+    controlName: {type: String, required: true},
     description: {type: String, default: ""},
     status: { type: String, enum: ControlStatusEnum, default: ControlStatusEnum.active },
   },
   { timestamps: true },
 );
 
-controlSchema.index({ frameworkId: 1, controlId: 1 }, { unique: true });
+controlSchema.index({ frameworkId: 1, controlCode: 1 }, { unique: true });
 
 export type ControlSchemaType = InferSchemaType<typeof controlSchema>;
 export type ControlDocument = HydratedDocument<ControlSchemaType>;

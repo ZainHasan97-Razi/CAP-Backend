@@ -28,7 +28,7 @@ interface ValidationError {
 const findById = async (id: string|MongoIdType) => {
   return await CommonControlModel.findById(id)
     .populate('mappedControls.frameworkId', 'displayName')
-    .populate('mappedControls.controlId', 'controlId displayName');
+    .populate('mappedControls.controlId', 'controlCode controlName');
 };
 
 const create = async (data: CreateCommonControlDto) => {
@@ -60,7 +60,7 @@ const list = async (filters: CommonControlListFilters = {}) => {
   const [data, total] = await Promise.all([
     CommonControlModel.find(query)
       .populate('mappedControls.frameworkId', 'displayName')
-      .populate('mappedControls.controlId', 'controlId displayName')
+      .populate('mappedControls.controlId', 'controlCode controlName')
       .sort({ _id: -1 })
       .skip(skip)
       .limit(limit)
@@ -83,14 +83,14 @@ const findByFramework = async (frameworkId: string|MongoIdType) => {
   return await CommonControlModel.find({
     'mappedControls.frameworkId': frameworkId
   }).populate('mappedControls.frameworkId', 'displayName')
-    .populate('mappedControls.controlId', 'controlId displayName');
+    .populate('mappedControls.controlId', 'controlCode controlName');
 };
 
 const findCommonControlsByControlId = async (controlId: string|MongoIdType) => {
   return await CommonControlModel.find({
     'mappedControls.controlId': controlId
   }).populate('mappedControls.frameworkId', 'displayName')
-    .populate('mappedControls.controlId', 'controlId displayName');
+    .populate('mappedControls.controlId', 'controlCode controlName');
 };
 
 const bulkCreateFromCSV = async (fileBuffer: Buffer) => {
@@ -201,13 +201,13 @@ const bulkCreateFromCSV = async (fileBuffer: Buffer) => {
       const framework = frameworkMap.get(cp.frameworkDisplayId);
       return {
         frameworkId: framework?._id,
-        controlId: cp.controlCode
+        controlCode: cp.controlCode
       };
     })
-  }).select('_id frameworkId frameworkName controlId displayName');
+  }).select('_id frameworkId frameworkName controlCode controlName');
 
   const controlMap = new Map(
-    controls.map(c => [`${c.frameworkId.toString()}-${c.controlId}`, c])
+    controls.map(c => [`${c.frameworkId.toString()}-${c.controlCode}`, c])
   );
 
   // Validate that all referenced controls exist
@@ -255,8 +255,8 @@ const bulkCreateFromCSV = async (fileBuffer: Buffer) => {
         frameworkId: control.frameworkId,
         frameworkName: control.frameworkName,
         controlId: control._id,
-        controlCode: control.controlId,
-        controlName: control.displayName
+        controlCode: control.controlCode,
+        controlName: control.controlName
       };
     });
 

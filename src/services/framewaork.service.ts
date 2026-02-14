@@ -30,12 +30,11 @@ const createFromCsv = async (displayName: string, type: string, csvBuffer: Buffe
   return new Promise((resolve, reject) => {
     const controls: any[] = [];
     const errors: string[] = [];
-    const requiredColumns = ['controlId', 'displayName', 'groupId', 'groupName'];
+    const requiredColumns = ['domainCode', 'domainName', 'subdomainCode', 'subdomainName', 'controlCode', 'controlName'];
     let rowIndex = 0;
     let headerValidated = false;
     const csvContent = csvBuffer.toString().trim();
     
-    // Check if CSV is empty
     if (!csvContent) {
       return reject(new Error('CSV file is empty'));
     }
@@ -47,10 +46,8 @@ const createFromCsv = async (displayName: string, type: string, csvBuffer: Buffe
       .on('data', (row) => {
         rowIndex++;
         
-        // Validate headers on first row
         if (!headerValidated) {
           const csvColumns = Object.keys(row).map(col => col.trim());
-          
           const missingColumns = requiredColumns.filter(col => !csvColumns.includes(col));
           if (missingColumns.length > 0) {
             return reject(new Error(`Missing required columns in CSV: ${missingColumns.join(', ')}. Found columns: ${csvColumns.join(', ')}`));
@@ -58,33 +55,22 @@ const createFromCsv = async (displayName: string, type: string, csvBuffer: Buffe
           headerValidated = true;
         }
         
-        // Validate required fields
-        const controlId = row.controlId?.trim();
-        const displayName = row.displayName?.trim();
-        const groupId = row.groupId?.trim();
-        const groupName = row.groupName?.trim();
+        const domainCode = row.domainCode?.trim();
+        const domainName = row.domainName?.trim();
+        const subdomainCode = row.subdomainCode?.trim();
+        const subdomainName = row.subdomainName?.trim();
+        const controlCode = row.controlCode?.trim();
+        const controlName = row.controlName?.trim();
         
-        if (!controlId) {
-          errors.push(`Row ${rowIndex}: controlId is required and cannot be empty`);
-        }
-        if (!displayName) {
-          errors.push(`Row ${rowIndex}: displayName is required and cannot be empty`);
-        }
-        if (!groupId) {
-          errors.push(`Row ${rowIndex}: groupId is required and cannot be empty`);
-        }
-        if (!groupName) {
-          errors.push(`Row ${rowIndex}: groupName is required and cannot be empty`);
-        }
+        if (!domainCode) errors.push(`Row ${rowIndex}: domainCode is required`);
+        if (!domainName) errors.push(`Row ${rowIndex}: domainName is required`);
+        if (!subdomainCode) errors.push(`Row ${rowIndex}: subdomainCode is required`);
+        if (!subdomainName) errors.push(`Row ${rowIndex}: subdomainName is required`);
+        if (!controlCode) errors.push(`Row ${rowIndex}: controlCode is required`);
+        if (!controlName) errors.push(`Row ${rowIndex}: controlName is required`);
         
-        // Only add if all fields are valid
-        if (controlId && displayName && groupId && groupName) {
-          controls.push({
-            controlId,
-            displayName,
-            groupId,
-            groupName
-          });
+        if (domainCode && domainName && subdomainCode && subdomainName && controlCode && controlName) {
+          controls.push({ domainCode, domainName, subdomainCode, subdomainName, controlCode, controlName });
         }
       })
       .on('end', async () => {
@@ -109,9 +95,14 @@ const createFromCsv = async (displayName: string, type: string, csvBuffer: Buffe
 
           const createdControls = await ControlModel.insertMany(controlsWithFrameworkId);
           
+          const uniqueDomains = new Set(controls.map(c => c.domainCode)).size;
+          const uniqueSubdomains = new Set(controls.map(c => c.subdomainCode)).size;
+          
           resolve({
             framework,
-            controlsCreated: createdControls.length,
+            domainsCount: uniqueDomains,
+            subdomainsCount: uniqueSubdomains,
+            controlsCount: createdControls.length,
             message: 'Framework and controls created successfully'
           });
         } catch (error) {

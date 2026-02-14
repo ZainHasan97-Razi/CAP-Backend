@@ -4,10 +4,10 @@ export const parseControlId = (id: string) => {
   return { prefix: match[1], major: parseInt(match[2]), minor: parseInt(match[3]) };
 };
 
-export const sortControlsByControlId = <T extends { controlId: string }>(controls: T[]): T[] => {
+export const sortControlsByControlCode = <T extends { controlCode: string }>(controls: T[]): T[] => {
   return controls.sort((a, b) => {
-    const aParts = parseControlId(a.controlId);
-    const bParts = parseControlId(b.controlId);
+    const aParts = parseControlId(a.controlCode);
+    const bParts = parseControlId(b.controlCode);
     
     if (aParts.prefix !== bParts.prefix) return aParts.prefix.localeCompare(bParts.prefix);
     if (aParts.major !== bParts.major) return aParts.major - bParts.major;
