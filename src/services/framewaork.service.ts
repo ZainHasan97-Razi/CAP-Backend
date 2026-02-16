@@ -1,8 +1,12 @@
 import FrameworkModel, { CreateFrameworkDto, FrameworkDocument, FrameworkStatusEnum, UpdateFrameworkDto } from "../models/framework.model";
 import ControlModel from "../models/control.model";
+import AssesmentModel from "../models/assesment.model";
+import AssesmentCommentModel from "../models/assesment-comment.model";
+import CommonControlModel from "../models/common-control.model";
 import { MongoIdType } from "types/mongoid.type";
 import csv from 'csv-parser';
 import { Readable } from 'stream';
+import storage from "../config/storage.provider";
 
 const findById = async (id: string|MongoIdType): Promise<FrameworkDocument|null> => {
   return await FrameworkModel.findById(id);
@@ -115,10 +119,89 @@ const createFromCsv = async (displayName: string, type: string, csvBuffer: Buffe
   });
 }
 
+const deleteCascade = async (frameworkId: string|MongoIdType) => {
+  const framework = await FrameworkModel.findById(frameworkId);
+  if (!framework) {
+    throw new Error('Framework not found');
+  }
+
+  const deletionSummary = {
+    framework: framework.displayName,
+    controls: 0,
+    assessments: 0,
+    assessmentComments: 0,
+    commonControlMappings: 0,
+    filesDeleted: 0
+  };
+
+  // 1. Get all assessments for this framework (to collect file attachments)
+  const assessments = await AssesmentModel.find({ framework: frameworkId });
+  const assessmentIds = assessments.map(a => a._id);
+  
+  // Collect all attachment URLs
+  const attachmentUrls: string[] = [];
+  assessments.forEach(assessment => {
+    if (assessment.attachments && assessment.attachments.length > 0) {
+      attachmentUrls.push(...assessment.attachments);
+    }
+  });
+
+  // 2. Get assessment comments (they may have attachments too)
+  if (assessmentIds.length > 0) {
+    const comments = await AssesmentCommentModel.find({ assessmentId: { $in: assessmentIds } });
+    comments.forEach(comment => {
+      if (comment.attachments && comment.attachments.length > 0) {
+        attachmentUrls.push(...comment.attachments);
+      }
+    });
+    
+    // Delete assessment comments
+    const commentsResult = await AssesmentCommentModel.deleteMany({ assessmentId: { $in: assessmentIds } });
+    deletionSummary.assessmentComments = commentsResult.deletedCount || 0;
+  }
+
+  // 3. Delete file attachments from storage
+  for (const fileUrl of attachmentUrls) {
+    try {
+      await storage.deleteFile(fileUrl);
+      deletionSummary.filesDeleted++;
+    } catch (error) {
+      console.warn(`Failed to delete file: ${fileUrl}`, error);
+    }
+  }
+
+  // 4. Delete assessments
+  const assessmentsResult = await AssesmentModel.deleteMany({ framework: frameworkId });
+  deletionSummary.assessments = assessmentsResult.deletedCount || 0;
+
+  // 5. Remove framework from common control mappings
+  const commonControls = await CommonControlModel.find({ 'mappedControls.frameworkId': frameworkId });
+  for (const commonControl of commonControls) {
+    const updatedMappings = commonControl.mappedControls.filter(
+      (mapping: any) => mapping.frameworkId.toString() !== frameworkId.toString()
+    );
+    await CommonControlModel.updateOne(
+      { _id: commonControl._id },
+      { mappedControls: updatedMappings }
+    );
+    deletionSummary.commonControlMappings++;
+  }
+
+  // 6. Delete controls
+  const controlsResult = await ControlModel.deleteMany({ frameworkId });
+  deletionSummary.controls = controlsResult.deletedCount || 0;
+
+  // 7. Delete framework
+  await FrameworkModel.findByIdAndDelete(frameworkId);
+
+  return deletionSummary;
+}
+
 export default {
   findById,
   create,
   update,
   findAllActive,
-  createFromCsv
+  createFromCsv,
+  deleteCascade
 }
