@@ -9,7 +9,7 @@ export const createAssesment_validation = validateRequest([
   body("description").trim().not().isEmpty().withMessage("Assessment description is required"),
   body("framework").trim().isMongoId().withMessage("Framework must be a valid ID"),
   body("control").trim().isMongoId().withMessage("Control must be a valid ID"),
-  body("commonAssessmentId").optional().isMongoId().withMessage("Common Assessment ID must be a valid ID"),
+  body("commonAssessmentId").optional({ nullable: true }).isMongoId().withMessage("Common Assessment ID must be a valid ID"),
   body("departments").isArray({min: 1}).withMessage("At least one department is required"),
   body("departments.*").isMongoId().withMessage("Each department must be a valid ID"),
   body('participants').optional({ nullable: true, checkFalsy: true })

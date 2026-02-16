@@ -1,6 +1,13 @@
 import mongoose, { HydratedDocument, InferSchemaType, model, Schema } from 'mongoose';
 import { ExtractAndFix } from 'types/inferred.schema.type';
 
+export const EvidenceTypeEnum = {
+  implementation: "implementation",
+  design: "design",
+  architectural: "architectural"
+} as const
+export type EvidenceTypeEnumType = keyof typeof EvidenceTypeEnum;
+
 export const assesmentCommentSchema = new Schema(
   {
     assessmentId: { type: mongoose.Types.ObjectId, required: true, ref: "Assesment" },
@@ -9,6 +16,7 @@ export const assesmentCommentSchema = new Schema(
     author: { type: String, required: true },
     authorName: { type: String, required: true },
     attachments: { type: [String], default: [] },
+    evidenceType: { type: String, enum: EvidenceTypeEnum, default: null },
     isEdited: { type: Boolean, default: false },
     editedAt: { type: Date },
   },

@@ -40,12 +40,19 @@ export const createReply = async (req: ARequest, res: Response, next: NextFuncti
     const { assessmentId, commentId } = req.params;
     const user = req.user as IUser;
     
+    // Get parent comment to inherit evidenceType
+    const parentComment = await assesmentCommentService.findById(commentId);
+    if (!parentComment) {
+      throw ApiError.badRequest("Parent comment not found");
+    }
+    
     const payload = {
       ...req.body,
       assessmentId,
       parentCommentId: commentId,
       author: user.userName,
       authorName: user.userName,
+      evidenceType: parentComment.evidenceType, // Inherit from parent
     };
     
     const reply = await assesmentCommentService.create(payload);
@@ -70,7 +77,17 @@ export const updateComment = async (req: ARequest, res: Response, next: NextFunc
       throw ApiError.forbidden("You can only edit your own comments");
     }
     
-    const updatedComment = await assesmentCommentService.update(commentId, req.body);
+    // Only allow evidenceType update for top-level comments
+    const updateData: any = {
+      content: req.body.content,
+      attachments: req.body.attachments
+    };
+    
+    if (!comment.parentCommentId && req.body.evidenceType !== undefined) {
+      updateData.evidenceType = req.body.evidenceType;
+    }
+    
+    const updatedComment = await assesmentCommentService.update(commentId, updateData);
     res.json({ message: 'Comment updated successfully', comment: updatedComment });
   } catch (error) {
     console.error(error);
