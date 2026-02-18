@@ -7,13 +7,7 @@ export const UserStatusEnum = {
 } as const
 export type UserStatusEnumType = keyof typeof UserStatusEnum;
 
-export const UserRoleEnum = {
-  executive: "executive",
-  auditor: "auditor",
-  team_lead: "team_lead",
-  team_member: "team_member"
-} as const
-export type UserRoleEnumType = keyof typeof UserRoleEnum;
+
 
 export const userSchema = new Schema(
   {
@@ -22,7 +16,8 @@ export const userSchema = new Schema(
     emailIsVerified: { type: Boolean, default: false },
     status: { type: String, enum: UserStatusEnum, default: UserStatusEnum.active },
     password: { type: String, required: true },
-    role: { type: String, required: true, enum: UserRoleEnum },
+    roleId: { type: mongoose.Types.ObjectId, ref: "Role", required: true },
+    role: { type: String, required: true },
     departmentId: { type: mongoose.Types.ObjectId, ref: "Department", default: null },
     department: { type: String, default: null },
   },

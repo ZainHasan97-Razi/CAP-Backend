@@ -1,6 +1,7 @@
 import { NextFunction, Request, Response } from 'express';
 import userService from "../services/user.service";
 import departmentService from "../services/department.service";
+import roleService from "../services/role.service";
 import { CreateUserDto } from "../models/user.model";
 import { issueJwt } from "../utils/jwt";
 import { ApiError } from '../middleware/validate.request';
@@ -22,6 +23,9 @@ export const register = async (req: Request, res: Response, next: NextFunction) 
       throw ApiError.badRequest("Invalid department ID");
     }
 
+    // Handle role - find or create
+    const role = await roleService.findOrCreateRole(body.role);
+
     // Hash password
     const hashedpassword = await bcrypt.hash(body.password, 12);
 
@@ -30,6 +34,8 @@ export const register = async (req: Request, res: Response, next: NextFunction) 
       password: hashedpassword,
       email: body.email.toLowerCase(),
       department: department.displayName,
+      roleId: role._id,
+      role: role.name,
     };
 
     const newUser = await userService.createUser(payload);

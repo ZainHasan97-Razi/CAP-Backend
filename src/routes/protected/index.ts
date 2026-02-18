@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import userRoute from './user.route';
 import departmentRoute from './deprtment.route';
+import roleRoute from './role.route';
 import frameworkRoute from './framework.route';
 import controlRoute from './control.route';
 import commonControlRoute from './common-control.route';
@@ -14,6 +15,7 @@ const router = Router();
 
 router.use('/user', userRoute)
 router.use('/department', departmentRoute)
+router.use('/role', roleRoute)
 router.use('/framework', frameworkRoute)
 router.use('/control', controlRoute)
 router.use('/common-control', commonControlRoute)
