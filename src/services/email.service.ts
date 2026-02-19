@@ -47,6 +47,30 @@ class EmailService {
       html: '<p>This is a test email from CAP System. Email service is working correctly!</p>',
     });
   }
+
+  async sendAssessmentAssignmentEmail(participants: string[], assessmentDetails: {
+    name: string;
+    description: string;
+    controlName: string;
+    priority: string;
+    dueDate: number;
+  }): Promise<boolean> {
+    const dueDate = new Date(assessmentDetails.dueDate * 1000).toLocaleDateString();
+    
+    return this.sendEmail({
+      to: participants,
+      subject: `New Assessment Assignment - ${assessmentDetails.name}`,
+      html: `
+        <h2>You have been assigned to a new assessment</h2>
+        <p><strong>Assessment:</strong> ${assessmentDetails.name}</p>
+        <p><strong>Description:</strong> ${assessmentDetails.description}</p>
+        <p><strong>Control:</strong> ${assessmentDetails.controlName}</p>
+        <p><strong>Priority:</strong> ${assessmentDetails.priority.toUpperCase()}</p>
+        <p><strong>Due Date:</strong> ${dueDate}</p>
+        <p>Please log in to the CAP system to view and complete your assignment.</p>
+      `,
+    });
+  }
 }
 
 export default new EmailService();

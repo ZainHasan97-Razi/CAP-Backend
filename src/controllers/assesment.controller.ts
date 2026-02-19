@@ -7,6 +7,7 @@ import framewaorkService from "../services/framewaork.service";
 import controlService from "../services/control.service";
 import departmentService from "../services/department.service";
 import { IUser } from "types/req.user.type";
+import emailService from "../services/email.service";
 
 type UpdateRequestDto = {
   priority?: PriorityEnumType;
@@ -68,6 +69,18 @@ export const create = async (req: ARequest, res: Response, next: NextFunction) =
       (req.user as IUser).userName,
       (req.user as IUser).userName
     )
+    
+    // Send email notifications to participants
+    if (body.participants && body.participants.length > 0) {
+      emailService.sendAssessmentAssignmentEmail(body.participants, {
+        name: body.name,
+        description: body.description,
+        controlName: control.controlName,
+        priority: body.priority,
+        dueDate: body.dueDate,
+      }).catch(err => console.error('Failed to send assignment emails:', err));
+    }
+    
     res.json({ message: 'Request success', assesment });
   } catch (error) {
     console.error(error);

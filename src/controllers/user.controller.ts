@@ -34,3 +34,21 @@ export const list = async (req: ARequest, res: Response, next: NextFunction) => 
     next(error);
   }
 }
+
+export const findByDepartments = async (req: ARequest, res: Response, next: NextFunction) => {
+  try {
+    const departmentIds = req.query.departmentIds as string;
+    
+    if (!departmentIds) {
+      throw ApiError.badRequest("departmentIds query parameter is required");
+    }
+    
+    const ids = departmentIds.split(',').map(id => id.trim());
+    const users = await userService.findByDepartments(ids);
+    
+    res.json(users);
+  } catch (error) {
+    console.error(error);
+    next(error);
+  }
+}

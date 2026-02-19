@@ -54,9 +54,19 @@ const list = async (filters: UserListFilters = {}) => {
   };
 };
 
+const findByDepartments = async (departmentIds: (string | MongoIdType)[]) => {
+  return await UserModel.find({ 
+    departmentId: { $in: departmentIds },
+    status: 'active'
+  })
+  .select('userName email department departmentId')
+  .lean();
+};
+
 export default {
   findByEmail,
   findById,
   createUser,
   list,
+  findByDepartments,
 }
