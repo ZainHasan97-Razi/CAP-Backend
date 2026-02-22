@@ -9,8 +9,8 @@ export const createControl_validation = validateRequest([
   body("controlName").trim().not().isEmpty().withMessage("Invalid control name"),
   body("domainCode").trim().not().isEmpty().withMessage("Invalid domain code"),
   body("domainName").trim().not().isEmpty().withMessage("Invalid domain name"),
-  body("subdomainCode").trim().not().isEmpty().withMessage("Invalid subdomain code"),
-  body("subdomainName").trim().not().isEmpty().withMessage("Invalid subdomain name"),
+  body("subdomainCode").optional().trim(),
+  body("subdomainName").optional().trim(),
   body("description").optional().trim(),
   body("frameworkId").trim().isMongoId().withMessage("Invalid framework has incorrect format")
   .custom(async (id) => {

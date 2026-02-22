@@ -34,7 +34,8 @@ const createFromCsv = async (displayName: string, type: string, csvBuffer: Buffe
   return new Promise((resolve, reject) => {
     const controls: any[] = [];
     const errors: string[] = [];
-    const requiredColumns = ['domainCode', 'domainName', 'subdomainCode', 'subdomainName', 'controlCode', 'controlName'];
+    const requiredColumns = ['domainCode', 'domainName', 'controlCode', 'controlName'];
+    const optionalColumns = ['subdomainCode', 'subdomainName'];
     let rowIndex = 0;
     let headerValidated = false;
     const csvContent = csvBuffer.toString().trim();
@@ -61,19 +62,17 @@ const createFromCsv = async (displayName: string, type: string, csvBuffer: Buffe
         
         const domainCode = row.domainCode?.trim();
         const domainName = row.domainName?.trim();
-        const subdomainCode = row.subdomainCode?.trim();
-        const subdomainName = row.subdomainName?.trim();
+        const subdomainCode = row.subdomainCode?.trim() || '';
+        const subdomainName = row.subdomainName?.trim() || '';
         const controlCode = row.controlCode?.trim();
         const controlName = row.controlName?.trim();
         
         if (!domainCode) errors.push(`Row ${rowIndex}: domainCode is required`);
         if (!domainName) errors.push(`Row ${rowIndex}: domainName is required`);
-        if (!subdomainCode) errors.push(`Row ${rowIndex}: subdomainCode is required`);
-        if (!subdomainName) errors.push(`Row ${rowIndex}: subdomainName is required`);
         if (!controlCode) errors.push(`Row ${rowIndex}: controlCode is required`);
         if (!controlName) errors.push(`Row ${rowIndex}: controlName is required`);
         
-        if (domainCode && domainName && subdomainCode && subdomainName && controlCode && controlName) {
+        if (domainCode && domainName && controlCode && controlName) {
           controls.push({ domainCode, domainName, subdomainCode, subdomainName, controlCode, controlName });
         }
       })

@@ -1,0 +1,5 @@
+domainCode,domainName,subdomainCode,subdomainName,controlCode,controlName
+AC,Access Control,AC.1,User Access Management,AC-1,Access Control Policy
+AC,Access Control,AC.2,Privileged Access,AC-2,Account Management
+IA,Identification and Authentication,,,IA-1,Identification and Authentication Policy
+IA,Identification and Authentication,,,IA-5,Authenticator Management
