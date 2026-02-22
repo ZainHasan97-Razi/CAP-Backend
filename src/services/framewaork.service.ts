@@ -62,8 +62,8 @@ const createFromCsv = async (displayName: string, type: string, csvBuffer: Buffe
         
         const domainCode = row.domainCode?.trim();
         const domainName = row.domainName?.trim();
-        const subdomainCode = row.subdomainCode?.trim() || '';
-        const subdomainName = row.subdomainName?.trim() || '';
+        const subdomainCode = row.subdomainCode?.trim() || null;
+        const subdomainName = row.subdomainName?.trim() || null;
         const controlCode = row.controlCode?.trim();
         const controlName = row.controlName?.trim();
         
@@ -99,7 +99,7 @@ const createFromCsv = async (displayName: string, type: string, csvBuffer: Buffe
           const createdControls = await ControlModel.insertMany(controlsWithFrameworkId);
           
           const uniqueDomains = new Set(controls.map(c => c.domainCode)).size;
-          const uniqueSubdomains = new Set(controls.map(c => c.subdomainCode)).size;
+          const uniqueSubdomains = new Set(controls.map(c => c.subdomainCode).filter(s => s !== null)).size;
           
           resolve({
             framework,
