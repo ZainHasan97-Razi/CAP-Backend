@@ -17,6 +17,7 @@ export const controlSchema = new Schema(
     controlCode: {type: String, required: true},
     controlName: {type: String, required: true},
     description: {type: String, default: ""},
+    properties: {type: Map, of: String, default: {}},
     status: { type: String, enum: ControlStatusEnum, default: ControlStatusEnum.active },
   },
   { timestamps: true },

@@ -12,6 +12,7 @@ export const createControl_validation = validateRequest([
   body("subdomainCode").optional().trim(),
   body("subdomainName").optional().trim(),
   body("description").optional().trim(),
+  body("properties").optional().isObject().withMessage("Properties must be an object"),
   body("frameworkId").trim().isMongoId().withMessage("Invalid framework has incorrect format")
   .custom(async (id) => {
     let framework = await framewaorkService.findById(id);
@@ -26,9 +27,10 @@ export const updateControl_validation = validateRequest([
   param("id").trim().isMongoId().withMessage("Invalid control id"),
   body("controlName").optional({ nullable: true, checkFalsy: true }).trim().not().isEmpty().withMessage("Invalid control name"),
   body("description").optional({ nullable: true, checkFalsy: true }).trim(),
+  body("properties").optional({ nullable: true, checkFalsy: true }).isObject().withMessage("Properties must be an object"),
   body("status").optional({ nullable: true, checkFalsy: true }).isIn(["active", "inactive"]).withMessage("Invalid status"),
   body().custom((value, { req }) => {
-    const allowedFields = ['controlName', 'description', 'status'];
+    const allowedFields = ['controlName', 'description', 'properties', 'status'];
     const extraFields = Object.keys(req.body).filter(field => !allowedFields.includes(field));
     if (extraFields.length > 0) {
       throw new Error(`Unexpected fields: ${extraFields.join(', ')}`);

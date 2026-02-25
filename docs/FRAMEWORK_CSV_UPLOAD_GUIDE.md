@@ -1,7 +1,7 @@
 # Framework Control CSV Upload Guide
 
 ## Overview
-Upload CSV files to bulk create controls for a framework. Subdomain fields are **optional** since not all frameworks have subdomains.
+Upload CSV files to bulk create controls for a framework. Subdomain fields are **optional** since not all frameworks have subdomains. You can also add **dynamic properties** using the `property:keyName` column format.
 
 ## CSV Format
 
@@ -14,13 +14,34 @@ Upload CSV files to bulk create controls for a framework. Subdomain fields are *
 ### Optional Columns
 - `subdomainCode` - Subdomain identifier (leave empty if not applicable)
 - `subdomainName` - Subdomain display name (leave empty if not applicable)
+- `property:keyName` - Dynamic properties (e.g., `property:priority`, `property:category`)
+
+### Dynamic Properties
+You can add any number of custom properties by prefixing column names with `property:`:
+- `property:priority` → Adds `priority` key to properties object
+- `property:category` → Adds `category` key to properties object
+- `property:riskLevel` → Adds `riskLevel` key to properties object
+- `property:anyCustomKey` → Adds `anyCustomKey` to properties object
 
 ## Example CSV
 
 ```csv
-domainCode,domainName,subdomainCode,subdomainName,controlCode,controlName
-AC,Access Control,AC.1,User Access,AC-1,Access Control Policy
-IA,Identification,,,IA-1,ID Policy
+domainCode,domainName,subdomainCode,subdomainName,controlCode,controlName,property:priority,property:category
+AC,Access Control,AC.1,User Access,AC-1,Access Control Policy,high,technical
+IA,Identification,,,IA-1,ID Policy,medium,administrative
+```
+
+**Result in Database:**
+```json
+{
+  "domainCode": "AC",
+  "controlCode": "AC-1",
+  "controlName": "Access Control Policy",
+  "properties": {
+    "priority": "high",
+    "category": "technical"
+  }
+}
 ```
 
 ## API Endpoint

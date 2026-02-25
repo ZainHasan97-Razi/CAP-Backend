@@ -67,13 +67,25 @@ const createFromCsv = async (displayName: string, type: string, csvBuffer: Buffe
         const controlCode = row.controlCode?.trim();
         const controlName = row.controlName?.trim();
         
+        // Extract dynamic properties from columns starting with "property:"
+        const properties: Record<string, string> = {};
+        Object.keys(row).forEach(column => {
+          if (column.startsWith('property:')) {
+            const propertyKey = column.substring(9).trim(); // Remove "property:" prefix
+            const propertyValue = row[column]?.trim();
+            if (propertyKey && propertyValue) {
+              properties[propertyKey] = propertyValue;
+            }
+          }
+        });
+        
         if (!domainCode) errors.push(`Row ${rowIndex}: domainCode is required`);
         if (!domainName) errors.push(`Row ${rowIndex}: domainName is required`);
         if (!controlCode) errors.push(`Row ${rowIndex}: controlCode is required`);
         if (!controlName) errors.push(`Row ${rowIndex}: controlName is required`);
         
         if (domainCode && domainName && controlCode && controlName) {
-          controls.push({ domainCode, domainName, subdomainCode, subdomainName, controlCode, controlName });
+          controls.push({ domainCode, domainName, subdomainCode, subdomainName, controlCode, controlName, properties });
         }
       })
       .on('end', async () => {
