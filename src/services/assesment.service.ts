@@ -202,6 +202,7 @@ const getAnalytics = async (filters: { startDate?: number; endDate?: number } = 
         _id: "$assesmentId",
         priority: { $first: "$priority" },
         dueDate: { $first: "$dueDate" },
+        frameworkName: { $first: "$frameworkName" },
         statuses: { $push: "$status" },
         totalControls: { $sum: 1 },
         closedControls: {
@@ -265,6 +266,14 @@ const getAnalytics = async (filters: { startDate?: number; endDate?: number } = 
         },
         lowPriority: {
           $sum: { $cond: [{ $eq: ["$priority", "low"] }, 1, 0] }
+        },
+        frameworks: {
+          $push: {
+            name: "$frameworkName",
+            status: "$assessmentStatus",
+            totalControls: "$totalControls",
+            closedControls: "$closedControls"
+          }
         }
       }
     }
@@ -285,11 +294,38 @@ const getAnalytics = async (filters: { startDate?: number; endDate?: number } = 
         high: 0,
         medium: 0,
         low: 0
-      }
+      },
+      frameworkAnalytics: []
     };
   }
   
   const data = result[0];
+  
+  const frameworkMap = new Map();
+  data.frameworks.forEach((fw: any) => {
+    if (!fw.name) return;
+    if (!frameworkMap.has(fw.name)) {
+      frameworkMap.set(fw.name, {
+        frameworkName: fw.name,
+        totalAssessments: 0,
+        completedAssessments: 0,
+        totalControls: 0,
+        completedControls: 0,
+        progressPercentage: 0
+      });
+    }
+    const fwData = frameworkMap.get(fw.name);
+    fwData.totalAssessments++;
+    if (fw.status === "closed") fwData.completedAssessments++;
+    fwData.totalControls += fw.totalControls;
+    fwData.completedControls += fw.closedControls;
+  });
+  
+  const frameworkAnalytics = Array.from(frameworkMap.values()).map(fw => ({
+    ...fw,
+    progressPercentage: fw.totalControls > 0 ? Math.round((fw.completedControls / fw.totalControls) * 100) : 0
+  }));
+  
   return {
     totalAssessments: data.totalAssessments,
     completedAssessments: data.completedAssessments,
@@ -302,7 +338,8 @@ const getAnalytics = async (filters: { startDate?: number; endDate?: number } = 
       high: data.highPriority,
       medium: data.mediumPriority,
       low: data.lowPriority
-    }
+    },
+    frameworkAnalytics
   };
 };
 
