@@ -1,4 +1,5 @@
 import AssesmentCommentModel, { CreateAssesmentCommentDto, UpdateAssesmentCommentDto } from "../models/assesment-comment.model";
+import AssesmentModel from "../models/assesment.model";
 import { MongoIdType } from "types/mongoid.type";
 
 const findById = async (id: string | MongoIdType) => {
@@ -6,7 +7,16 @@ const findById = async (id: string | MongoIdType) => {
 };
 
 const create = async (data: CreateAssesmentCommentDto) => {
-  return await AssesmentCommentModel.create(data);
+  const comment = await AssesmentCommentModel.create(data);
+  
+  if ((data.attachments && data.attachments.length > 0) || data.evidenceType) {
+    const assessment = await AssesmentModel.findById(data.assessmentId);
+    if (assessment && assessment.status === "open") {
+      await AssesmentModel.findByIdAndUpdate(data.assessmentId, { status: "in_progress" });
+    }
+  }
+  
+  return comment;
 };
 
 const update = async (id: string | MongoIdType, data: UpdateAssesmentCommentDto) => {
