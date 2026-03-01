@@ -91,6 +91,8 @@ const dashboardList = async (filters: DashboardFilters = {}) => {
 
   if (search) {
     query.$or = [
+      { name: { $regex: search, $options: "i" } },
+      { description: { $regex: search, $options: "i" } },
       { frameworkName: { $regex: search, $options: "i" } },
       { controlId: { $regex: search, $options: "i" } },
       { controlName: { $regex: search, $options: "i" } },
