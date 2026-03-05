@@ -3,6 +3,7 @@ import { MongoIdType } from "types/mongoid.type";
 import { sortControlsByControlCode } from "../utils/control.util";
 import assesmentService from "./assesment.service";
 import commonControlService from "./common-control.service";
+import CommonControlModel from "../models/common-control.model";
 
 const findById = async (id: string|MongoIdType) => {
   return await ControlModel.findById(id);
@@ -43,22 +44,20 @@ const findByControlCodeWithAssessments = async (controlCode: string) => {
   
   if (!control) return null;
   
-  // Find common controls that include this control
-  const commonControls = await commonControlService.findCommonControlsByControlId(control._id);
+  const commonControls = await CommonControlModel.find({
+    'mappedControls.controlId': control._id
+  }).select('mappedControls').lean();
   
-  // Collect all related control IDs
   const relatedControlIds: MongoIdType[] = [control._id];
   
-  commonControls.forEach(commonControl => {
-    commonControl.mappedControls.forEach(mappedControl => {
-      const controlObjectId = mappedControl.controlId as any;
-      if (controlObjectId._id?.toString() !== control._id.toString()) {
-        relatedControlIds.push(controlObjectId._id || controlObjectId);
+  commonControls.forEach(cc => {
+    cc.mappedControls.forEach(mc => {
+      if (mc.controlId.toString() !== control._id.toString()) {
+        relatedControlIds.push(mc.controlId as any);
       }
     });
   });
   
-  // Get recent assessments for all related controls
   const recentAssessments = await assesmentService.findRecentByMultipleControlIds(relatedControlIds);
   
   return {

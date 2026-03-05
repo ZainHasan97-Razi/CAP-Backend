@@ -26,9 +26,28 @@ interface ValidationError {
 }
 
 const findById = async (id: string|MongoIdType) => {
-  return await CommonControlModel.findById(id)
-    .populate('mappedControls.frameworkId', 'displayName')
-    .populate('mappedControls.controlId', 'controlCode controlName');
+  const commonControl = await CommonControlModel.findById(id).lean();
+  if (!commonControl) return null;
+  
+  const controlIds = commonControl.mappedControls.map(mc => mc.controlId);
+  const controls = await ControlModel.find({ _id: { $in: controlIds } })
+    .select('_id frameworkName domainCode controlCode controlName')
+    .lean();
+  
+  const controlMap = new Map(controls.map(c => [c._id.toString(), c]));
+  
+  return {
+    ...commonControl,
+    mappedControls: commonControl.mappedControls.map(mc => {
+      const control = mc.controlId ? controlMap.get(mc.controlId.toString()) : undefined;
+      return {
+        frameworkName: control?.frameworkName || mc.frameworkName,
+        domainCode: control?.domainCode || '',
+        controlCode: control?.controlCode || mc.controlCode,
+        controlName: control?.controlName || mc.controlName
+      };
+    })
+  };
 };
 
 const create = async (data: CreateCommonControlDto) => {
@@ -57,16 +76,34 @@ const list = async (filters: CommonControlListFilters = {}) => {
   
   const skip = (page - 1) * limit;
   
-  const [data, total] = await Promise.all([
+  const [commonControls, total] = await Promise.all([
     CommonControlModel.find(query)
-      .populate('mappedControls.frameworkId', 'displayName')
-      .populate('mappedControls.controlId', 'controlCode controlName')
       .sort({ _id: -1 })
       .skip(skip)
       .limit(limit)
       .lean(),
     CommonControlModel.countDocuments(query)
   ]);
+  
+  const allControlIds = commonControls.flatMap(cc => cc.mappedControls.map(mc => mc.controlId));
+  const controls = await ControlModel.find({ _id: { $in: allControlIds } })
+    .select('_id frameworkName domainCode controlCode controlName')
+    .lean();
+  
+  const controlMap = new Map(controls.map(c => [c._id.toString(), c]));
+  
+  const data = commonControls.map(cc => ({
+    ...cc,
+    mappedControls: cc.mappedControls.map(mc => {
+      const control = mc.controlId ? controlMap.get(mc.controlId.toString()) : undefined;
+      return {
+        frameworkName: control?.frameworkName || mc.frameworkName,
+        domainCode: control?.domainCode || '',
+        controlCode: control?.controlCode || mc.controlCode,
+        controlName: control?.controlName || mc.controlName
+      };
+    })
+  }));
   
   return {
     data,
@@ -80,17 +117,55 @@ const list = async (filters: CommonControlListFilters = {}) => {
 };
 
 const findByFramework = async (frameworkId: string|MongoIdType) => {
-  return await CommonControlModel.find({
+  const commonControls = await CommonControlModel.find({
     'mappedControls.frameworkId': frameworkId
-  }).populate('mappedControls.frameworkId', 'displayName')
-    .populate('mappedControls.controlId', 'controlCode controlName');
+  }).lean();
+  
+  const allControlIds = commonControls.flatMap(cc => cc.mappedControls.map(mc => mc.controlId));
+  const controls = await ControlModel.find({ _id: { $in: allControlIds } })
+    .select('_id frameworkName domainCode controlCode controlName')
+    .lean();
+  
+  const controlMap = new Map(controls.map(c => [c._id.toString(), c]));
+  
+  return commonControls.map(cc => ({
+    ...cc,
+    mappedControls: cc.mappedControls.map(mc => {
+      const control = mc.controlId ? controlMap.get(mc.controlId.toString()) : undefined;
+      return {
+        frameworkName: control?.frameworkName || mc.frameworkName,
+        domainCode: control?.domainCode || '',
+        controlCode: control?.controlCode || mc.controlCode,
+        controlName: control?.controlName || mc.controlName
+      };
+    })
+  }));
 };
 
 const findCommonControlsByControlId = async (controlId: string|MongoIdType) => {
-  return await CommonControlModel.find({
+  const commonControls = await CommonControlModel.find({
     'mappedControls.controlId': controlId
-  }).populate('mappedControls.frameworkId', 'displayName')
-    .populate('mappedControls.controlId', 'controlCode controlName');
+  }).lean();
+  
+  const allControlIds = commonControls.flatMap(cc => cc.mappedControls.map(mc => mc.controlId));
+  const controls = await ControlModel.find({ _id: { $in: allControlIds } })
+    .select('_id frameworkName domainCode controlCode controlName')
+    .lean();
+  
+  const controlMap = new Map(controls.map(c => [c._id.toString(), c]));
+  
+  return commonControls.map(cc => ({
+    ...cc,
+    mappedControls: cc.mappedControls.map(mc => {
+      const control = mc.controlId ? controlMap.get(mc.controlId.toString()) : undefined;
+      return {
+        frameworkName: control?.frameworkName || mc.frameworkName,
+        domainCode: control?.domainCode || '',
+        controlCode: control?.controlCode || mc.controlCode,
+        controlName: control?.controlName || mc.controlName
+      };
+    })
+  }));
 };
 
 const bulkCreateFromCSV = async (fileBuffer: Buffer) => {
