@@ -18,7 +18,6 @@ All parameters are optional query parameters:
 | `status` | string | No | Filter by assessment status | `open`, `in_progress`, `closed`, `discard` |
 | `frameworkType` | string | No | Filter by framework type | `ISO`, `SOC2`, `NIST`, etc. |
 | `department` | string | No | Filter by department ID | `507f1f77bcf86cd799439011` |
-| `priority` | string | No | Filter by priority level | `high`, `medium`, `low` |
 | `search` | string | No | Search across multiple fields (see below) | `ncca`, `security`, `ISO` |
 
 ### Date Range Filters
@@ -72,9 +71,9 @@ GET /api/assesment/dashboard?status=open&page=1&limit=10
 GET /api/assesment/dashboard?search=ncca&status=open&page=1&limit=10
 ```
 
-### 4. Filter by Priority and Framework
+### 4. Filter by Framework Type
 ```
-GET /api/assesment/dashboard?priority=high&frameworkType=ISO&page=1&limit=20
+GET /api/assesment/dashboard?frameworkType=ISO&page=1&limit=20
 ```
 
 ### 5. Date Range Filter
@@ -84,7 +83,7 @@ GET /api/assesment/dashboard?dateFrom=1704067200&dateTo=1735689600&page=1&limit=
 
 ### 6. Complex Filter (Multiple Criteria)
 ```
-GET /api/assesment/dashboard?status=in_progress&priority=high&search=security&dueDateFrom=1704067200&page=1&limit=15
+GET /api/assesment/dashboard?status=in_progress&search=security&dueDateFrom=1704067200&page=1&limit=15
 ```
 
 ### 7. Filter by Department
@@ -133,7 +132,6 @@ GET /api/assesment/dashboard?department=507f1f77bcf86cd799439011&page=1&limit=10
   participants: string[],               // Array of participant emails
   attachments: string[],                // Array of attachment URLs
   status: string,                       // "open" | "in_progress" | "closed" | "discard"
-  priority: string,                     // "high" | "medium" | "low"
   startDate: number,                    // Unix timestamp (seconds)
   dueDate: number,                      // Unix timestamp (seconds)
   createdBy: string,                    // Creator username
@@ -167,7 +165,6 @@ GET /api/assesment/dashboard?department=507f1f77bcf86cd799439011&page=1&limit=10
       "participants": ["john@example.com", "jane@example.com"],
       "attachments": ["https://example.com/file1.pdf"],
       "status": "in_progress",
-      "priority": "high",
       "startDate": 1704067200,
       "dueDate": 1735689600,
       "createdBy": "admin",
@@ -194,16 +191,6 @@ GET /api/assesment/dashboard?department=507f1f77bcf86cd799439011&page=1&limit=10
 | `in_progress` | Assessment is currently being worked on |
 | `closed` | Assessment is completed |
 | `discard` | Assessment is discarded/cancelled |
-
----
-
-## Priority Values
-
-| Priority | Description |
-|----------|-------------|
-| `high` | High priority - requires immediate attention |
-| `medium` | Medium priority - normal workflow |
-| `low` | Low priority - can be addressed later |
 
 ---
 
@@ -238,7 +225,6 @@ interface Assessment {
   participants: string[];
   attachments: string[];
   status: 'open' | 'in_progress' | 'closed' | 'discard';
-  priority: 'high' | 'medium' | 'low';
   startDate: number;
   dueDate: number;
   createdBy: string;
@@ -260,7 +246,6 @@ interface DashboardFilters {
   status?: string;
   frameworkType?: string;
   department?: string;
-  priority?: string;
   search?: string;
   dateFrom?: number;
   dateTo?: number;
@@ -400,10 +385,9 @@ const filters = { status: 'open', page: 1, limit: 20 };
 const filters = { search: 'ncca', page: 1, limit: 10 };
 ```
 
-### 3. High Priority Items Due Soon
+### 3. Items Due Soon
 ```typescript
 const filters = { 
-  priority: 'high', 
   dueDateFrom: Math.floor(Date.now() / 1000),
   dueDateTo: Math.floor(Date.now() / 1000) + (7 * 24 * 60 * 60), // Next 7 days
   page: 1, 
@@ -476,7 +460,6 @@ const filters = {
 - [ ] Pagination works correctly
 - [ ] Search returns relevant results
 - [ ] Status filter works
-- [ ] Priority filter works
 - [ ] Framework type filter works
 - [ ] Department filter works
 - [ ] Date range filters work

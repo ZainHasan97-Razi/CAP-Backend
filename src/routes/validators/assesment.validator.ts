@@ -1,6 +1,6 @@
 import { body, param, check, query } from "express-validator";
 import { validateRequest } from "../../middleware/validate.request";
-import { AssesmentStatusEnum, PriorityEnum } from "../../models/assesment.model";
+import { AssesmentStatusEnum } from "../../models/assesment.model";
 // import framewaorkService from "../../services/framewaork.service";
 
 export const createAssesment_validation = validateRequest([
@@ -16,7 +16,6 @@ export const createAssesment_validation = validateRequest([
     .isArray().withMessage('Participants must be an array'),
   body('attachments').optional({ nullable: true, checkFalsy: true })
     .isArray().withMessage('Attachments must be an array'),
-  body("priority").optional({ nullable: true, checkFalsy: true }).isIn(Object.values(PriorityEnum)).withMessage("Priority must be a valid value"),
   body("startDate").isInt({min:1}).withMessage('Start date must be a valid timestamp').custom((value, { req }) => {
     if (value <= Math.floor(Date.now() / 1000)) {
       throw new Error('Start date must be in the future');
@@ -52,12 +51,11 @@ export const findById_validation = validateRequest([
 
 export const updateAssesment_validation = validateRequest([
   param('id').isMongoId().withMessage('ID must be a valid MongoDB ObjectId'),
-  body('priority').optional().isIn(Object.values(PriorityEnum)).withMessage('Invalid priority value'),
   body('attachments').optional().isArray().withMessage('Attachments must be an array'),
   body('description').optional().trim(),
   body('status').optional().isIn(Object.values(AssesmentStatusEnum)).withMessage('Invalid status value'),
   body().custom((value, { req }) => {
-    const allowedFields = ['priority', 'attachments', 'description', 'status'];
+    const allowedFields = ['attachments', 'description', 'status'];
     const extraFields = Object.keys(req.body).filter(field => !allowedFields.includes(field));
     if (extraFields.length > 0) {
       throw new Error(`Unexpected fields: ${extraFields.join(', ')}`);
@@ -69,7 +67,6 @@ export const updateAssesment_validation = validateRequest([
 export const dashboardList_validation = validateRequest([
   query('status').optional().isIn(Object.values(AssesmentStatusEnum)).withMessage('Invalid status value'),
   query('department').optional().isMongoId().withMessage('Department must be a valid ID'),
-  query('priority').optional().isIn(Object.values(PriorityEnum)).withMessage('Invalid priority value'),
   query('dateFrom').optional().isInt({min: 1}).withMessage('Date from must be a valid timestamp'),
   query('dateTo').optional().isInt({min: 1}).withMessage('Date to must be a valid timestamp'),
   query('startDateFrom').optional().isInt({min: 1}).withMessage('Start date from must be a valid timestamp'),

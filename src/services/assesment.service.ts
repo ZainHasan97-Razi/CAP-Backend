@@ -11,7 +11,6 @@ interface DashboardFilters {
   status?: string;
   frameworkType?: string;
   department?: string;
-  priority?: string;
   search?: string;
   dateFrom?: number;
   dateTo?: number;
@@ -70,7 +69,6 @@ const dashboardList = async (filters: DashboardFilters = {}) => {
     status,
     frameworkType,
     department,
-    priority,
     search,
     dateFrom,
     dateTo,
@@ -87,7 +85,6 @@ const dashboardList = async (filters: DashboardFilters = {}) => {
   if (status) query.status = status;
   if (frameworkType) query.frameworkType = frameworkType;
   if (department) query["departments.id"] = department;
-  if (priority) query.priority = priority;
 
   if (search) {
     query.$or = [
@@ -158,7 +155,7 @@ const findRecentByControlId = async (
 
   return await AssesmentModel.find(query)
     .select(
-      "name description frameworkName controlId controlName updatedAt status priority attachments",
+      "name description frameworkName controlId controlName updatedAt status attachments",
     )
     .sort({ updatedAt: -1 })
     .limit(10)
@@ -177,7 +174,7 @@ const findRecentByMultipleControlIds = async (
     updatedAt: { $gte: yearStart },
   })
     .select(
-      "name description frameworkName controlId controlName updatedAt status priority attachments",
+      "name description frameworkName controlId controlName updatedAt status attachments",
     )
     .sort({ updatedAt: -1 })
     .limit(10)

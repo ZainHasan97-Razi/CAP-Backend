@@ -177,7 +177,6 @@ domainCode,domainName,subdomainCode,subdomainName,controlCode,controlName
   "departments": ["mongoId"],
   "participants": ["email@example.com"],
   "attachments": [],
-  "priority": "high" | "medium" | "low",
   "startDate": 1234567890,
   "dueDate": 1234567890,
   "commonAssessmentId": "optional-mongoId"
@@ -206,7 +205,6 @@ The backend now maps control fields internally:
       "controlId": "3.1.1-1",
       "controlName": "Control description",
       "status": "open",
-      "priority": "high",
       ...
     }
   ]

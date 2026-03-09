@@ -14,11 +14,10 @@ Upload CSV files to bulk create controls for a framework. Subdomain fields are *
 ### Optional Columns
 - `subdomainCode` - Subdomain identifier (leave empty if not applicable)
 - `subdomainName` - Subdomain display name (leave empty if not applicable)
-- `property:keyName` - Dynamic properties (e.g., `property:priority`, `property:category`)
+- `property:keyName` - Dynamic properties (e.g., `property:category`, `property:riskLevel`)
 
 ### Dynamic Properties
 You can add any number of custom properties by prefixing column names with `property:`:
-- `property:priority` → Adds `priority` key to properties object
 - `property:category` → Adds `category` key to properties object
 - `property:riskLevel` → Adds `riskLevel` key to properties object
 - `property:anyCustomKey` → Adds `anyCustomKey` to properties object
@@ -26,9 +25,9 @@ You can add any number of custom properties by prefixing column names with `prop
 ## Example CSV
 
 ```csv
-domainCode,domainName,subdomainCode,subdomainName,controlCode,controlName,property:priority,property:category
-AC,Access Control,AC.1,User Access,AC-1,Access Control Policy,high,technical
-IA,Identification,,,IA-1,ID Policy,medium,administrative
+domainCode,domainName,subdomainCode,subdomainName,controlCode,controlName,property:category,property:riskLevel
+AC,Access Control,AC.1,User Access,AC-1,Access Control Policy,technical,high
+IA,Identification,,,IA-1,ID Policy,administrative,medium
 ```
 
 **Result in Database:**
@@ -38,8 +37,8 @@ IA,Identification,,,IA-1,ID Policy,medium,administrative
   "controlCode": "AC-1",
   "controlName": "Access Control Policy",
   "properties": {
-    "priority": "high",
-    "category": "technical"
+    "category": "technical",
+    "riskLevel": "high"
   }
 }
 ```

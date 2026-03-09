@@ -52,7 +52,6 @@ class EmailService {
     name: string;
     description: string;
     controlName: string;
-    priority: string;
     dueDate: number;
   }): Promise<boolean> {
     const dueDate = new Date(assessmentDetails.dueDate * 1000).toLocaleDateString();
@@ -65,7 +64,6 @@ class EmailService {
         <p><strong>Assessment:</strong> ${assessmentDetails.name}</p>
         <p><strong>Description:</strong> ${assessmentDetails.description}</p>
         <p><strong>Control:</strong> ${assessmentDetails.controlName}</p>
-        <p><strong>Priority:</strong> ${assessmentDetails.priority.toUpperCase()}</p>
         <p><strong>Due Date:</strong> ${dueDate}</p>
         <p>Please log in to the CAP system to view and complete your assignment.</p>
       `,

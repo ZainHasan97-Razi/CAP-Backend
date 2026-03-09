@@ -2,7 +2,7 @@ import { ARequest } from "types/auth.request.type";
 import { NextFunction, Response } from 'express';
 import assesmentService from "../services/assesment.service";
 import { ApiError } from "../middleware/validate.request";
-import { CreateAssesmentDto, PriorityEnumType, AssesmentStatusEnumType } from "../models/assesment.model";
+import { CreateAssesmentDto, AssesmentStatusEnumType } from "../models/assesment.model";
 import framewaorkService from "../services/framewaork.service";
 import controlService from "../services/control.service";
 import departmentService from "../services/department.service";
@@ -10,7 +10,6 @@ import { IUser } from "types/req.user.type";
 import emailService from "../services/email.service";
 
 type UpdateRequestDto = {
-  priority?: PriorityEnumType;
   attachments?: string[];
   description?: string;
   status?: AssesmentStatusEnumType;
@@ -26,7 +25,6 @@ type CreateRequestDto = {
   departments: string[];
   participants?: string[];
   attachments?: string[];
-  priority: PriorityEnumType;
   startDate: number;
   dueDate: number;
 }
@@ -59,7 +57,6 @@ export const create = async (req: ARequest, res: Response, next: NextFunction) =
       departments: departments.map(d => ({ id: d._id, name: d.displayName })),
       participants: body.participants || [],
       attachments: body.attachments || [],
-      priority: body.priority,
       startDate: body.startDate,
       dueDate: body.dueDate,
       createdBy: (req.user as IUser).userName,
@@ -76,7 +73,6 @@ export const create = async (req: ARequest, res: Response, next: NextFunction) =
         name: body.name,
         description: body.description,
         controlName: control.controlName,
-        priority: body.priority,
         dueDate: body.dueDate,
       }).catch(err => console.error('Failed to send assignment emails:', err));
     }
@@ -127,7 +123,6 @@ export const dashboardList = async (req: ARequest, res: Response, next: NextFunc
       status: req.query.status as string,
       frameworkType: req.query.frameworkType as string,
       department: req.query.department as string,
-      priority: req.query.priority as string,
       search: req.query.search as string,
       dateFrom: req.query.dateFrom ? parseInt(req.query.dateFrom as string) : undefined,
       dateTo: req.query.dateTo ? parseInt(req.query.dateTo as string) : undefined,

@@ -10,13 +10,6 @@ export const AssesmentStatusEnum = {
 } as const
 export type AssesmentStatusEnumType = keyof typeof AssesmentStatusEnum;
 
-export const PriorityEnum = {
-  high: "high",
-  medium: "medium",
-  low: "low",
-} as const
-export type PriorityEnumType = keyof typeof PriorityEnum;
-
 export const assesmentSchema = new Schema(
   {
     assesmentId: {type: String, required: true}, // uuid so we can group multiple controlIds over an assesmentId (like one assesment)
@@ -32,7 +25,7 @@ export const assesmentSchema = new Schema(
     participants: {type: [String], default: []},
     attachments: {type: [String], default: []},
     status: { type: String, enum: AssesmentStatusEnum, default: AssesmentStatusEnum.open },
-    priority: { type: String, enum: PriorityEnum, required: true },
+
     startDate: {type: Number, required: true}, // unix seconds
     dueDate: {type: Number, required: true}, // unix seconds
     createdBy: {type: String, required: true}, // some auditor person

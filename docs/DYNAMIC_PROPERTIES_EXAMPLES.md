@@ -1,11 +1,11 @@
 # Dynamic Properties Examples
 
-## Use Case 1: NIST Framework with Priority & Category
+## Use Case 1: NIST Framework with Category & Implementation Time
 ```csv
-domainCode,domainName,controlCode,controlName,property:priority,property:category,property:implementationTime
-AC,Access Control,AC-1,Access Control Policy,high,technical,30 days
-AC,Access Control,AC-2,Account Management,critical,technical,15 days
-IA,Identification,IA-1,ID Policy,medium,administrative,45 days
+domainCode,domainName,controlCode,controlName,property:category,property:implementationTime,property:riskLevel
+AC,Access Control,AC-1,Access Control Policy,technical,30 days,high
+AC,Access Control,AC-2,Account Management,technical,15 days,critical
+IA,Identification,IA-1,ID Policy,administrative,45 days,medium
 ```
 
 **Result:**
@@ -13,9 +13,9 @@ IA,Identification,IA-1,ID Policy,medium,administrative,45 days
 {
   "controlCode": "AC-1",
   "properties": {
-    "priority": "high",
     "category": "technical",
-    "implementationTime": "30 days"
+    "implementationTime": "30 days",
+    "riskLevel": "high"
   }
 }
 ```
@@ -46,16 +46,16 @@ GOV,Governance,SAMA-2.1,Board Oversight,medium,recommended,annually
 
 ## Use Case 3: Mixed - Some with Properties, Some without
 ```csv
-domainCode,domainName,controlCode,controlName,property:priority
+domainCode,domainName,controlCode,controlName,property:riskLevel
 AC,Access Control,AC-1,Access Control Policy,high
 AC,Access Control,AC-2,Account Management,
 IA,Identification,IA-1,ID Policy,medium
 ```
 
 **Result:**
-- AC-1: `properties: { priority: "high" }`
+- AC-1: `properties: { riskLevel: "high" }`
 - AC-2: `properties: {}` (empty object)
-- IA-1: `properties: { priority: "medium" }`
+- IA-1: `properties: { riskLevel: "medium" }`
 
 ---
 
@@ -92,7 +92,7 @@ POST /api/control
   "controlCode": "AC-1",
   "controlName": "Access Control Policy",
   "properties": {
-    "priority": "high",
+    "riskLevel": "high",
     "category": "technical",
     "customField": "customValue"
   }
@@ -104,7 +104,7 @@ POST /api/control
 PUT /api/control/:id
 {
   "properties": {
-    "priority": "critical",
+    "riskLevel": "critical",
     "newField": "newValue"
   }
 }
@@ -117,7 +117,7 @@ PUT /api/control/:id
   "controlCode": "AC-1",
   "controlName": "Access Control Policy",
   "properties": {
-    "priority": "high",
+    "riskLevel": "high",
     "category": "technical"
   }
 }

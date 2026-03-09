@@ -1,4 +1,4 @@
-domainCode,domainName,subdomainCode,subdomainName,controlCode,controlName,property:priority,property:category,property:riskLevel
+domainCode,domainName,subdomainCode,subdomainName,controlCode,controlName,property:,property:category,property:riskLevel
 AC,Access Control,AC.1,User Access Management,AC-1,Access Control Policy,high,technical,medium
 AC,Access Control,AC.2,Privileged Access,AC-2,Account Management,critical,technical,high
 IA,Identification and Authentication,,,IA-1,Identification and Authentication Policy,medium,administrative,low

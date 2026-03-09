@@ -24,7 +24,6 @@ API endpoint to create a new assessment with optional evidence copying from a re
 | `framework` | string | Framework ObjectId | `"507f1f77bcf86cd799439011"` |
 | `control` | string | Control ObjectId | `"507f1f77bcf86cd799439012"` |
 | `departments` | string[] | Array of department ObjectIds | `["507f...", "608f..."]` |
-| `priority` | string | Priority level | `"high"`, `"medium"`, `"low"` |
 | `startDate` | number | Start date (Unix timestamp in seconds) | `1704067200` |
 | `dueDate` | number | Due date (Unix timestamp in seconds) | `1735689600` |
 
@@ -99,7 +98,6 @@ POST /api/assesment
   "departments": ["507f1f77bcf86cd799439014"],
   "participants": ["john@example.com", "jane@example.com"],
   "attachments": [],
-  "priority": "high",
   "startDate": 1704067200,
   "dueDate": 1735689600
 }
@@ -125,7 +123,6 @@ POST /api/assesment
   "commonAssessmentId": "507f1f77bcf86cd799439099",
   "departments": ["507f1f77bcf86cd799439014"],
   "participants": ["john@example.com"],
-  "priority": "high",
   "startDate": 1704067200,
   "dueDate": 1735689600
 }
@@ -165,7 +162,6 @@ POST /api/assesment
     "participants": ["john@example.com"],
     "attachments": [],
     "status": "in_progress",
-    "priority": "high",
     "startDate": 1704067200,
     "dueDate": 1735689600,
     "createdBy": "admin",
@@ -224,7 +220,6 @@ interface CreateAssessmentRequest {
   departments: string[];
   participants?: string[];
   attachments?: string[];
-  priority: 'high' | 'medium' | 'low';
   startDate: number;
   dueDate: number;
 }
@@ -270,7 +265,6 @@ const CreateAssessmentForm = () => {
     framework: '',
     control: '',
     departments: [],
-    priority: 'medium',
     startDate: Math.floor(Date.now() / 1000),
     dueDate: Math.floor(Date.now() / 1000) + (30 * 24 * 60 * 60)
   });
@@ -364,7 +358,6 @@ If `participants` are provided, email notifications are sent to all participants
 - Assessment name
 - Description
 - Control name
-- Priority
 - Due date
 
 **Note:** Email sending happens asynchronously and does not block the response.

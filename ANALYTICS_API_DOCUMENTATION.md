@@ -205,12 +205,6 @@ Display each framework as a card with:
 ### 2. **Framework Comparison Chart**
 Use a horizontal bar chart to compare progress across all frameworks at a glance.
 
-### 3. **Priority Indicators**
-Add visual indicators for frameworks that need attention:
-- 🔴 Red: < 30% progress
-- 🟡 Yellow: 30-70% progress
-- 🟢 Green: > 70% progress
-
 ### 4. **Empty State**
 Handle when `frameworkAnalytics` is empty:
 ```tsx

@@ -74,7 +74,6 @@ When creating the assessment, include the selected participant emails in the req
   "control": "507f1f77bcf86cd799439012",
   "departments": ["507f1f77bcf86cd799439013"],
   "participants": ["john@example.com", "jane@example.com"],
-  "priority": "high",
   "startDate": 1704067200,
   "dueDate": 1706745600
 }
@@ -86,7 +85,7 @@ When creating the assessment, include the selected participant emails in the req
 
 When an assessment is created with participants:
 - Each participant will automatically receive an email notification
-- Email includes: assessment name, description, control name, priority, and due date
+- Email includes: assessment name, description, control name, and due date
 - Email sending happens asynchronously and won't block the assessment creation
 
 ---
