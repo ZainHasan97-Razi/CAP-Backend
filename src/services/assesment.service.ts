@@ -6,6 +6,7 @@ import AssesmentModel, {
 import { MongoIdType } from "types/mongoid.type";
 import assesmentCommentService from "./assesment-comment.service";
 import systemLogService from "./system-log.service";
+import commonControlService from "./common-control.service";
 
 interface DashboardFilters {
   status?: string;
@@ -26,37 +27,9 @@ const findById = async (id: string | MongoIdType) => {
   return await AssesmentModel.findById(id);
 };
 
-const create = async (payload: CreateAssesmentDto & { commonAssessmentId?: string }, userId: string, userName: string) => {
-  const { commonAssessmentId, ...assessmentData } = payload;
-  
-  // Create assessment data with status
-  const createData = {
-    ...assessmentData,
-    ...(commonAssessmentId && { status: AssesmentStatusEnum.in_progress })
-  };
-  
-  // Create the assessment first
-  const assessment = await AssesmentModel.create(createData);
-  
-  // Copy comments if commonAssessmentId is provided
-  if (commonAssessmentId) {
-    try {
-      await assesmentCommentService.copyCommentsFromAssessment(
-        commonAssessmentId,
-        assessment._id,
-        userId,
-        userName
-      );
-    } catch (error) {
-      // Log the error but don't fail the assessment creation
-      await systemLogService.logError("copy_assessment_comments", error, {
-        serviceName: "AssessmentService",
-        requestData: { sourceAssessmentId: commonAssessmentId, targetAssessmentId: assessment._id },
-        userId
-      });
-    }
-  }
-  
+const create = async (payload: CreateAssesmentDto, userId: string, userName: string) => {
+  // Create the assessment with status "open"
+  const assessment = await AssesmentModel.create(payload);
   return assessment;
 };
 
@@ -297,6 +270,107 @@ const getAnalytics = async (filters: { startDate?: number; endDate?: number } = 
   };
 };
 
+const importEvidence = async (targetAssessmentId: string | MongoIdType, sourceAssessmentId: string | MongoIdType, userName: string) => {
+  const targetAssessment = await AssesmentModel.findById(targetAssessmentId);
+  if (!targetAssessment) {
+    throw new Error("Assessment not found");
+  }
+
+  const sourceAssessment = await AssesmentModel.findById(sourceAssessmentId);
+  if (!sourceAssessment) {
+    throw new Error("Source assessment not found");
+  }
+
+  // Validate status
+  if (targetAssessment.status === AssesmentStatusEnum.closed || targetAssessment.status === AssesmentStatusEnum.discard) {
+    throw new Error("Cannot import evidence: assessment is closed or discarded");
+  }
+
+  // Validate control match - allow if:
+  // 1. Same control ObjectId
+  // 2. Same assesmentId (common assessment group)  
+  // 3. Both controls belong to same common control
+  const sameControl = targetAssessment.control.toString() === sourceAssessment.control.toString();
+  const sameAssessmentGroup = targetAssessment.assesmentId === sourceAssessment.assesmentId;
+  
+  let belongToSameCommonControl = false;
+  if (!sameControl && !sameAssessmentGroup) {
+    // Check if both controls belong to same common control by querying directly
+    const CommonControlModel = (await import("../models/common-control.model")).default;
+    const targetControlId = targetAssessment.control.toString();
+    const sourceControlId = sourceAssessment.control.toString();
+    
+    // Find common controls that contain the target control
+    const commonControlsWithTarget = await CommonControlModel.find({
+      'mappedControls.controlId': targetAssessment.control
+    }).lean();
+    
+    // Check if any of these common controls also contain the source control
+    for (const cc of commonControlsWithTarget) {
+      const hasSourceControl = cc.mappedControls.some(
+        (mc: any) => mc.controlId && mc.controlId.toString() === sourceControlId
+      );
+      
+      if (hasSourceControl) {
+        belongToSameCommonControl = true;
+        break;
+      }
+    }
+  }
+  
+  if (!sameControl && !sameAssessmentGroup && !belongToSameCommonControl) {
+    throw new Error("Cannot import evidence: assessments have different controls");
+  }
+
+  // Validate ownership
+  if (targetAssessment.createdBy !== userName) {
+    throw new Error("Only assessment owner can import evidence");
+  }
+
+  // Delete previously imported comments if re-importing
+  let replacedComments = 0;
+  if (targetAssessment.commonAssessmentId) {
+    const deleteResult = await assesmentCommentService.deleteImportedComments(
+      targetAssessmentId as string,
+      targetAssessment.commonAssessmentId as any
+    );
+    replacedComments = deleteResult.deletedCount || 0;
+  }
+
+  // Copy comments from source
+  const copiedComments = await assesmentCommentService.copyCommentsFromAssessment(
+    sourceAssessmentId as string,
+    targetAssessmentId as string,
+    userName,
+    userName,
+    sourceAssessmentId as any
+  );
+
+  // Merge attachments (no duplicates)
+  const existingAttachments = targetAssessment.attachments || [];
+  const sourceAttachments = sourceAssessment.attachments || [];
+  const mergedAttachments = [...new Set([...existingAttachments, ...sourceAttachments])];
+
+  // Update assessment
+  targetAssessment.commonAssessmentId = sourceAssessment._id as any;
+  targetAssessment.attachments = mergedAttachments;
+  if (targetAssessment.status === AssesmentStatusEnum.open) {
+    targetAssessment.status = AssesmentStatusEnum.in_progress;
+  }
+
+  await targetAssessment.save();
+
+  return {
+    message: "Evidence imported successfully",
+    assessment: targetAssessment,
+    importedItems: {
+      comments: copiedComments.length,
+      attachments: sourceAttachments.length,
+      replacedComments
+    }
+  };
+};
+
 export default {
   findById,
   create,
@@ -305,4 +379,5 @@ export default {
   findRecentByControlId,
   findRecentByMultipleControlIds,
   getAnalytics,
+  importEvidence,
 };

@@ -9,7 +9,6 @@ export const createAssesment_validation = validateRequest([
   body("description").trim().not().isEmpty().withMessage("Assessment description is required"),
   body("framework").trim().isMongoId().withMessage("Framework must be a valid ID"),
   body("control").trim().isMongoId().withMessage("Control must be a valid ID"),
-  body("commonAssessmentId").optional({ nullable: true }).isMongoId().withMessage("Common Assessment ID must be a valid ID"),
   body("departments").isArray({min: 1}).withMessage("At least one department is required"),
   body("departments.*").isMongoId().withMessage("Each department must be a valid ID"),
   body('participants').optional({ nullable: true, checkFalsy: true })
@@ -80,4 +79,9 @@ export const dashboardList_validation = validateRequest([
 export const analytics_validation = validateRequest([
   query('startDate').optional().isInt({min: 1}).withMessage('Start date must be a valid timestamp'),
   query('endDate').optional().isInt({min: 1}).withMessage('End date must be a valid timestamp')
+]);
+
+export const importEvidence_validation = validateRequest([
+  param('id').isMongoId().withMessage('Invalid assessment ID'),
+  body('sourceAssessmentId').isMongoId().withMessage('Invalid source assessment ID')
 ]);

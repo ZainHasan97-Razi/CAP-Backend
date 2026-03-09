@@ -64,7 +64,8 @@ const copyCommentsFromAssessment = async (
   sourceAssessmentId: string | MongoIdType,
   targetAssessmentId: string | MongoIdType,
   userId: string,
-  userName: string
+  userName: string,
+  importedFromId?: MongoIdType
 ) => {
   const sourceComments = await AssesmentCommentModel.find({ 
     assessmentId: sourceAssessmentId,
@@ -77,7 +78,9 @@ const copyCommentsFromAssessment = async (
     content: comment.content,
     author: userId,
     authorName: userName,
-    attachments: comment.attachments || []
+    attachments: comment.attachments || [],
+    evidenceType: comment.evidenceType,
+    importedFrom: importedFromId || null
   }));
   
   if (copiedComments.length > 0) {
@@ -87,6 +90,16 @@ const copyCommentsFromAssessment = async (
   return [];
 };
 
+const deleteImportedComments = async (
+  assessmentId: string | MongoIdType,
+  importedFromId: MongoIdType
+) => {
+  return await AssesmentCommentModel.deleteMany({
+    assessmentId,
+    importedFrom: importedFromId
+  });
+};
+
 export default {
   findById,
   create,
@@ -94,4 +107,5 @@ export default {
   deleteById,
   findByAssessmentId,
   copyCommentsFromAssessment,
+  deleteImportedComments,
 };

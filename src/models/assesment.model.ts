@@ -25,7 +25,7 @@ export const assesmentSchema = new Schema(
     participants: {type: [String], default: []},
     attachments: {type: [String], default: []},
     status: { type: String, enum: AssesmentStatusEnum, default: AssesmentStatusEnum.open },
-
+    commonAssessmentId: {type: mongoose.Types.ObjectId, default: null, ref: "Assesment"},
     startDate: {type: Number, required: true}, // unix seconds
     dueDate: {type: Number, required: true}, // unix seconds
     createdBy: {type: String, required: true}, // some auditor person
@@ -36,7 +36,7 @@ export const assesmentSchema = new Schema(
 // export type AssesmentSchemaType = InferSchemaType<typeof assesmentSchema>;
 export type AssesmentSchemaType = ExtractAndFix<InferSchemaType<typeof assesmentSchema>>;
 export type AssesmentDocument = HydratedDocument<AssesmentSchemaType>;
-export type CreateAssesmentDto = Omit<AssesmentSchemaType, "createdAt" | "updatedAt" | "status">;
+export type CreateAssesmentDto = Omit<AssesmentSchemaType, "createdAt" | "updatedAt" | "status" | "commonAssessmentId">;
 export type UpdateAssesmentDto = Omit<AssesmentSchemaType, "createdAt" | "updatedAt">;
 
 const AssesmentModel = model('Assesment', assesmentSchema);

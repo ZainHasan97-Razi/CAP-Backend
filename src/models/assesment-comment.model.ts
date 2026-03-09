@@ -17,6 +17,7 @@ export const assesmentCommentSchema = new Schema(
     authorName: { type: String, required: true },
     attachments: { type: [String], default: [] },
     evidenceType: { type: String, enum: EvidenceTypeEnum, default: null },
+    importedFrom: { type: mongoose.Types.ObjectId, default: null, ref: "Assesment" },
     isEdited: { type: Boolean, default: false },
     editedAt: { type: Date },
   },

@@ -21,7 +21,6 @@ type CreateRequestDto = {
   description: string;
   framework: string;
   control: string;
-  commonAssessmentId?: string;
   departments: string[];
   participants?: string[];
   attachments?: string[];
@@ -62,7 +61,7 @@ export const create = async (req: ARequest, res: Response, next: NextFunction) =
       createdBy: (req.user as IUser).userName,
     }
     const assesment = await assesmentService.create(
-      { ...payload, commonAssessmentId: body.commonAssessmentId },
+      payload,
       (req.user as IUser).userName,
       (req.user as IUser).userName
     )
@@ -151,6 +150,20 @@ export const getAnalytics = async (req: ARequest, res: Response, next: NextFunct
     
     const analytics = await assesmentService.getAnalytics(filters);
     res.json(analytics);
+  } catch (error) {
+    console.error(error);
+    next(error);
+  }
+}
+
+export const importEvidence = async (req: ARequest, res: Response, next: NextFunction) => {
+  try {
+    const { id } = req.params;
+    const { sourceAssessmentId } = req.body;
+    const user = req.user as IUser;
+
+    const result = await assesmentService.importEvidence(id, sourceAssessmentId, user.userName);
+    res.json(result);
   } catch (error) {
     console.error(error);
     next(error);
