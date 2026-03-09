@@ -29,25 +29,14 @@ GET /api/analytics?startDate=1704067200&endDate=1735689600
 ### Complete Response Object
 ```typescript
 {
-  // Overall Assessment Metrics
-  totalAssessments: number,
+  // Completed Assessments Count
   completedAssessments: number,
-  inProgressAssessments: number,
-  openAssessments: number,
-  overdueAssessments: number,
   
   // Control Compliance Metrics
   compliantControls: number,
   nonCompliantControls: number,
   
-  // Priority Distribution
-  priorityDistribution: {
-    high: number,
-    medium: number,
-    low: number
-  },
-  
-  // 🆕 NEW: Framework Analytics
+  // Framework Analytics
   frameworkAnalytics: [
     {
       frameworkName: string,
@@ -64,18 +53,9 @@ GET /api/analytics?startDate=1704067200&endDate=1735689600
 ### Example Response
 ```json
 {
-  "totalAssessments": 25,
   "completedAssessments": 10,
-  "inProgressAssessments": 12,
-  "openAssessments": 3,
-  "overdueAssessments": 5,
   "compliantControls": 150,
   "nonCompliantControls": 75,
-  "priorityDistribution": {
-    "high": 8,
-    "medium": 12,
-    "low": 5
-  },
   "frameworkAnalytics": [
     {
       "frameworkName": "ISO 27001",
@@ -134,18 +114,9 @@ interface FrameworkAnalytics {
 }
 
 interface AnalyticsResponse {
-  totalAssessments: number;
   completedAssessments: number;
-  inProgressAssessments: number;
-  openAssessments: number;
-  overdueAssessments: number;
   compliantControls: number;
   nonCompliantControls: number;
-  priorityDistribution: {
-    high: number;
-    medium: number;
-    low: number;
-  };
   frameworkAnalytics: FrameworkAnalytics[];
 }
 ```

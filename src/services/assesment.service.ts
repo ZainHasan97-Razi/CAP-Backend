@@ -202,8 +202,6 @@ const getAnalytics = async (filters: { startDate?: number; endDate?: number } = 
     {
       $group: {
         _id: "$assesmentId",
-        priority: { $first: "$priority" },
-        dueDate: { $first: "$dueDate" },
         frameworkName: { $first: "$frameworkName" },
         statuses: { $push: "$status" },
         totalControls: { $sum: 1 },
@@ -229,45 +227,20 @@ const getAnalytics = async (filters: { startDate?: number; endDate?: number } = 
               ]
             }
           ]
-        },
-        isOverdue: {
-          $and: [
-            { $lt: ["$dueDate", currentTime] },
-            { $ne: ["$closedControls", "$totalControls"] }
-          ]
         }
       }
     },
     {
       $group: {
         _id: null,
-        totalAssessments: { $sum: 1 },
         completedAssessments: {
           $sum: { $cond: [{ $eq: ["$assessmentStatus", "closed"] }, 1, 0] }
-        },
-        inProgressAssessments: {
-          $sum: { $cond: [{ $eq: ["$assessmentStatus", "in_progress"] }, 1, 0] }
-        },
-        openAssessments: {
-          $sum: { $cond: [{ $eq: ["$assessmentStatus", "open"] }, 1, 0] }
-        },
-        overdueAssessments: {
-          $sum: { $cond: ["$isOverdue", 1, 0] }
         },
         compliantControls: {
           $sum: { $cond: [{ $ne: ["$assessmentStatus", "closed"] }, "$closedControls", 0] }
         },
         nonCompliantControls: {
           $sum: { $cond: [{ $ne: ["$assessmentStatus", "closed"] }, "$inProgressControls", 0] }
-        },
-        highPriority: {
-          $sum: { $cond: [{ $eq: ["$priority", "high"] }, 1, 0] }
-        },
-        mediumPriority: {
-          $sum: { $cond: [{ $eq: ["$priority", "medium"] }, 1, 0] }
-        },
-        lowPriority: {
-          $sum: { $cond: [{ $eq: ["$priority", "low"] }, 1, 0] }
         },
         frameworks: {
           $push: {
@@ -285,18 +258,9 @@ const getAnalytics = async (filters: { startDate?: number; endDate?: number } = 
   
   if (result.length === 0) {
     return {
-      totalAssessments: 0,
       completedAssessments: 0,
-      inProgressAssessments: 0,
-      openAssessments: 0,
-      overdueAssessments: 0,
       compliantControls: 0,
       nonCompliantControls: 0,
-      priorityDistribution: {
-        high: 0,
-        medium: 0,
-        low: 0
-      },
       frameworkAnalytics: []
     };
   }
@@ -329,18 +293,9 @@ const getAnalytics = async (filters: { startDate?: number; endDate?: number } = 
   }));
   
   return {
-    totalAssessments: data.totalAssessments,
     completedAssessments: data.completedAssessments,
-    inProgressAssessments: data.inProgressAssessments,
-    openAssessments: data.openAssessments,
-    overdueAssessments: data.overdueAssessments,
     compliantControls: data.compliantControls,
     nonCompliantControls: data.nonCompliantControls,
-    priorityDistribution: {
-      high: data.highPriority,
-      medium: data.mediumPriority,
-      low: data.lowPriority
-    },
     frameworkAnalytics
   };
 };
