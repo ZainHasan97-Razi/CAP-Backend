@@ -12,13 +12,36 @@ const findById = async (id: string|MongoIdType): Promise<FrameworkDocument|null>
   return await FrameworkModel.findById(id);
 };
 
-const create = async (user: CreateFrameworkDto) => {
+const create = async (payload: CreateFrameworkDto) => {
   const lastFramework = await FrameworkModel.findOne().sort({ displayId: -1 }).select('displayId');
   const nextDisplayId = lastFramework ? parseInt(lastFramework.displayId) + 1 : 1;
-  return await FrameworkModel.create({ ...user, displayId: nextDisplayId.toString() });
+  
+  // Validate complianceMetric if provided
+  if (payload.complianceMetric) {
+    const { defaultValue, values } = payload.complianceMetric;
+    if (defaultValue && values && values.length > 0) {
+      const validValue = values.some(v => v.value === defaultValue);
+      if (!validValue) {
+        throw new Error('defaultValue must exist in values array');
+      }
+    }
+  }
+  
+  return await FrameworkModel.create({ ...payload, displayId: nextDisplayId.toString() });
 };
 
 const update = async (id: string|MongoIdType, data: UpdateFrameworkDto) => {
+  // Validate complianceMetric if provided
+  if (data.complianceMetric) {
+    const { defaultValue, values } = data.complianceMetric;
+    if (defaultValue && values && values.length > 0) {
+      const validValue = values.some(v => v.value === defaultValue);
+      if (!validValue) {
+        throw new Error('defaultValue must exist in values array');
+      }
+    }
+  }
+  
   return await FrameworkModel.findByIdAndUpdate(id, data);
 };
 

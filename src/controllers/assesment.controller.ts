@@ -13,6 +13,7 @@ type UpdateRequestDto = {
   attachments?: string[];
   description?: string;
   status?: AssesmentStatusEnumType;
+  complianceMetricValue?: string;
 }
 
 type CreateRequestDto = {

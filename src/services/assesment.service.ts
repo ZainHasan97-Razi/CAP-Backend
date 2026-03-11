@@ -28,12 +28,44 @@ const findById = async (id: string | MongoIdType) => {
 };
 
 const create = async (payload: CreateAssesmentDto, userId: string, userName: string) => {
-  // Create the assessment with status "open"
-  const assessment = await AssesmentModel.create(payload);
+  // Get framework to set complianceMetricValue
+  const framework = await (await import("../models/framework.model")).default.findById(payload.framework);
+  if (!framework) {
+    throw new Error('Framework not found');
+  }
+  if (!framework.complianceMetric) {
+    throw new Error('Framework compliance metric not configured');
+  }
+  
+  // Set default complianceMetricValue from framework
+  const assessmentData: any = { 
+    ...payload,
+    complianceMetricValue: framework.complianceMetric.defaultValue
+  };
+  
+  const assessment = await AssesmentModel.create(assessmentData);
   return assessment;
 };
 
 const update = async (id: string | MongoIdType, data: UpdateAssesmentDto) => {
+  // Validate complianceMetricValue if provided
+  if (data.complianceMetricValue !== undefined) {
+    const assessment = await AssesmentModel.findById(id);
+    if (!assessment) {
+      throw new Error('Assessment not found');
+    }
+    
+    const FrameworkModel = (await import("../models/framework.model")).default;
+    const framework = await FrameworkModel.findById(assessment.framework);
+    
+    if (framework?.complianceMetric?.values && framework.complianceMetric.values.length > 0) {
+      const validValue = framework.complianceMetric.values.some(v => v.value === data.complianceMetricValue);
+      if (!validValue) {
+        throw new Error('Invalid complianceMetricValue for this framework');
+      }
+    }
+  }
+  
   return await AssesmentModel.findByIdAndUpdate(id, data, { new: true });
 };
 

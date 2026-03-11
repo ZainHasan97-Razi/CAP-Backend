@@ -13,12 +13,33 @@ export const FrameworkTypeEnum = {
 } as const
 export type FrameworkTypeEnumType = keyof typeof FrameworkTypeEnum;
 
+export const ComplianceMetricTypeEnum = {
+  maturity_level: "maturity_level",
+  percentage: "percentage",
+  binary: "binary",
+  custom: "custom"
+} as const
+export type ComplianceMetricTypeEnumType = keyof typeof ComplianceMetricTypeEnum;
+
 export const frameworkSchema = new Schema(
   {
     displayId: {type: String, required: true, unique: true},
     displayName: {type: String, required: true},
     type: { type: String, enum: FrameworkTypeEnum, required: true },
     status: { type: String, enum: FrameworkStatusEnum, default: FrameworkStatusEnum.active },
+    complianceMetric: {
+      type: {
+        type: String,
+        enum: ComplianceMetricTypeEnum,
+        required: true
+      },
+      label: { type: String, required: true },
+      values: [{
+        value: { type: String, required: true },
+        label: { type: String, required: true }
+      }],
+      defaultValue: { type: String, required: true }
+    },
   },
   { timestamps: true },
 );
