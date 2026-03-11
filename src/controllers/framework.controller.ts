@@ -33,6 +33,21 @@ export const update = async (req: ARequest, res: Response, next: NextFunction) =
   }
 }
 
+export const findById = async (req: ARequest, res: Response, next: NextFunction) => {
+  try {
+    const { id } = req.params;
+    const framework = await framewaorkService.findById(id);
+    if (!framework) {
+      throw ApiError.notFound("Framework not found");
+    }
+
+    res.json(framework);
+  } catch (error) {
+    console.error(error);
+    next(error);
+  }
+}
+
 export const findAllActive = async (req: ARequest, res: Response, next: NextFunction) => {
   try {
     const { type } = req.query;

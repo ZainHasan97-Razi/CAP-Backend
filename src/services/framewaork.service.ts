@@ -13,7 +13,7 @@ const findById = async (id: string|MongoIdType): Promise<FrameworkDocument|null>
 };
 
 const create = async (payload: CreateFrameworkDto) => {
-  const lastFramework = await FrameworkModel.findOne().sort({ displayId: -1 }).select('displayId');
+  const lastFramework = await FrameworkModel.findOne().sort({ createdAt: -1 }).select('displayId');
   const nextDisplayId = lastFramework ? parseInt(lastFramework.displayId) + 1 : 1;
   
   // Validate complianceMetric if provided
@@ -121,9 +121,29 @@ const createFromCsv = async (displayName: string, type: string, csvBuffer: Buffe
             return reject(new Error('No valid controls found in CSV'));
           }
 
-          const lastFramework = await FrameworkModel.findOne().sort({ displayId: -1 }).select('displayId');
+          const lastFramework = await FrameworkModel.findOne().sort({ createdAt: -1 }).select('displayId');
           const nextDisplayId = lastFramework ? parseInt(lastFramework.displayId) + 1 : 1;
-          const framework = await FrameworkModel.create({ displayName, type, displayId: nextDisplayId.toString() });
+          
+          // Default compliance metric for CSV uploads
+          const defaultComplianceMetric = {
+            type: "maturity_level",
+            label: "Maturity Level",
+            values: [
+              { value: "1", label: "Initial" },
+              { value: "2", label: "Managed" },
+              { value: "3", label: "Defined" },
+              { value: "4", label: "Quantitatively Managed" },
+              { value: "5", label: "Optimizing" }
+            ],
+            defaultValue: "1"
+          };
+          
+          const framework = await FrameworkModel.create({ 
+            displayName, 
+            type, 
+            displayId: nextDisplayId.toString(),
+            complianceMetric: defaultComplianceMetric
+          });
           
           const controlsWithFrameworkId = controls.map(control => ({
             ...control,
