@@ -303,7 +303,8 @@ const getAnalytics = async (filters: { startDate?: number; endDate?: number } = 
       // Count assessments by metric value
       frameworkAssessments.forEach(assessment => {
         if (assessment.complianceMetricValue) {
-          const current = metricDistribution.get(assessment.complianceMetricValue);
+          const metricValue = String(assessment.complianceMetricValue);
+          const current = metricDistribution.get(metricValue);
           if (current) {
             current.count++;
           }
@@ -359,9 +360,9 @@ const findByMetric = async (filters: ByMetricFilters) => {
   const { frameworkId, frameworkName, metricValue, startDate, endDate, page = 1, limit = 10 } = filters;
   const FrameworkModel = (await import("../models/framework.model")).default;
   
-  // Build query
+  // Build query - NO DATE FILTERS (analytics doesn't use them for distribution)
   const query: any = {
-    complianceMetricValue: metricValue
+    complianceMetricValue: String(metricValue)
   };
   
   // Filter by framework
@@ -371,18 +372,6 @@ const findByMetric = async (filters: ByMetricFilters) => {
     query.frameworkName = frameworkName;
   } else {
     throw new Error('Either frameworkId or frameworkName is required');
-  }
-  
-  // Date filters
-  if (startDate) {
-    query.startDate = { $gte: startDate };
-  }
-  if (endDate) {
-    if (query.dueDate) {
-      query.dueDate.$lte = endDate;
-    } else {
-      query.dueDate = { $lte: endDate };
-    }
   }
   
   const skip = (page - 1) * limit;
