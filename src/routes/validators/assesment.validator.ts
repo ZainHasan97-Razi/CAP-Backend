@@ -82,6 +82,22 @@ export const analytics_validation = validateRequest([
   query('endDate').optional().isInt({min: 1}).withMessage('End date must be a valid timestamp')
 ]);
 
+export const byMetric_validation = validateRequest([
+  query('metricValue').notEmpty().withMessage('Metric value is required'),
+  query('frameworkId').optional().isMongoId().withMessage('Framework ID must be a valid MongoDB ObjectId'),
+  query('frameworkName').optional().isString().withMessage('Framework name must be a string'),
+  query('startDate').optional().isInt({min: 1}).withMessage('Start date must be a valid timestamp'),
+  query('endDate').optional().isInt({min: 1}).withMessage('End date must be a valid timestamp'),
+  query('page').optional().isInt({min: 1}).withMessage('Page must be a positive integer'),
+  query('limit').optional().isInt({min: 1, max: 100}).withMessage('Limit must be between 1-100'),
+  query().custom((value, { req }) => {
+    if (!req.query?.frameworkId && !req.query?.frameworkName) {
+      throw new Error('Either frameworkId or frameworkName is required');
+    }
+    return true;
+  })
+]);
+
 export const importEvidence_validation = validateRequest([
   param('id').isMongoId().withMessage('Invalid assessment ID'),
   body('sourceAssessmentId').isMongoId().withMessage('Invalid source assessment ID')

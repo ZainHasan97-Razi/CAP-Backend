@@ -188,7 +188,7 @@ const findRecentByMultipleControlIds = async (
 
 const getAnalytics = async (filters: { startDate?: number; endDate?: number } = {}) => {
   const { startDate, endDate } = filters;
-  const currentTime = Math.floor(Date.now() / 1000);
+  const FrameworkModel = (await import("../models/framework.model")).default;
   
   const matchStage: any = {};
   
@@ -199,66 +199,10 @@ const getAnalytics = async (filters: { startDate?: number; endDate?: number } = 
     matchStage.dueDate = { $lte: endDate };
   }
   
-  const pipeline = [
-    ...(Object.keys(matchStage).length > 0 ? [{ $match: matchStage }] : []),
-    {
-      $group: {
-        _id: "$assesmentId",
-        frameworkName: { $first: "$frameworkName" },
-        statuses: { $push: "$status" },
-        totalControls: { $sum: 1 },
-        closedControls: {
-          $sum: { $cond: [{ $eq: ["$status", "closed"] }, 1, 0] }
-        },
-        inProgressControls: {
-          $sum: { $cond: [{ $eq: ["$status", "in_progress"] }, 1, 0] }
-        }
-      }
-    },
-    {
-      $addFields: {
-        assessmentStatus: {
-          $cond: [
-            { $eq: ["$closedControls", "$totalControls"] },
-            "closed",
-            {
-              $cond: [
-                { $gt: ["$inProgressControls", 0] },
-                "in_progress",
-                "open"
-              ]
-            }
-          ]
-        }
-      }
-    },
-    {
-      $group: {
-        _id: null,
-        completedAssessments: {
-          $sum: { $cond: [{ $eq: ["$assessmentStatus", "closed"] }, 1, 0] }
-        },
-        compliantControls: {
-          $sum: { $cond: [{ $ne: ["$assessmentStatus", "closed"] }, "$closedControls", 0] }
-        },
-        nonCompliantControls: {
-          $sum: { $cond: [{ $ne: ["$assessmentStatus", "closed"] }, "$inProgressControls", 0] }
-        },
-        frameworks: {
-          $push: {
-            name: "$frameworkName",
-            status: "$assessmentStatus",
-            totalControls: "$totalControls",
-            closedControls: "$closedControls"
-          }
-        }
-      }
-    }
-  ];
+  // Get all assessments with filters
+  const assessments = await AssesmentModel.find(matchStage).lean();
   
-  const result = await AssesmentModel.aggregate(pipeline);
-  
-  if (result.length === 0) {
+  if (assessments.length === 0) {
     return {
       completedAssessments: 0,
       compliantControls: 0,
@@ -267,14 +211,46 @@ const getAnalytics = async (filters: { startDate?: number; endDate?: number } = 
     };
   }
   
-  const data = result[0];
+  // Group by assesmentId to calculate assessment-level status
+  const assessmentGroups = new Map();
+  assessments.forEach(assessment => {
+    const key = assessment.assesmentId;
+    if (!assessmentGroups.has(key)) {
+      assessmentGroups.set(key, {
+        frameworkName: assessment.frameworkName,
+        frameworkId: assessment.framework,
+        totalControls: 0,
+        closedControls: 0,
+        inProgressControls: 0
+      });
+    }
+    const group = assessmentGroups.get(key);
+    group.totalControls++;
+    if (assessment.status === 'closed') group.closedControls++;
+    if (assessment.status === 'in_progress') group.inProgressControls++;
+  });
+  
+  // Calculate overall stats
+  let completedAssessments = 0;
+  let compliantControls = 0;
+  let nonCompliantControls = 0;
   
   const frameworkMap = new Map();
-  data.frameworks.forEach((fw: any) => {
-    if (!fw.name) return;
-    if (!frameworkMap.has(fw.name)) {
-      frameworkMap.set(fw.name, {
-        frameworkName: fw.name,
+  
+  for (const [assesmentId, group] of assessmentGroups) {
+    const isCompleted = group.closedControls === group.totalControls;
+    if (isCompleted) completedAssessments++;
+    
+    if (!isCompleted) {
+      compliantControls += group.closedControls;
+      nonCompliantControls += group.inProgressControls;
+    }
+    
+    // Aggregate by framework
+    if (!frameworkMap.has(group.frameworkName)) {
+      frameworkMap.set(group.frameworkName, {
+        frameworkName: group.frameworkName,
+        frameworkId: group.frameworkId,
         totalAssessments: 0,
         completedAssessments: 0,
         totalControls: 0,
@@ -282,23 +258,171 @@ const getAnalytics = async (filters: { startDate?: number; endDate?: number } = 
         progressPercentage: 0
       });
     }
-    const fwData = frameworkMap.get(fw.name);
+    const fwData = frameworkMap.get(group.frameworkName);
     fwData.totalAssessments++;
-    if (fw.status === "closed") fwData.completedAssessments++;
-    fwData.totalControls += fw.totalControls;
-    fwData.completedControls += fw.closedControls;
+    if (isCompleted) fwData.completedAssessments++;
+    fwData.totalControls += group.totalControls;
+    fwData.completedControls += group.closedControls;
+  }
+  
+  // Get frameworks with their compliance metrics
+  const frameworkIds = Array.from(new Set(assessments.map(a => a.framework.toString())));
+  const frameworks = await FrameworkModel.find({ _id: { $in: frameworkIds } }).lean();
+  const frameworkMetricsMap = new Map();
+  frameworks.forEach(fw => {
+    frameworkMetricsMap.set(fw._id.toString(), fw.complianceMetric);
   });
   
-  const frameworkAnalytics = Array.from(frameworkMap.values()).map(fw => ({
-    ...fw,
-    progressPercentage: fw.totalControls > 0 ? Math.round((fw.completedControls / fw.totalControls) * 100) : 0
-  }));
+  // Calculate metric distribution per framework
+  const frameworkAnalytics = [];
+  
+  for (const [frameworkName, fwData] of frameworkMap) {
+    const frameworkId = fwData.frameworkId.toString();
+    const complianceMetric = frameworkMetricsMap.get(frameworkId);
+    
+    // Get all assessments for this framework
+    const frameworkAssessments = assessments.filter(
+      a => a.framework.toString() === frameworkId
+    );
+    
+    // Calculate metric distribution
+    const metricDistribution = new Map();
+    let highestMetricValue = null;
+    let highestMetricCount = 0;
+    
+    if (complianceMetric && complianceMetric.values) {
+      // Initialize distribution with all possible values
+      complianceMetric.values.forEach((v: any) => {
+        metricDistribution.set(v.value, {
+          value: v.value,
+          label: v.label,
+          count: 0
+        });
+      });
+      
+      // Count assessments by metric value
+      frameworkAssessments.forEach(assessment => {
+        if (assessment.complianceMetricValue) {
+          const current = metricDistribution.get(assessment.complianceMetricValue);
+          if (current) {
+            current.count++;
+          }
+        }
+      });
+      
+      // Find highest metric value (last in values array) and its count
+      if (complianceMetric.values.length > 0) {
+        const lastValue = complianceMetric.values[complianceMetric.values.length - 1];
+        highestMetricValue = lastValue.value;
+        const highestMetric = metricDistribution.get(highestMetricValue);
+        if (highestMetric) {
+          highestMetricCount = highestMetric.count;
+        }
+      }
+    }
+    
+    frameworkAnalytics.push({
+      frameworkName: fwData.frameworkName,
+      totalAssessments: fwData.totalAssessments,
+      completedAssessments: fwData.completedAssessments,
+      totalControls: fwData.totalControls,
+      completedControls: fwData.completedControls,
+      progressPercentage: fwData.totalControls > 0 
+        ? Math.round((fwData.completedControls / fwData.totalControls) * 100) 
+        : 0,
+      metricType: complianceMetric?.type || null,
+      metricLabel: complianceMetric?.label || null,
+      distribution: Array.from(metricDistribution.values()),
+      compliantCount: highestMetricCount
+    });
+  }
   
   return {
-    completedAssessments: data.completedAssessments,
-    compliantControls: data.compliantControls,
-    nonCompliantControls: data.nonCompliantControls,
+    completedAssessments,
+    compliantControls,
+    nonCompliantControls,
     frameworkAnalytics
+  };
+};
+
+interface ByMetricFilters {
+  frameworkId?: string;
+  frameworkName?: string;
+  metricValue: string;
+  startDate?: number;
+  endDate?: number;
+  page?: number;
+  limit?: number;
+}
+
+const findByMetric = async (filters: ByMetricFilters) => {
+  const { frameworkId, frameworkName, metricValue, startDate, endDate, page = 1, limit = 10 } = filters;
+  const FrameworkModel = (await import("../models/framework.model")).default;
+  
+  // Build query
+  const query: any = {
+    complianceMetricValue: metricValue
+  };
+  
+  // Filter by framework
+  if (frameworkId) {
+    query.framework = frameworkId;
+  } else if (frameworkName) {
+    query.frameworkName = frameworkName;
+  } else {
+    throw new Error('Either frameworkId or frameworkName is required');
+  }
+  
+  // Date filters
+  if (startDate) {
+    query.startDate = { $gte: startDate };
+  }
+  if (endDate) {
+    if (query.dueDate) {
+      query.dueDate.$lte = endDate;
+    } else {
+      query.dueDate = { $lte: endDate };
+    }
+  }
+  
+  const skip = (page - 1) * limit;
+  
+  const [data, total] = await Promise.all([
+    AssesmentModel.find(query)
+      .select('assesmentId name description frameworkName framework controlId controlName status complianceMetricValue startDate dueDate createdAt updatedAt')
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .lean(),
+    AssesmentModel.countDocuments(query)
+  ]);
+  
+  // Get framework details for metricInfo
+  let metricInfo: any = null;
+  if (data.length > 0) {
+    const framework = await FrameworkModel.findById(data[0].framework).lean();
+    if (framework && framework.complianceMetric) {
+      const metricValueObj = framework.complianceMetric.values.find((v: any) => v.value === metricValue);
+      metricInfo = {
+        frameworkName: framework.displayName,
+        frameworkId: framework._id,
+        metricType: framework.complianceMetric.type,
+        metricLabel: framework.complianceMetric.label,
+        metricValue: metricValue,
+        metricValueLabel: metricValueObj?.label || metricValue
+      };
+    }
+  }
+  
+  return {
+    data,
+    pagination: {
+      page,
+      limit,
+      total,
+      pages: Math.ceil(total / limit)
+    },
+    metricInfo
   };
 };
 
@@ -411,5 +535,6 @@ export default {
   findRecentByControlId,
   findRecentByMultipleControlIds,
   getAnalytics,
+  findByMetric,
   importEvidence,
 };

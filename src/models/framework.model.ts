@@ -15,9 +15,7 @@ export type FrameworkTypeEnumType = keyof typeof FrameworkTypeEnum;
 
 export const ComplianceMetricTypeEnum = {
   maturity_level: "maturity_level",
-  percentage: "percentage",
-  binary: "binary",
-  custom: "custom"
+  percentage: "percentage"
 } as const
 export type ComplianceMetricTypeEnumType = keyof typeof ComplianceMetricTypeEnum;
 

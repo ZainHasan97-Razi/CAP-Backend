@@ -157,6 +157,26 @@ export const getAnalytics = async (req: ARequest, res: Response, next: NextFunct
   }
 }
 
+export const getByMetric = async (req: ARequest, res: Response, next: NextFunction) => {
+  try {
+    const filters = {
+      frameworkId: req.query.frameworkId as string,
+      frameworkName: req.query.frameworkName as string,
+      metricValue: req.query.metricValue as string,
+      startDate: req.query.startDate ? parseInt(req.query.startDate as string) : undefined,
+      endDate: req.query.endDate ? parseInt(req.query.endDate as string) : undefined,
+      page: req.query.page ? parseInt(req.query.page as string) : 1,
+      limit: req.query.limit ? parseInt(req.query.limit as string) : 10
+    };
+    
+    const result = await assesmentService.findByMetric(filters);
+    res.json(result);
+  } catch (error) {
+    console.error(error);
+    next(error);
+  }
+}
+
 export const importEvidence = async (req: ARequest, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;
