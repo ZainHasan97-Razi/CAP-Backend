@@ -32,8 +32,6 @@ GET http://localhost:9000/api/assessments/analytics?startDate=1704067200&endDate
 ```typescript
 {
   completedAssessments: number;
-  compliantControls: number;
-  nonCompliantControls: number;
   frameworkAnalytics: Array<{
     frameworkName: string;
     totalAssessments: number;
@@ -62,8 +60,6 @@ GET http://localhost:9000/api/assessments/analytics?startDate=1704067200&endDate
 | Field | Type | Description |
 |-------|------|-------------|
 | `completedAssessments` | number | Total number of assessments where all controls are closed |
-| `compliantControls` | number | Number of closed controls in non-completed assessments |
-| `nonCompliantControls` | number | Number of in-progress controls in non-completed assessments |
 | `frameworkAnalytics` | array | Detailed analytics per framework |
 
 ### Framework Analytics Fields
@@ -104,8 +100,6 @@ GET http://localhost:9000/api/assessments/analytics
 ```json
 {
   "completedAssessments": 5,
-  "compliantControls": 45,
-  "nonCompliantControls": 12,
   "frameworkAnalytics": [
     {
       "frameworkName": "SAMA CSF",
@@ -160,8 +154,6 @@ GET http://localhost:9000/api/assessments/analytics?startDate=1704067200&endDate
 ```json
 {
   "completedAssessments": 3,
-  "compliantControls": 25,
-  "nonCompliantControls": 8,
   "frameworkAnalytics": [
     {
       "frameworkName": "ISO 27001",
@@ -198,8 +190,6 @@ GET http://localhost:9000/api/assessments/analytics?startDate=1893456000
 ```json
 {
   "completedAssessments": 0,
-  "compliantControls": 0,
-  "nonCompliantControls": 0,
   "frameworkAnalytics": []
 }
 ```
@@ -275,8 +265,7 @@ GET http://localhost:9000/api/assessments/analytics?startDate=1893456000
 ### 1. Dashboard Overview
 Display high-level metrics:
 - Total completed assessments
-- Compliant vs non-compliant controls
-- Overall progress
+- Overall progress per framework
 
 ### 2. Framework-Specific Charts
 
@@ -442,12 +431,7 @@ Assessment Group (assesmentId):
 → Assessment is COMPLETED
 ```
 
-### 2. Compliant/Non-Compliant Controls
-Only counted for **non-completed** assessments:
-- **Compliant Controls**: Controls with status = "closed"
-- **Non-Compliant Controls**: Controls with status = "in_progress"
-
-### 3. Progress Percentage
+### 2. Progress Percentage
 ```
 progressPercentage = (completedControls / totalControls) * 100
 ```

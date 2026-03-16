@@ -205,8 +205,6 @@ const getAnalytics = async (filters: { startDate?: number; endDate?: number } = 
   if (assessments.length === 0) {
     return {
       completedAssessments: 0,
-      compliantControls: 0,
-      nonCompliantControls: 0,
       frameworkAnalytics: []
     };
   }
@@ -220,31 +218,22 @@ const getAnalytics = async (filters: { startDate?: number; endDate?: number } = 
         frameworkName: assessment.frameworkName,
         frameworkId: assessment.framework,
         totalControls: 0,
-        closedControls: 0,
-        inProgressControls: 0
+        closedControls: 0
       });
     }
     const group = assessmentGroups.get(key);
     group.totalControls++;
     if (assessment.status === 'closed') group.closedControls++;
-    if (assessment.status === 'in_progress') group.inProgressControls++;
   });
   
   // Calculate overall stats
   let completedAssessments = 0;
-  let compliantControls = 0;
-  let nonCompliantControls = 0;
   
   const frameworkMap = new Map();
   
   for (const [assesmentId, group] of assessmentGroups) {
     const isCompleted = group.closedControls === group.totalControls;
     if (isCompleted) completedAssessments++;
-    
-    if (!isCompleted) {
-      compliantControls += group.closedControls;
-      nonCompliantControls += group.inProgressControls;
-    }
     
     // Aggregate by framework
     if (!frameworkMap.has(group.frameworkName)) {
@@ -340,8 +329,6 @@ const getAnalytics = async (filters: { startDate?: number; endDate?: number } = 
   
   return {
     completedAssessments,
-    compliantControls,
-    nonCompliantControls,
     frameworkAnalytics
   };
 };
