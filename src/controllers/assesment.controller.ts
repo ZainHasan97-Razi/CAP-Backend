@@ -157,6 +157,20 @@ export const getAnalytics = async (req: ARequest, res: Response, next: NextFunct
   }
 }
 
+export const getFrameworkSummaries = async (req: ARequest, res: Response, next: NextFunction) => {
+  try {
+    const filters = {
+      startDate: req.query.startDate ? parseInt(req.query.startDate as string) : undefined,
+      endDate: req.query.endDate ? parseInt(req.query.endDate as string) : undefined
+    };
+    const result = await assesmentService.getFrameworkSummaries(filters);
+    res.json(result);
+  } catch (error) {
+    console.error(error);
+    next(error);
+  }
+}
+
 export const getByMetric = async (req: ARequest, res: Response, next: NextFunction) => {
   try {
     const filters = {

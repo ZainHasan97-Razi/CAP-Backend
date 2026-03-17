@@ -333,6 +333,121 @@ const getAnalytics = async (filters: { startDate?: number; endDate?: number } = 
   };
 };
 
+const getFrameworkSummaries = async (filters: { startDate?: number; endDate?: number } = {}) => {
+  const { startDate, endDate } = filters;
+  const FrameworkModel = (await import("../models/framework.model")).default;
+
+  const matchStage: any = {};
+  if (startDate) matchStage.startDate = { $gte: startDate };
+  if (endDate) matchStage.dueDate = { $lte: endDate };
+
+  const assessments = await AssesmentModel.find(matchStage).lean();
+
+  if (assessments.length === 0) return [];
+
+  // Get unique framework IDs and fetch their details
+  const frameworkIds = Array.from(new Set(assessments.map(a => a.framework.toString())));
+  const frameworks = await FrameworkModel.find({ _id: { $in: frameworkIds } }).lean();
+  const frameworkMetricsMap = new Map(frameworks.map(fw => [fw._id.toString(), fw.complianceMetric]));
+
+  // Group assessments by frameworkId
+  const frameworkMap = new Map<string, { frameworkName: string; assessments: typeof assessments }>();
+  assessments.forEach(a => {
+    const fwId = a.framework.toString();
+    if (!frameworkMap.has(fwId)) {
+      frameworkMap.set(fwId, { frameworkName: a.frameworkName, assessments: [] });
+    }
+    frameworkMap.get(fwId)!.assessments.push(a);
+  });
+
+  const result = [];
+
+  for (const [frameworkId, { frameworkName, assessments: fwAssessments }] of frameworkMap) {
+    const complianceMetric = frameworkMetricsMap.get(frameworkId);
+
+    const total = fwAssessments.length;
+    const metricType = complianceMetric?.type || null;
+
+    let summaryData: any;
+
+    if (metricType === 'percentage') {
+      const statusCounts = { open: 0, in_progress: 0, closed: 0 };
+      fwAssessments.forEach(a => {
+        if (a.status === 'open') statusCounts.open++;
+        else if (a.status === 'in_progress') statusCounts.in_progress++;
+        else if (a.status === 'closed') statusCounts.closed++;
+      });
+
+      summaryData = {
+        completionPercentage: total > 0 ? Math.round((statusCounts.closed / total) * 100) : 0,
+        distribution: [
+          { status: 'open', count: statusCounts.open },
+          { status: 'in_progress', count: statusCounts.in_progress },
+          { status: 'closed', count: statusCounts.closed }
+        ]
+      };
+    } else {
+      // maturity_level: build metric value distribution and calculate average or dominant value
+      const distributionMap = new Map<string, { value: string; label: string; count: number }>();
+      if (complianceMetric?.values) {
+        complianceMetric.values.forEach((v: any) => {
+          distributionMap.set(v.value, { value: v.value, label: v.label, count: 0 });
+        });
+      }
+
+      let totalNumericValue = 0;
+      let countWithValue = 0;
+      const valueCounts = new Map<string, number>();
+
+      fwAssessments.forEach(a => {
+        if (a.complianceMetricValue) {
+          const strVal = String(a.complianceMetricValue);
+          const numVal = parseFloat(strVal);
+          if (!isNaN(numVal)) {
+            totalNumericValue += numVal;
+            countWithValue++;
+          }
+          valueCounts.set(strVal, (valueCounts.get(strVal) || 0) + 1);
+          const dist = distributionMap.get(strVal);
+          if (dist) dist.count++;
+        }
+      });
+
+      let averageScore: number | null = null;
+      let dominantValue: string | null = null;
+
+      if (countWithValue > 0) {
+        averageScore = Math.round((totalNumericValue / countWithValue) * 10) / 10;
+      } else if (valueCounts.size > 0) {
+        let maxCount = 0;
+        valueCounts.forEach((count, val) => {
+          if (count > maxCount) {
+            maxCount = count;
+            dominantValue = distributionMap.get(val)?.label || val;
+          }
+        });
+      }
+
+      summaryData = {
+        averageScore,
+        dominantValue,
+        distribution: Array.from(distributionMap.values())
+      };
+    }
+
+    result.push({
+      frameworkId,
+      frameworkName,
+      metricType,
+      metricLabel: complianceMetric?.label || null,
+      totalAssessments: total,
+      ...summaryData
+    });
+  }
+
+  return result;
+};
+
 interface ByMetricFilters {
   frameworkId?: string;
   frameworkName?: string;
@@ -511,6 +626,7 @@ export default {
   findRecentByControlId,
   findRecentByMultipleControlIds,
   getAnalytics,
+  getFrameworkSummaries,
   findByMetric,
   importEvidence,
 };

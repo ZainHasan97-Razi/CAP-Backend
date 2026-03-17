@@ -5,10 +5,20 @@ The Analytics API provides comprehensive insights into assessment compliance met
 
 ---
 
-## Endpoint
+## Endpoints Summary
+
+| Method | URL | Description |
+|--------|-----|-------------|
+| GET | `/api/assesment/analytics` | Overall analytics with per-framework distribution |
+| GET | `/api/assesment/framework-summaries` | Framework list with average score and distribution (for hover) |
+| GET | `/api/assesment/by-metric` | Paginated assessment list for a specific metric value |
+
+---
+
+## 1. Analytics
 
 **Method:** `GET`  
-**URL:** `/api/assessments/analytics`  
+**URL:** `/api/assesment/analytics`  
 **Authentication:** Required (Protected route)
 
 ---
@@ -524,7 +534,208 @@ curl -X GET "http://localhost:9000/api/assessments/analytics?startDate=170406720
 
 ---
 
-## Get Assessments by Metric Value (NEW)
+---
+
+## 2. Framework Summaries
+
+**Method:** `GET`  
+**URL:** `/api/assesment/framework-summaries`  
+**Authentication:** Required (Protected route)
+
+Returns a list of all frameworks with their summary score and distribution. Use this to populate the framework cards on the dashboard. The `distribution` field is intended for hover tooltips.
+
+The response shape differs by `metricType` — `percentage` frameworks use status-based completion, while `maturity_level` frameworks use metric value averages.
+
+### Query Parameters
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|--------------|
+| `startDate` | number | No | Filter by assessment start date (Unix timestamp in seconds) |
+| `endDate` | number | No | Filter by assessment due date (Unix timestamp in seconds) |
+
+> Uses the same date filters as the analytics endpoint so both stay in sync with the page-level date filter.
+
+### Response Structure
+
+```typescript
+// percentage frameworks
+Array<{
+  frameworkId: string;
+  frameworkName: string;
+  metricType: "percentage";
+  metricLabel: string | null;
+  totalAssessments: number;
+  completionPercentage: number;       // (closed / total) * 100, rounded
+  distribution: Array<{
+    status: "open" | "in_progress" | "closed";
+    count: number;
+  }>;
+}>
+
+// maturity_level frameworks
+Array<{
+  frameworkId: string;
+  frameworkName: string;
+  metricType: "maturity_level";
+  metricLabel: string | null;
+  totalAssessments: number;
+  averageScore: number | null;        // numeric average, rounded to 1 decimal. null if no values set
+  dominantValue: string | null;       // most common value label when values are non-numeric
+  distribution: Array<{
+    value: string;
+    label: string;
+    count: number;
+  }>;
+}>
+```
+
+### Response Fields
+
+#### Common Fields (all frameworks)
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `frameworkId` | string | Framework MongoDB ObjectId |
+| `frameworkName` | string | Name of the framework |
+| `metricType` | string \| null | `maturity_level` or `percentage` |
+| `metricLabel` | string \| null | Display label for the metric |
+| `totalAssessments` | number | Total assessment records for this framework |
+
+#### `percentage` type only
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `completionPercentage` | number | `(closed / total) * 100`, rounded to nearest integer |
+| `distribution` | array | Status counts: `[{ status, count }]` for `open`, `in_progress`, `closed` |
+
+#### `maturity_level` type only
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `averageScore` | number \| null | Average of all numeric `complianceMetricValue` fields, rounded to 1 decimal. `null` when values are non-numeric |
+| `dominantValue` | string \| null | Label of the most common value when metric values are non-numeric. `null` when values are numeric |
+| `distribution` | array | Count per metric value: `[{ value, label, count }]` (all possible values included, even if count = 0) |
+
+### Calculation Logic
+
+#### `percentage` — Status-based completion
+```
+completionPercentage = (closedCount / totalAssessments) * 100
+
+Example: 28 closed, 9 in_progress, 8 open out of 45 total
+  completionPercentage = round(28 / 45 * 100) = 62
+```
+
+#### `maturity_level` — Metric value average or dominant label
+```
+averageScore = sum(complianceMetricValue) / count(assessments with a value)
+
+Numeric example:
+  2 at Level 5 → 10, 2 at Level 1 → 2, 1 at Level 3 → 3
+  averageScore = 15 / 5 = 3.0
+
+Non-numeric example (values like "implemented", "not-implemented"):
+  averageScore = null
+  dominantValue = label of the value with the highest count
+```
+
+### Score Display Logic
+
+```typescript
+function getScoreDisplay(framework) {
+  if (framework.metricType === 'percentage') {
+    return `${framework.completionPercentage}%`;  // e.g. "62%"
+  }
+  // maturity_level
+  if (framework.averageScore !== null) {
+    return `${framework.averageScore} / 5`;       // e.g. "3.0 / 5"
+  }
+  return framework.dominantValue ?? 'N/A';        // e.g. "Partially Implemented"
+}
+```
+
+### Example Request
+
+```http
+GET http://localhost:9000/api/assesment/framework-summaries?startDate=1704067200&endDate=1735689599
+```
+
+### Example Response
+
+```json
+[
+  {
+    "frameworkId": "507f1f77bcf86cd799439011",
+    "frameworkName": "SAMA Cybersecurity Framework",
+    "metricType": "maturity_level",
+    "metricLabel": "Maturity Level",
+    "totalAssessments": 5,
+    "averageScore": 3.0,
+    "dominantValue": null,
+    "distribution": [
+      { "value": "1", "label": "Initial", "count": 2 },
+      { "value": "2", "label": "Managed", "count": 0 },
+      { "value": "3", "label": "Defined", "count": 1 },
+      { "value": "4", "label": "Quantitatively Managed", "count": 0 },
+      { "value": "5", "label": "Optimizing", "count": 2 }
+    ]
+  },
+  {
+    "frameworkId": "507f1f77bcf86cd799439022",
+    "frameworkName": "NCA Cybersecurity Controls",
+    "metricType": "percentage",
+    "metricLabel": "Compliance Percentage",
+    "totalAssessments": 45,
+    "completionPercentage": 62,
+    "distribution": [
+      { "status": "open", "count": 8 },
+      { "status": "in_progress", "count": 9 },
+      { "status": "closed", "count": 28 }
+    ]
+  }
+]
+```
+
+### Frontend Usage
+
+```typescript
+function FrameworkCard({ framework }) {
+  const scoreDisplay = framework.metricType === 'percentage'
+    ? `${framework.completionPercentage}%`
+    : framework.averageScore !== null
+      ? `${framework.averageScore} / 5`
+      : framework.dominantValue ?? 'N/A';
+
+  const tooltipContent = framework.metricType === 'percentage'
+    ? framework.distribution.map(d => `${d.status}: ${d.count}`)
+    : framework.distribution.map(d => `${d.label}: ${d.count}`);
+
+  return (
+    <Tooltip content={tooltipContent.join(', ')}>
+      <div className="framework-card">
+        <h3>{framework.frameworkName}</h3>
+        <p>{framework.metricLabel}: {scoreDisplay}</p>
+      </div>
+    </Tooltip>
+  );
+}
+```
+
+### Testing
+
+```bash
+# Basic
+curl -X GET http://localhost:9000/api/assesment/framework-summaries \
+  -H "Authorization: Bearer YOUR_TOKEN"
+
+# With date range
+curl -X GET "http://localhost:9000/api/assesment/framework-summaries?startDate=1704067200&endDate=1735689599" \
+  -H "Authorization: Bearer YOUR_TOKEN"
+```
+
+---
+
+## 3. Get Assessments by Metric Value
 
 ### Overview
 This endpoint returns a paginated list of assessments for a specific framework and metric value. Use this when users click on a distribution stat in the analytics dashboard to see the detailed list of assessments.
@@ -950,7 +1161,8 @@ curl -X GET "http://localhost:9000/api/assessments/by-metric?frameworkName=NCA%2
 - ✅ Compliant count based on highest metric value
 - ✅ Date range filtering
 - ✅ All assessment statuses included
-- ✅ **NEW: Drill-down to assessment list by metric value**
+- ✅ Framework list with average score and hover distribution
+- ✅ Drill-down to assessment list by metric value
 
 ### Metric Types Supported:
 - ✅ `maturity_level`: 5-level maturity model
@@ -960,10 +1172,12 @@ curl -X GET "http://localhost:9000/api/assessments/by-metric?frameworkName=NCA%2
 
 ### Use This API For:
 - Dashboard overview widgets
+- Framework cards with average score display
+- Hover tooltips showing distribution breakdown
 - Framework-specific compliance charts
 - Progress tracking and reporting
 - Compliance rate calculations
 - Maturity level distribution analysis
 - Percentage compliance visualization
-- **Detailed assessment lists per metric value**
-- **Interactive distribution charts with drill-down**
+- Detailed assessment lists per metric value
+- Interactive distribution charts with drill-down
