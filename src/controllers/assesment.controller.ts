@@ -204,3 +204,26 @@ export const importEvidence = async (req: ARequest, res: Response, next: NextFun
     next(error);
   }
 }
+
+export const triggerAiAnalysis = async (req: ARequest, res: Response, next: NextFunction) => {
+  try {
+    const { id } = req.params;
+    const assessment = await assesmentService.findById(id);
+    if (!assessment) throw ApiError.notFound('Assessment not found');
+
+    const aiServiceUrl = process.env.AI_SERVICE_URL;
+    if (!aiServiceUrl) throw ApiError.internalServer('AI service URL not configured');
+
+    // Fire-and-forget — do not await
+    fetch(`${aiServiceUrl}/analyze`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ assessmentId: assessment._id, assessment }),
+    }).catch(err => console.error('[AI Trigger] Failed to reach AI service:', err));
+
+    res.json({ message: 'AI analysis triggered. Result will be delivered via webhook.' });
+  } catch (error) {
+    console.error(error);
+    next(error);
+  }
+}

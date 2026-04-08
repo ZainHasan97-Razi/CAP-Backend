@@ -41,29 +41,6 @@ export const getControlDetails = async (req: Request, res: Response, next: NextF
   }
 };
 
-// POST /api/ai/assessments/:assessmentId/trigger
-export const triggerAiAnalysis = async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    const { assessmentId } = req.params;
-    const assessment = await AssesmentModel.findById(assessmentId).lean();
-    if (!assessment) throw ApiError.notFound('Assessment not found');
-
-    const aiServiceUrl = process.env.AI_SERVICE_URL;
-    if (!aiServiceUrl) throw ApiError.internalServer('AI service URL not configured');
-
-    // Fire-and-forget — do not await
-    fetch(`${aiServiceUrl}/analyze`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ assessmentId: assessment._id, assessment }),
-    }).catch(err => console.error('[AI Trigger] Failed to reach AI service:', err));
-
-    res.json({ message: 'AI analysis triggered. Result will be delivered via webhook.' });
-  } catch (error) {
-    next(error);
-  }
-};
-
 // POST /api/ai/webhook/result
 export const receiveAiResult = async (req: Request, res: Response, next: NextFunction) => {
   try {

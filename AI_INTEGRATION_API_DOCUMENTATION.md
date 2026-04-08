@@ -2,50 +2,194 @@
 
 ## Overview
 
-This document covers the AI integration layer for the CAP Assessment platform. It includes:
-1. External read APIs for the AI team to fetch framework/control data
-2. An internal trigger API to kick off AI analysis for an assessment
-3. A webhook API for the AI system to deliver results back
+This document covers the AI integration layer for the CAP Assessment platform. It is intended for **three audiences**:
 
-All AI routes are under `/api/ai` and are **public routes** (no JWT required), but protected by their own key-based authentication.
+- **Backend** — implementation reference
+- **Frontend** — how to integrate the AI button and display results
+- **AI Team** — how to fetch data and deliver results
 
 ---
 
-## Authentication
+## Who Uses What
 
-### External API Key (AI team read access + trigger)
-All routes except the webhook require the header:
+| Audience | Routes | Auth Method |
+|----------|--------|-------------|
+| Frontend | `POST /api/assesment/:id/trigger-ai` | JWT (Bearer token) |
+| Frontend | `GET /api/assesment/:id` | JWT (Bearer token) — to read `aiResult` |
+| AI Team | `GET /api/ai/frameworks` | `x-api-key` header |
+| AI Team | `GET /api/ai/frameworks/:frameworkId/controls` | `x-api-key` header |
+| AI Team | `GET /api/ai/controls/:controlCode` | `x-api-key` header |
+| AI Team | `POST /api/ai/webhook/result` | `x-webhook-secret` header |
+
+---
+
+## How the Full Flow Works
+
+```
+[Frontend]                        [Backend]                        [AI Machine]
+    |                                 |                                  |
+    |-- POST /assesment/:id/trigger-ai (JWT) -->                         |
+    |                                 |-- POST AI_SERVICE_URL/analyze --> |
+    |<-- 200 "AI analysis triggered" -|                                  |
+    |                                 |             (processing...)      |
+    |                                 |<-- POST /api/ai/webhook/result --|
+    |                                 |    (saves result to assessment)  |
+    |-- GET /assesment/:id (JWT) ----->|                                  |
+    |<-- assessment with aiResult -----|                                  |
+```
+
+**Key point:** The trigger returns immediately. The frontend does not wait for the AI result — it polls the assessment endpoint until `aiResult` is no longer `null`.
+
+---
+
+## Frontend Integration Guide
+
+### 1. The "Get AI Result" Button
+
+Place this button on the assessment detail page. It should be visible when:
+- The assessment exists (any status)
+- Optionally: disable it while a result is already being fetched (use local loading state)
+
+### 2. Trigger AI Analysis
+
+**Method:** `POST`
+**URL:** `/api/assesment/:id/trigger-ai`
+**Auth:** `Authorization: Bearer <jwt_token>`
+**Body:** none
+
+**Response:**
+```json
+{ "message": "AI analysis triggered. Result will be delivered via webhook." }
+```
+
+**Error responses:**
+```json
+{ "error": "Assessment not found" }       // 404
+{ "error": "Not authorized to access this route" }  // 401 (missing/invalid JWT)
+{ "error": "AI service URL not configured" }  // 500
+```
+
+### 3. Polling for the Result
+
+After triggering, poll `GET /api/assesment/:id` every few seconds until `aiResult` is not `null`.
+
+```typescript
+const pollForAiResult = async (assessmentId: string, token: string) => {
+  const MAX_ATTEMPTS = 20;   // ~2 minutes total
+  const INTERVAL_MS = 6000;  // every 6 seconds
+
+  for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+    await new Promise(resolve => setTimeout(resolve, INTERVAL_MS));
+
+    const res = await fetch(`/api/assesment/${assessmentId}`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    const assessment = await res.json();
+
+    if (assessment.aiResult !== null) {
+      return assessment.aiResult;
+    }
+  }
+
+  throw new Error('AI result timed out. Please try again later.');
+};
+```
+
+### 4. Complete Button Flow Example
+
+```typescript
+const handleGetAiResult = async () => {
+  setAiLoading(true);
+  setAiError(null);
+
+  try {
+    // Step 1: Trigger
+    await fetch(`/api/assesment/${assessmentId}/trigger-ai`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` }
+    });
+
+    // Step 2: Poll until result arrives
+    const result = await pollForAiResult(assessmentId, token);
+    setAiResult(result);
+  } catch (err) {
+    setAiError('Failed to get AI result. Please try again.');
+  } finally {
+    setAiLoading(false);
+  }
+};
+```
+
+### 5. UI States to Handle
+
+| State | What to show |
+|-------|-------------|
+| `aiResult === null`, not loading | "Get AI Result" button |
+| `aiLoading === true` | Spinner + "Analyzing..." text, button disabled |
+| `aiResult !== null` | Display the result, show "Refresh AI Result" button |
+| `aiError !== null` | Error message + retry button |
+
+### 6. Re-trigger After Evidence Upload
+
+When the user uploads a new document or submits new evidence, call the trigger endpoint again after the upload completes. The new AI result will overwrite the previous one.
+
+```typescript
+const handleEvidenceUpload = async (file: File) => {
+  await uploadEvidence(file);           // your existing upload logic
+  await triggerAiAnalysis(assessmentId); // call trigger again
+  await pollForAiResult(assessmentId);   // poll for fresh result
+};
+```
+
+### 7. Where `aiResult` Lives
+
+`aiResult` is a field on the assessment document returned by `GET /api/assesment/:id`. It is `null` by default and gets populated once the AI machine delivers its result via webhook.
+
+```typescript
+// Assessment object shape (relevant fields)
+{
+  "_id": "507f1f77bcf86cd799439015",
+  "name": "Q1 2024 Access Control Review",
+  "status": "in_progress",
+  // ... other fields ...
+  "aiResult": null          // before AI runs
+  // or
+  "aiResult": {             // after AI delivers result
+    "summary": "...",
+    "riskLevel": "medium",
+    "score": 72,
+    "recommendations": ["..."]
+    // structure defined by AI team
+  }
+}
+```
+
+> **Note:** The exact structure of `aiResult` is defined by the AI team. Coordinate with them on what fields to expect so you can render it properly.
+
+---
+
+## AI Team Guide
+
+### Authentication
+
+All AI team routes use a static API key passed as a request header:
 ```
 x-api-key: <AI_API_KEY>
 ```
-The value is set in the server `.env` as `AI_API_KEY`.
 
-### Webhook Secret (AI team result delivery)
-The webhook route requires:
+The webhook uses a separate secret:
 ```
 x-webhook-secret: <AI_WEBHOOK_SECRET>
 ```
-The value is set in the server `.env` as `AI_WEBHOOK_SECRET`.
+
+Both values will be shared with you by the backend team.
 
 ---
 
-## Endpoints Summary
-
-| Method | URL | Auth | Description |
-|--------|-----|------|-------------|
-| GET | `/api/ai/frameworks` | API Key | List all active frameworks |
-| GET | `/api/ai/frameworks/:frameworkId/controls` | API Key | List controls for a framework |
-| GET | `/api/ai/controls/:controlCode` | API Key | Get control details by control code |
-| POST | `/api/ai/assessments/:assessmentId/trigger` | API Key | Trigger AI analysis for an assessment |
-| POST | `/api/ai/webhook/result` | Webhook Secret | Receive and save AI result |
-
----
-
-## 1. List Frameworks
+### 1. List Frameworks
 
 **Method:** `GET`
 **URL:** `/api/ai/frameworks`
-**Auth:** `x-api-key`
 
 **Response:**
 ```json
@@ -73,17 +217,10 @@ The value is set in the server `.env` as `AI_WEBHOOK_SECRET`.
 
 ---
 
-## 2. List Controls by Framework
+### 2. List Controls by Framework
 
 **Method:** `GET`
 **URL:** `/api/ai/frameworks/:frameworkId/controls`
-**Auth:** `x-api-key`
-
-**Path Parameter:**
-
-| Parameter | Description |
-|-----------|-------------|
-| `frameworkId` | MongoDB ObjectId of the framework |
 
 **Response:**
 ```json
@@ -104,17 +241,10 @@ The value is set in the server `.env` as `AI_WEBHOOK_SECRET`.
 
 ---
 
-## 3. Get Control Details by Control Code
+### 3. Get Control Details by Control Code
 
 **Method:** `GET`
 **URL:** `/api/ai/controls/:controlCode`
-**Auth:** `x-api-key`
-
-**Path Parameter:**
-
-| Parameter | Description |
-|-----------|-------------|
-| `controlCode` | The control code string (e.g. `A.5.1`) |
 
 **Response:**
 ```json
@@ -134,116 +264,80 @@ The value is set in the server `.env` as `AI_WEBHOOK_SECRET`.
 }
 ```
 
-**Error (404):**
-```json
-{ "error": "Control not found" }
-```
-
 ---
 
-## 4. Trigger AI Analysis
+### 4. Receiving a Trigger (Inbound from Backend)
 
-**Method:** `POST`
-**URL:** `/api/ai/assessments/:assessmentId/trigger`
-**Auth:** `x-api-key`
+When a user requests AI analysis, the backend will call your service at:
+```
+POST <AI_SERVICE_URL>/analyze
+```
 
-This is called from the frontend (via backend) when the user clicks the "Get AI Result" button. The server fires a request to the AI service and **immediately returns** without waiting for the result. The AI system processes asynchronously and delivers the result via the webhook.
-
-**Path Parameter:**
-
-| Parameter | Description |
-|-----------|-------------|
-| `assessmentId` | MongoDB ObjectId of the assessment |
-
-**What the server sends to the AI service (`AI_SERVICE_URL/analyze`):**
+**Payload the backend sends:**
 ```json
 {
   "assessmentId": "507f1f77bcf86cd799439015",
-  "assessment": { /* full assessment document */ }
+  "assessment": {
+    "_id": "507f1f77bcf86cd799439015",
+    "name": "Q1 2024 Access Control Review",
+    "frameworkName": "ISO 27001",
+    "controlId": "A.5.1",
+    "controlName": "Policies for information security",
+    "status": "in_progress",
+    "attachments": ["https://..."],
+    "complianceMetricValue": "3"
+  }
 }
 ```
 
-**Response (immediate):**
-```json
-{
-  "message": "AI analysis triggered. Result will be delivered via webhook."
-}
-```
-
-**Error (404):**
-```json
-{ "error": "Assessment not found" }
-```
-
-### When is this triggered?
-- When the user clicks the "Get AI Result" button on an assessment
-- When a user uploads/submits a new document or evidence (call this endpoint again to get a fresh AI result)
+Process this asynchronously and deliver the result via the webhook below.
 
 ---
 
-## 5. Webhook — Receive AI Result
+### 5. Webhook — Deliver AI Result
+
+Once processing is complete, POST the result back to:
 
 **Method:** `POST`
 **URL:** `/api/ai/webhook/result`
-**Auth:** `x-webhook-secret`
-
-This endpoint is exposed to the AI team. Once the AI machine finishes processing, it calls this webhook with the result. The result is saved as JSON into the `aiResult` field of the assessment document.
+**Header:** `x-webhook-secret: <AI_WEBHOOK_SECRET>`
 
 **Request Body:**
 ```json
 {
   "assessmentId": "507f1f77bcf86cd799439015",
   "result": {
-    "summary": "...",
+    "summary": "The access control policy shows partial compliance...",
     "riskLevel": "medium",
-    "recommendations": ["..."],
     "score": 72,
-    "details": {}
+    "recommendations": [
+      "Update policy documentation",
+      "Conduct staff training"
+    ]
   }
 }
 ```
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
-| `assessmentId` | string | Yes | MongoDB ObjectId of the assessment to update |
-| `result` | object/any | Yes | AI-generated result — stored as-is in `aiResult` field |
+| `assessmentId` | string | Yes | The same `assessmentId` received in the trigger payload |
+| `result` | object | Yes | Your analysis output — any JSON structure, stored as-is |
 
-**Response:**
+**Success Response:**
 ```json
-{
-  "message": "AI result saved successfully"
-}
+{ "message": "AI result saved successfully" }
 ```
 
-**Error (400):**
+**Error Responses:**
 ```json
-{ "error": "assessmentId and result are required" }
-```
-
-**Error (404):**
-```json
-{ "error": "Assessment not found" }
+{ "error": "assessmentId and result are required" }  // 400
+{ "error": "Assessment not found" }                  // 404
+{ "error": "Invalid or missing webhook secret" }     // 401
 ```
 
 ---
 
-## Assessment Schema — `aiResult` Field
-
-The `aiResult` field has been added to the Assessment collection:
-
-```typescript
-aiResult: { type: Mixed, default: null }
-```
-
-- Default value is `null` (no AI result yet)
-- Overwritten every time the webhook delivers a new result
-- The structure of the JSON is flexible — whatever the AI team sends is stored as-is
-
----
-
-## Environment Variables
-
-Add these to your `.env` file:
+## Environment Variables (Backend)
 
 ```env
 AI_API_KEY=cap-ai-external-key-2024
@@ -253,44 +347,6 @@ AI_SERVICE_URL=http://ai-service.internal/api
 
 | Variable | Description |
 |----------|-------------|
-| `AI_API_KEY` | Shared key given to the AI team for read + trigger access |
-| `AI_WEBHOOK_SECRET` | Secret the AI team must include when posting results back |
-| `AI_SERVICE_URL` | Base URL of the AI service that receives trigger requests |
-
----
-
-## Full Flow
-
-```
-1. User opens an assessment in the frontend
-2. User clicks "Get AI Result" button
-   → Frontend calls: POST /api/ai/assessments/:assessmentId/trigger  (x-api-key)
-   → Server fires request to AI_SERVICE_URL/analyze (fire-and-forget)
-   → Server responds immediately: "AI analysis triggered"
-
-3. AI machine processes the assessment (may take time)
-
-4. AI machine sends result back:
-   → POST /api/ai/webhook/result  (x-webhook-secret)
-   → Server saves result into assessment.aiResult
-
-5. Frontend polls or refreshes to show the AI result from the assessment document
-
---- Re-trigger on new evidence ---
-
-6. User uploads a new document/evidence to the assessment
-7. After upload completes, frontend calls trigger endpoint again (step 2)
-8. AI machine re-processes and delivers fresh result via webhook (steps 3-4)
-   → Previous aiResult is overwritten with the new result
-```
-
----
-
-## Notes for AI Team
-
-- Use `GET /api/ai/frameworks` to discover available frameworks
-- Use `GET /api/ai/frameworks/:frameworkId/controls` to get all controls for a framework
-- Use `GET /api/ai/controls/:controlCode` to get full details of a specific control
-- When sending results via webhook, the `result` field can be any JSON structure — it is stored as-is
-- Always include `x-webhook-secret` header when posting to the webhook endpoint
-- The `assessmentId` in the webhook body must match the one sent in the trigger payload
+| `AI_API_KEY` | Shared with AI team for read access to framework/control data |
+| `AI_WEBHOOK_SECRET` | Shared with AI team for posting results back via webhook |
+| `AI_SERVICE_URL` | URL of the AI service — backend calls `AI_SERVICE_URL/analyze` on trigger |
