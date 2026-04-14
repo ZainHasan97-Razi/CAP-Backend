@@ -5,74 +5,127 @@
 This document covers the AI integration layer for the CAP Assessment platform. It is intended for **three audiences**:
 
 - **Backend** — implementation reference
-- **Frontend** — how to integrate the AI button and display results
+- **Frontend** — how to integrate the approval flow and display AI results
 - **AI Team** — how to fetch data and deliver results
 
 ---
 
 ## Who Uses What
 
-| Audience | Routes | Auth Method |
-|----------|--------|-------------|
-| Frontend | `POST /api/assesment/:id/trigger-ai` | JWT (Bearer token) |
-| Frontend | `GET /api/assesment/:id` | JWT (Bearer token) — to read `aiResult` |
-| AI Team | `GET /api/ai/frameworks` | `x-api-key` header |
-| AI Team | `GET /api/ai/frameworks/:frameworkId/controls` | `x-api-key` header |
-| AI Team | `GET /api/ai/controls/:controlCode` | `x-api-key` header |
-| AI Team | `POST /api/ai/webhook/result` | `x-webhook-secret` header |
+| Audience | Route | Auth | Description |
+|----------|-------|------|-------------|
+| Frontend | `PATCH /api/assesment-comment/comments/:commentId/approval` | JWT | Auditor approves/rejects evidence |
+| Frontend | `GET /api/assesment/:id` | JWT | Read assessment including `aiResult` |
+| AI Team | `GET /api/ai/frameworks` | `x-api-key` | List all active frameworks |
+| AI Team | `GET /api/ai/frameworks/:frameworkId/controls` | `x-api-key` | List controls for a framework |
+| AI Team | `GET /api/ai/controls/:controlCode` | `x-api-key` | Get control details |
+| AI Team | `POST /api/ai/webhook/result` | `x-webhook-secret` | Deliver AI result back |
+
+> The `POST /api/assesment/:id/trigger-ai` endpoint still exists for manual triggering if needed, but AI is now **automatically triggered on each evidence approval**.
 
 ---
 
 ## How the Full Flow Works
 
 ```
-[Frontend]                        [Backend]                        [AI Machine]
-    |                                 |                                  |
-    |-- POST /assesment/:id/trigger-ai (JWT) -->                         |
-    |                                 |-- POST AI_SERVICE_URL/analyze --> |
-    |<-- 200 "AI analysis triggered" -|                                  |
-    |                                 |             (processing...)      |
-    |                                 |<-- POST /api/ai/webhook/result --|
-    |                                 |    (saves result to assessment)  |
-    |-- GET /assesment/:id (JWT) ----->|                                  |
-    |<-- assessment with aiResult -----|                                  |
+[Participant]              [Auditor/Frontend]           [Backend]                [AI Machine]
+      |                           |                         |                         |
+      |-- adds comment            |                         |                         |
+      |   with attachment ------->|-- POST create comment ->|                         |
+      |                           |                         | approvalStatus=pending  |
+      |                           |                         |                         |
+      |                           |-- PATCH approval ------>|                         |
+      |                           |   { status: approved }  |-- POST /analyze ------->|
+      |                           |<-- 200 comment updated -|   (approved attachments)|
+      |                           |                         |                         |
+      |                           |                         |   (processing...)       |
+      |                           |                         |<-- POST /webhook/result-|
+      |                           |                         |   (saves to aiResult)   |
+      |                           |-- GET /assesment/:id -->|                         |
+      |                           |<-- assessment.aiResult -|                         |
 ```
 
-**Key point:** The trigger returns immediately. The frontend does not wait for the AI result — it polls the assessment endpoint until `aiResult` is no longer `null`.
+**Key points:**
+- AI is triggered **automatically on each approval** — no manual button needed
+- Only **approved attachment URLs** are sent to the AI machine
+- The trigger is fire-and-forget — the approval response returns immediately
+- Frontend polls `GET /api/assesment/:id` to check when `aiResult` is updated
 
 ---
 
 ## Frontend Integration Guide
 
-### 1. The "Get AI Result" Button
+### 1. Evidence Comment Approval Status
 
-Place this button on the assessment detail page. It should be visible when:
-- The assessment exists (any status)
-- Optionally: disable it while a result is already being fetched (use local loading state)
+Every top-level comment that has attachments will have an `approvalStatus` field:
 
-### 2. Trigger AI Analysis
+| Value | Meaning |
+|-------|---------|
+| `pending` | Uploaded, waiting for auditor review |
+| `approved` | Auditor approved — counts as valid evidence, AI triggered |
+| `rejected` | Auditor rejected — auditor should reply with reason |
+| `null` | Comment has no attachments (plain text or reply) — no approval needed |
 
-**Method:** `POST`
-**URL:** `/api/assesment/:id/trigger-ai`
+### 2. Approval Button — Who Sees It
+
+- Show the approve/reject buttons **only to the assessment creator (auditor)**
+- Show them **only on top-level comments that have attachments** (`approvalStatus !== null`)
+- Participants see the `approvalStatus` label but no action buttons
+
+### 3. Approve or Reject Evidence
+
+**Method:** `PATCH`
+**URL:** `/api/assesment-comment/comments/:commentId/approval`
 **Auth:** `Authorization: Bearer <jwt_token>`
-**Body:** none
+
+**Request Body:**
+```json
+{ "status": "approved" }
+```
+or
+```json
+{ "status": "rejected" }
+```
+or to revoke a previous approval/rejection:
+```json
+{ "status": "pending" }
+```
 
 **Response:**
 ```json
-{ "message": "AI analysis triggered. Result will be delivered via webhook." }
+{
+  "message": "Evidence approved",
+  "comment": {
+    "_id": "507f1f77bcf86cd799439020",
+    "approvalStatus": "approved",
+    "attachments": ["https://..."],
+    ...
+  }
+}
 ```
 
 **Error responses:**
 ```json
-{ "error": "Assessment not found" }       // 404
-{ "error": "Not authorized to access this route" }  // 401 (missing/invalid JWT)
-{ "error": "AI service URL not configured" }  // 500
+{ "error": "Comment not found" }                              // 404
+{ "error": "Cannot approve a reply" }                        // 400
+{ "error": "Only comments with attachments can be approved" } // 400
+{ "error": "Only the assessment owner can approve evidence" } // 403
 ```
 
-### 3. Polling for the Result
+### 4. Rejection Flow
 
-After triggering, poll `GET /api/assesment/:id` every few seconds until `aiResult` is not `null`.
+When the auditor rejects evidence, they should also reply to the comment explaining why. The participant then adds a **new top-level comment** with corrected evidence (not a reply). The new comment starts as `pending` again.
 
+```
+Comment A (rejected) ← auditor replies: "Please provide a signed copy"
+Comment B (pending)  ← participant adds new comment with corrected file
+```
+
+### 5. After Approval — AI Result
+
+When the auditor approves a comment, the backend automatically triggers the AI machine with all currently approved attachments for that assessment. The frontend does not need to do anything extra — just poll for the updated `aiResult`.
+
+**Polling for AI result after approval:**
 ```typescript
 const pollForAiResult = async (assessmentId: string, token: string) => {
   const MAX_ATTEMPTS = 20;   // ~2 minutes total
@@ -95,76 +148,77 @@ const pollForAiResult = async (assessmentId: string, token: string) => {
 };
 ```
 
-### 4. Complete Button Flow Example
-
+**Complete approval handler example:**
 ```typescript
-const handleGetAiResult = async () => {
-  setAiLoading(true);
-  setAiError(null);
-
+const handleApprove = async (commentId: string) => {
+  setApproving(true);
   try {
-    // Step 1: Trigger
-    await fetch(`/api/assesment/${assessmentId}/trigger-ai`, {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${token}` }
+    await fetch(`/api/assesment-comment/comments/${commentId}/approval`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ status: 'approved' }),
     });
 
-    // Step 2: Poll until result arrives
-    const result = await pollForAiResult(assessmentId, token);
-    setAiResult(result);
-  } catch (err) {
-    setAiError('Failed to get AI result. Please try again.');
+    // Refresh comments to show updated approvalStatus
+    await refreshComments();
+
+    // Poll for fresh AI result in background
+    pollForAiResult(assessmentId, token)
+      .then(result => setAiResult(result))
+      .catch(() => {}); // silent fail — AI result will show when ready
   } finally {
-    setAiLoading(false);
+    setApproving(false);
   }
 };
 ```
 
-### 5. UI States to Handle
+### 6. UI States to Handle
+
+**Per comment (auditor view):**
+
+| `approvalStatus` | Show |
+|-----------------|------|
+| `pending` | "Approve" button (green) + "Reject" button (red) |
+| `approved` | Green "Approved" badge + "Revoke" button |
+| `rejected` | Red "Rejected" badge + "Revoke" button |
+| `null` | Nothing (reply or plain text comment) |
+
+**AI result panel:**
 
 | State | What to show |
 |-------|-------------|
-| `aiResult === null`, not loading | "Get AI Result" button |
-| `aiLoading === true` | Spinner + "Analyzing..." text, button disabled |
-| `aiResult !== null` | Display the result, show "Refresh AI Result" button |
-| `aiError !== null` | Error message + retry button |
-
-### 6. Re-trigger After Evidence Upload
-
-When the user uploads a new document or submits new evidence, call the trigger endpoint again after the upload completes. The new AI result will overwrite the previous one.
-
-```typescript
-const handleEvidenceUpload = async (file: File) => {
-  await uploadEvidence(file);           // your existing upload logic
-  await triggerAiAnalysis(assessmentId); // call trigger again
-  await pollForAiResult(assessmentId);   // poll for fresh result
-};
-```
+| `aiResult === null`, no approved evidence yet | "No AI result yet. Approve evidence to trigger analysis." |
+| `aiResult === null`, evidence was just approved | Spinner + "AI is analyzing approved evidence..." |
+| `aiResult !== null` | Display the result |
 
 ### 7. Where `aiResult` Lives
 
-`aiResult` is a field on the assessment document returned by `GET /api/assesment/:id`. It is `null` by default and gets populated once the AI machine delivers its result via webhook.
+`aiResult` is a field on the assessment document returned by `GET /api/assesment/:id`. It is `null` by default and gets updated each time the AI machine delivers a new result after an approval.
 
-```typescript
-// Assessment object shape (relevant fields)
+```json
 {
   "_id": "507f1f77bcf86cd799439015",
   "name": "Q1 2024 Access Control Review",
   "status": "in_progress",
-  // ... other fields ...
-  "aiResult": null          // before AI runs
-  // or
-  "aiResult": {             // after AI delivers result
+  "aiResult": null
+}
+```
+```json
+{
+  "_id": "507f1f77bcf86cd799439015",
+  "aiResult": {
     "summary": "...",
     "riskLevel": "medium",
     "score": 72,
     "recommendations": ["..."]
-    // structure defined by AI team
   }
 }
 ```
 
-> **Note:** The exact structure of `aiResult` is defined by the AI team. Coordinate with them on what fields to expect so you can render it properly.
+> The exact structure of `aiResult` is defined by the AI team.
 
 ---
 
@@ -172,7 +226,7 @@ const handleEvidenceUpload = async (file: File) => {
 
 ### Authentication
 
-All AI team routes use a static API key passed as a request header:
+All AI team routes use a static API key:
 ```
 x-api-key: <AI_API_KEY>
 ```
@@ -182,14 +236,13 @@ The webhook uses a separate secret:
 x-webhook-secret: <AI_WEBHOOK_SECRET>
 ```
 
-Both values will be shared with you by the backend team.
+Both values will be shared by the backend team.
 
 ---
 
 ### 1. List Frameworks
 
-**Method:** `GET`
-**URL:** `/api/ai/frameworks`
+**Method:** `GET` | **URL:** `/api/ai/frameworks`
 
 **Response:**
 ```json
@@ -219,8 +272,7 @@ Both values will be shared with you by the backend team.
 
 ### 2. List Controls by Framework
 
-**Method:** `GET`
-**URL:** `/api/ai/frameworks/:frameworkId/controls`
+**Method:** `GET` | **URL:** `/api/ai/frameworks/:frameworkId/controls`
 
 **Response:**
 ```json
@@ -241,10 +293,9 @@ Both values will be shared with you by the backend team.
 
 ---
 
-### 3. Get Control Details by Control Code
+### 3. Get Control Details
 
-**Method:** `GET`
-**URL:** `/api/ai/controls/:controlCode`
+**Method:** `GET` | **URL:** `/api/ai/controls/:controlCode`
 
 **Response:**
 ```json
@@ -268,12 +319,12 @@ Both values will be shared with you by the backend team.
 
 ### 4. Receiving a Trigger (Inbound from Backend)
 
-When a user requests AI analysis, the backend will call your service at:
+When an auditor approves evidence, the backend calls your service at:
 ```
 POST <AI_SERVICE_URL>/analyze
 ```
 
-**Payload the backend sends:**
+**Payload:**
 ```json
 {
   "assessmentId": "507f1f77bcf86cd799439015",
@@ -284,19 +335,22 @@ POST <AI_SERVICE_URL>/analyze
     "controlId": "A.5.1",
     "controlName": "Policies for information security",
     "status": "in_progress",
-    "attachments": ["https://..."],
     "complianceMetricValue": "3"
-  }
+  },
+  "approvedAttachments": [
+    "https://storage.example.com/evidence-file-1.pdf",
+    "https://storage.example.com/evidence-file-2.pdf"
+  ]
 }
 ```
 
-Process this asynchronously and deliver the result via the webhook below.
+> `approvedAttachments` contains only the URLs of comments that have been approved by the auditor. These are the only documents you should analyze.
+
+Process asynchronously and deliver the result via the webhook below.
 
 ---
 
 ### 5. Webhook — Deliver AI Result
-
-Once processing is complete, POST the result back to:
 
 **Method:** `POST`
 **URL:** `/api/ai/webhook/result`
@@ -320,7 +374,7 @@ Once processing is complete, POST the result back to:
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
-| `assessmentId` | string | Yes | The same `assessmentId` received in the trigger payload |
+| `assessmentId` | string | Yes | Same `assessmentId` from the trigger payload |
 | `result` | object | Yes | Your analysis output — any JSON structure, stored as-is |
 
 **Success Response:**
@@ -344,9 +398,3 @@ AI_API_KEY=cap-ai-external-key-2024
 AI_WEBHOOK_SECRET=cap-webhook-secret-2024
 AI_SERVICE_URL=http://ai-service.internal/api
 ```
-
-| Variable | Description |
-|----------|-------------|
-| `AI_API_KEY` | Shared with AI team for read access to framework/control data |
-| `AI_WEBHOOK_SECRET` | Shared with AI team for posting results back via webhook |
-| `AI_SERVICE_URL` | URL of the AI service — backend calls `AI_SERVICE_URL/analyze` on trigger |

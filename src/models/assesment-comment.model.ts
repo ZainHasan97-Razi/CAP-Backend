@@ -8,6 +8,13 @@ export const EvidenceTypeEnum = {
 } as const
 export type EvidenceTypeEnumType = keyof typeof EvidenceTypeEnum;
 
+export const ApprovalStatusEnum = {
+  pending: "pending",
+  approved: "approved",
+  rejected: "rejected",
+} as const
+export type ApprovalStatusEnumType = keyof typeof ApprovalStatusEnum;
+
 export const assesmentCommentSchema = new Schema(
   {
     assessmentId: { type: mongoose.Types.ObjectId, required: true, ref: "Assesment" },
@@ -17,6 +24,7 @@ export const assesmentCommentSchema = new Schema(
     authorName: { type: String, required: true },
     attachments: { type: [String], default: [] },
     evidenceType: { type: String, enum: EvidenceTypeEnum, default: null },
+    approvalStatus: { type: String, enum: ApprovalStatusEnum, default: null }, // null for replies or comments without attachments
     importedFrom: { type: mongoose.Types.ObjectId, default: null, ref: "Assesment" },
     isEdited: { type: Boolean, default: false },
     editedAt: { type: Date },
@@ -26,7 +34,7 @@ export const assesmentCommentSchema = new Schema(
 
 export type AssesmentCommentSchemaType = ExtractAndFix<InferSchemaType<typeof assesmentCommentSchema>>;
 export type AssesmentCommentDocument = HydratedDocument<AssesmentCommentSchemaType>;
-export type CreateAssesmentCommentDto = Omit<AssesmentCommentSchemaType, "createdAt" | "updatedAt" | "isEdited" | "editedAt">;
+export type CreateAssesmentCommentDto = Omit<AssesmentCommentSchemaType, "createdAt" | "updatedAt" | "isEdited" | "editedAt" | "approvalStatus">;
 export type UpdateAssesmentCommentDto = Omit<AssesmentCommentSchemaType, "createdAt" | "updatedAt">;
 
 const AssesmentCommentModel = model('AssesmentComment', assesmentCommentSchema);

@@ -1,6 +1,6 @@
 import { body, param } from "express-validator";
 import { validateRequest } from "../../middleware/validate.request";
-import { EvidenceTypeEnum } from "../../models/assesment-comment.model";
+import { EvidenceTypeEnum, ApprovalStatusEnum } from "../../models/assesment-comment.model";
 
 const evidenceTypeValues = Object.values(EvidenceTypeEnum);
 
@@ -31,4 +31,9 @@ export const deleteComment_validation = validateRequest([
 
 export const getComments_validation = validateRequest([
   param("assessmentId").isMongoId().withMessage("Assessment ID must be valid"),
+]);
+
+export const updateApproval_validation = validateRequest([
+  param("commentId").isMongoId().withMessage("Comment ID must be valid"),
+  body("status").isIn(Object.values(ApprovalStatusEnum)).withMessage("Status must be pending, approved, or rejected"),
 ]);

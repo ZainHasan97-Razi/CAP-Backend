@@ -1,8 +1,10 @@
 import { ARequest } from "types/auth.request.type";
 import { NextFunction, Response } from 'express';
 import assesmentCommentService from "../services/assesment-comment.service";
+import assesmentService from "../services/assesment.service";
 import { ApiError } from "../middleware/validate.request";
 import { IUser } from "types/req.user.type";
+import { ApprovalStatusEnum } from "../models/assesment-comment.model";
 
 export const getComments = async (req: ARequest, res: Response, next: NextFunction) => {
   try {
@@ -111,6 +113,55 @@ export const deleteComment = async (req: ARequest, res: Response, next: NextFunc
     
     await assesmentCommentService.deleteById(commentId);
     res.json({ message: 'Comment deleted successfully' });
+  } catch (error) {
+    console.error(error);
+    next(error);
+  }
+};
+
+export const updateApproval = async (req: ARequest, res: Response, next: NextFunction) => {
+  try {
+    const { commentId } = req.params;
+    const { status } = req.body as { status: keyof typeof ApprovalStatusEnum };
+    const user = req.user as IUser;
+
+    const comment = await assesmentCommentService.findById(commentId);
+    if (!comment) throw ApiError.notFound('Comment not found');
+    if (comment.parentCommentId) throw ApiError.badRequest('Cannot approve a reply');
+    if (!comment.attachments || comment.attachments.length === 0) {
+      throw ApiError.badRequest('Only comments with attachments can be approved');
+    }
+
+    // Only the assessment creator (auditor) can approve/reject
+    const assessment = await assesmentService.findById(comment.assessmentId.toString());
+    if (!assessment) throw ApiError.notFound('Assessment not found');
+    if (assessment.createdBy !== user.userName) {
+      throw ApiError.forbidden('Only the assessment owner can approve evidence');
+    }
+
+    const updated = await assesmentCommentService.setApprovalStatus(commentId, status);
+
+    // Trigger AI on approval
+    if (status === ApprovalStatusEnum.approved) {
+      const approvedAttachments = await assesmentCommentService.findApprovedAttachmentsByAssessment(
+        comment.assessmentId.toString()
+      );
+
+      const aiServiceUrl = process.env.AI_SERVICE_URL;
+      if (aiServiceUrl) {
+        fetch(`${aiServiceUrl}/analyze`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            assessmentId: assessment._id,
+            assessment,
+            approvedAttachments,
+          }),
+        }).catch(err => console.error('[AI Trigger] Failed to reach AI service:', err));
+      }
+    }
+
+    res.json({ message: `Evidence ${status}`, comment: updated });
   } catch (error) {
     console.error(error);
     next(error);

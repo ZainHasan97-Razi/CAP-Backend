@@ -1,4 +1,4 @@
-import AssesmentCommentModel, { CreateAssesmentCommentDto, UpdateAssesmentCommentDto } from "../models/assesment-comment.model";
+import AssesmentCommentModel, { ApprovalStatusEnum, CreateAssesmentCommentDto, UpdateAssesmentCommentDto } from "../models/assesment-comment.model";
 import AssesmentModel from "../models/assesment.model";
 import { MongoIdType } from "types/mongoid.type";
 
@@ -7,7 +7,12 @@ const findById = async (id: string | MongoIdType) => {
 };
 
 const create = async (data: CreateAssesmentCommentDto) => {
-  const comment = await AssesmentCommentModel.create(data);
+  const isTopLevelWithAttachments = !data.parentCommentId && data.attachments && data.attachments.length > 0;
+
+  const comment = await AssesmentCommentModel.create({
+    ...data,
+    approvalStatus: isTopLevelWithAttachments ? ApprovalStatusEnum.pending : null,
+  });
   
   if ((data.attachments && data.attachments.length > 0) || data.evidenceType) {
     const assessment = await AssesmentModel.findById(data.assessmentId);
@@ -100,6 +105,28 @@ const deleteImportedComments = async (
   });
 };
 
+const setApprovalStatus = async (
+  commentId: string | MongoIdType,
+  status: keyof typeof ApprovalStatusEnum
+) => {
+  return await AssesmentCommentModel.findByIdAndUpdate(
+    commentId,
+    { approvalStatus: status },
+    { new: true }
+  );
+};
+
+const findApprovedAttachmentsByAssessment = async (assessmentId: string | MongoIdType): Promise<string[]> => {
+  const approvedComments = await AssesmentCommentModel.find({
+    assessmentId,
+    parentCommentId: null,
+    approvalStatus: ApprovalStatusEnum.approved,
+    attachments: { $exists: true, $not: { $size: 0 } },
+  }).select('attachments').lean();
+
+  return approvedComments.flatMap(c => c.attachments);
+};
+
 export default {
   findById,
   create,
@@ -108,4 +135,6 @@ export default {
   findByAssessmentId,
   copyCommentsFromAssessment,
   deleteImportedComments,
+  setApprovalStatus,
+  findApprovedAttachmentsByAssessment,
 };

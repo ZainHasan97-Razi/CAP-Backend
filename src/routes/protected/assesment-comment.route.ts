@@ -4,14 +4,16 @@ import {
   createComment, 
   createReply, 
   updateComment, 
-  deleteComment 
+  deleteComment,
+  updateApproval,
 } from '../../controllers/assesment-comment.controller';
 import { 
   getComments_validation,
   createComment_validation, 
   createReply_validation, 
   updateComment_validation, 
-  deleteComment_validation 
+  deleteComment_validation,
+  updateApproval_validation,
 } from '../validators/assesment-comment.validator';
 
 const router = Router();
@@ -21,5 +23,6 @@ router.post('/:assessmentId/comments/create', createComment_validation, createCo
 router.post('/:assessmentId/comments/:commentId/reply', createReply_validation, createReply);
 router.put('/comments/:commentId/update', updateComment_validation, updateComment);
 router.delete('/comments/:commentId/delete', deleteComment_validation, deleteComment);
+router.patch('/comments/:commentId/approval', updateApproval_validation, updateApproval);
 
 export default router;

@@ -551,7 +551,7 @@ The import is allowed if ANY of these conditions are met:
 
 ### 7. Get Assessment Comments
 
-**Endpoint**: `GET /api/assesment-comment/:assessmentId`
+**Endpoint**: `GET /api/assesment-comment/:assessmentId/comments`
 
 **Response**:
 ```json
@@ -563,6 +563,7 @@ The import is allowed if ANY of these conditions are met:
     "authorName": "John Doe",
     "attachments": ["url1"],
     "evidenceType": "implementation",
+    "approvalStatus": "pending",
     "importedFrom": "507f1f77bcf86cd799439099",
     "createdAt": "2024-01-15T10:00:00.000Z",
     "replies": [
@@ -571,6 +572,7 @@ The import is allowed if ANY of these conditions are met:
         "content": "This is a reply",
         "author": "user-id-2",
         "authorName": "Jane Smith",
+        "approvalStatus": null,
         "createdAt": "2024-01-15T11:00:00.000Z"
       }
     ]
@@ -581,19 +583,18 @@ The import is allowed if ANY of these conditions are met:
 **Comment Fields**:
 - `importedFrom`: null = manually added, ObjectId = imported from that assessment
 - `evidenceType`: implementation | design | architectural
+- `approvalStatus`: `pending` | `approved` | `rejected` | `null` (null for replies and comments without attachments)
 - `replies`: Nested comments (not copied during import)
 
 ---
 
 ### 8. Create Comment
 
-**Endpoint**: `POST /api/assesment-comment`
+**Endpoint**: `POST /api/assesment-comment/:assessmentId/comments/create`
 
 **Request Body**:
 ```json
 {
-  "assessmentId": "assessment-id",
-  "parentCommentId": null,
   "content": "Comment text",
   "attachments": ["url1"],
   "evidenceType": "implementation"
@@ -603,6 +604,36 @@ The import is allowed if ANY of these conditions are met:
 **Auto-Status Update**:
 - If assessment status is "open" AND (attachments provided OR evidenceType provided)
 - Then status changes to "in_progress"
+
+**Auto-Approval Status**:
+- If the comment has attachments and no `parentCommentId`, `approvalStatus` is set to `pending` automatically
+- Replies and plain text comments get `approvalStatus: null`
+
+---
+
+### 9. Approve / Reject Evidence
+
+**Endpoint**: `PATCH /api/assesment-comment/comments/:commentId/approval`
+
+**Who can call this**: Only the assessment `createdBy` (auditor)
+
+**Request Body**:
+```json
+{ "status": "approved" }
+```
+Valid values: `approved`, `rejected`, `pending` (to revoke)
+
+**Response**:
+```json
+{
+  "message": "Evidence approved",
+  "comment": { "approvalStatus": "approved", ... }
+}
+```
+
+**Side effect on approval**: Backend automatically fires AI analysis with all currently approved attachment URLs for that assessment.
+
+**Rejection flow**: Auditor rejects and replies to the comment with a reason. Participant adds a **new top-level comment** with corrected evidence — the new comment starts as `pending`.
 
 ---
 
@@ -679,6 +710,11 @@ The import is allowed if ANY of these conditions are met:
   authorName: String,
   attachments: [String],            // URLs
   evidenceType: String,             // implementation | design | architectural
+  approvalStatus: String,           // pending | approved | rejected | null
+                                    // null = reply or comment without attachments
+                                    // pending = uploaded, awaiting auditor review
+                                    // approved = auditor approved, counts as valid evidence
+                                    // rejected = auditor rejected, auditor replies with reason
   importedFrom: ObjectId,           // ref: Assesment (null = manually added)
   isEdited: Boolean,
   editedAt: Date,
