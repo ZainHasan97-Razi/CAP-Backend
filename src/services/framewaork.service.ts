@@ -7,6 +7,7 @@ import { MongoIdType } from "types/mongoid.type";
 import csv from 'csv-parser';
 import { Readable } from 'stream';
 import storage from "../config/storage.provider";
+import { sanitizeSpecialChars } from "../utils/sanitize.chars";
 
 const findById = async (id: string|MongoIdType): Promise<FrameworkDocument|null> => {
   return await FrameworkModel.findById(id);
@@ -83,19 +84,19 @@ const createFromCsv = async (displayName: string, type: string, csvBuffer: Buffe
           headerValidated = true;
         }
         
-        const domainCode = row.domainCode?.trim();
-        const domainName = row.domainName?.trim();
-        const subdomainCode = row.subdomainCode?.trim() || null;
-        const subdomainName = row.subdomainName?.trim() || null;
-        const controlCode = row.controlCode?.trim();
-        const controlName = row.controlName?.trim();
+        const domainCode = sanitizeSpecialChars(row.domainCode?.trim());
+        const domainName = sanitizeSpecialChars(row.domainName?.trim());
+        const subdomainCode = sanitizeSpecialChars(row.subdomainCode?.trim()) || null;
+        const subdomainName = sanitizeSpecialChars(row.subdomainName?.trim()) || null;
+        const controlCode = sanitizeSpecialChars(row.controlCode?.trim());
+        const controlName = sanitizeSpecialChars(row.controlName?.trim());
         
         // Extract dynamic properties from columns starting with "property:"
         const properties: Record<string, string> = {};
         Object.keys(row).forEach(column => {
           if (column.startsWith('property:')) {
-            const propertyKey = column.substring(9).trim(); // Remove "property:" prefix
-            const propertyValue = row[column]?.trim();
+            const propertyKey = column.substring(9).trim();
+            const propertyValue = sanitizeSpecialChars(row[column]?.trim());
             if (propertyKey && propertyValue) {
               properties[propertyKey] = propertyValue;
             }

@@ -24,6 +24,7 @@
     "seed:itg": "ts-node src/seeders/index.ts seed \"ITG\"",
     "seed:reset": "ts-node src/seeders/index.ts reset",
     "seed:remove": "ts-node src/seeders/index.ts remove",
+    "migrate:special-chars": "ts-node src/seeders/migrate-special-chars.ts",
     "delete-framework": "ts-node src/seeders/delete-framework.ts"
   },
   "repository": {
