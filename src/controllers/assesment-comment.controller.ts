@@ -147,17 +147,20 @@ export const updateApproval = async (req: ARequest, res: Response, next: NextFun
         comment.assessmentId.toString()
       );
 
-      const aiServiceUrl = process.env.AI_SERVICE_URL;
-      if (aiServiceUrl) {
-        fetch(`${aiServiceUrl}/analyze`, {
+      const llmUrl = process.env.LLM_URL;
+      if (llmUrl) {
+        fetch(`${llmUrl}/evaluate`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            assessmentId: assessment._id,
-            assessment,
-            approvedAttachments,
+            assessment_id: assessment._id,
+            evidence_type: comment.evidenceType,
+            comment: comment.content,
+            framework: assessment.frameworkName,
+            definition: assessment.controlName,
+            attachments: approvedAttachments,
           }),
-        }).catch(err => console.error('[AI Trigger] Failed to reach AI service:', err));
+        }).catch(err => console.error('[AI Trigger] Failed to reach LLM service:', err));
       }
     }
 
