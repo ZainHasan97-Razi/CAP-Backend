@@ -198,6 +198,7 @@ const handleApprove = async (commentId: string) => {
 
 `aiResult` is a field on the assessment document returned by `GET /api/assesment/:id`. It is `null` by default and gets updated each time the AI machine delivers a new result after an approval.
 
+**Before AI runs:**
 ```json
 {
   "_id": "507f1f77bcf86cd799439015",
@@ -206,19 +207,56 @@ const handleApprove = async (commentId: string) => {
   "aiResult": null
 }
 ```
+
+**After AI delivers result:**
 ```json
 {
   "_id": "507f1f77bcf86cd799439015",
   "aiResult": {
-    "summary": "...",
-    "riskLevel": "medium",
-    "score": 72,
-    "recommendations": ["..."]
+    "request_id": "abc-123",
+    "assessment_id": "507f1f77bcf86cd799439015",
+    "grade": "B",
+    "confidence": 0.87,
+    "gaps": [
+      "No signed approval found on the policy document",
+      "Policy does not cover remote access scenarios"
+    ],
+    "recommendations": [
+      "Obtain management sign-off on the policy",
+      "Add a remote access section to the policy"
+    ],
+    "context_summary": "The submitted document is an access control policy dated 2024...",
+    "file_results": [
+      {
+        "filename": "access-control-policy.pdf",
+        "file_type": "pdf",
+        "extracted_text": "...",
+        "success": true,
+        "error": null
+      }
+    ],
+    "timestamp": "2026-05-05T11:26:14.245Z",
+    "evaluation_count": 1,
+    "arabic_output": {
+      "grade": "ب",
+      "gaps": ["لا يوجد توقيع إداري على الوثيقة"],
+      "recommendations": ["الحصول على موافقة الإدارة"]
+    }
   }
 }
 ```
 
-> The exact structure of `aiResult` is defined by the AI team.
+### 8. Key Fields to Display (Frontend)
+
+These are the three primary fields to surface in the UI:
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `aiResult.grade` | string | Overall compliance grade (e.g. `A`, `B`, `C`) |
+| `aiResult.gaps` | string[] | List of identified compliance gaps |
+| `aiResult.recommendations` | string[] | List of recommended actions to address the gaps |
+
+Arabic equivalents are available under `aiResult.arabic_output.grade`, `aiResult.arabic_output.gaps`, and `aiResult.arabic_output.recommendations` for RTL display.
 
 ---
 
@@ -321,30 +359,32 @@ Both values will be shared by the backend team.
 
 When an auditor approves evidence, the backend calls your service at:
 ```
-POST <AI_SERVICE_URL>/analyze
+POST <LLM_URL>/evaluate
 ```
 
 **Payload:**
 ```json
 {
-  "assessmentId": "507f1f77bcf86cd799439015",
-  "assessment": {
-    "_id": "507f1f77bcf86cd799439015",
-    "name": "Q1 2024 Access Control Review",
-    "frameworkName": "ISO 27001",
-    "controlId": "A.5.1",
-    "controlName": "Policies for information security",
-    "status": "in_progress",
-    "complianceMetricValue": "3"
-  },
-  "approvedAttachments": [
+  "assessment_id": "507f1f77bcf86cd799439015",
+  "evidence_type": "implementation",
+  "comment": "This document outlines our access control policy...",
+  "framework": "ISO 27001",
+  "definition": "Policies for information security",
+  "attachments": [
     "https://storage.example.com/evidence-file-1.pdf",
     "https://storage.example.com/evidence-file-2.pdf"
   ]
 }
 ```
 
-> `approvedAttachments` contains only the URLs of comments that have been approved by the auditor. These are the only documents you should analyze.
+| Field | Description |
+|-------|-------------|
+| `assessment_id` | The assessment being evaluated |
+| `evidence_type` | Type of evidence: `implementation`, `design`, or `architectural` |
+| `comment` | The text content of the approved comment |
+| `framework` | Name of the compliance framework (e.g. ISO 27001) |
+| `definition` | The control name/definition being assessed |
+| `attachments` | URLs of approved evidence files only |
 
 Process asynchronously and deliver the result via the webhook below.
 
@@ -361,21 +401,43 @@ Process asynchronously and deliver the result via the webhook below.
 {
   "assessmentId": "507f1f77bcf86cd799439015",
   "result": {
-    "summary": "The access control policy shows partial compliance...",
-    "riskLevel": "medium",
-    "score": 72,
+    "request_id": "abc-123",
+    "assessment_id": "507f1f77bcf86cd799439015",
+    "grade": "B",
+    "confidence": 0.87,
+    "gaps": [
+      "No signed approval found on the policy document",
+      "Policy does not cover remote access scenarios"
+    ],
     "recommendations": [
-      "Update policy documentation",
-      "Conduct staff training"
-    ]
+      "Obtain management sign-off on the policy",
+      "Add a remote access section to the policy"
+    ],
+    "context_summary": "The submitted document is an access control policy dated 2024...",
+    "file_results": [
+      {
+        "filename": "access-control-policy.pdf",
+        "file_type": "pdf",
+        "extracted_text": "...",
+        "success": true,
+        "error": null
+      }
+    ],
+    "timestamp": "2026-05-05T11:26:14.245Z",
+    "evaluation_count": 1,
+    "arabic_output": {
+      "grade": "ب",
+      "gaps": ["لا يوجد توقيع إداري على الوثيقة"],
+      "recommendations": ["الحصول على موافقة الإدارة"]
+    }
   }
 }
 ```
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
-| `assessmentId` | string | Yes | Same `assessmentId` from the trigger payload |
-| `result` | object | Yes | Your analysis output — any JSON structure, stored as-is |
+| `assessmentId` | string | Yes | Same `assessment_id` from the trigger payload |
+| `result` | object | Yes | Full AI response object, stored as-is on the assessment |
 
 **Success Response:**
 ```json
@@ -396,5 +458,5 @@ Process asynchronously and deliver the result via the webhook below.
 ```env
 AI_API_KEY=cap-ai-external-key-2024
 AI_WEBHOOK_SECRET=cap-webhook-secret-2024
-AI_SERVICE_URL=http://ai-service.internal/api
+LLM_URL=http://llm-service.internal/api
 ```
