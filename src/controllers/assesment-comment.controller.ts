@@ -148,6 +148,8 @@ export const updateApproval = async (req: ARequest, res: Response, next: NextFun
       );
 
       const llmUrl = process.env.LLM_URL;
+      console.log("llmUrl::: ", llmUrl);
+      
       if (llmUrl) {
         (async () => {
           try {
@@ -174,6 +176,7 @@ export const updateApproval = async (req: ARequest, res: Response, next: NextFun
               headers: { 'x-api-key': process.env.LLM_API_KEY || '' },
               body: formData,
             });
+            console.log("requesteddd LLM");
           } catch (err) {
             console.error('[AI Trigger] Failed to reach LLM service:', err);
           }
