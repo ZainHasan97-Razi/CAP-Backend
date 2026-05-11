@@ -5,6 +5,7 @@ import assesmentService from "../services/assesment.service";
 import { ApiError } from "../middleware/validate.request";
 import { IUser } from "types/req.user.type";
 import { ApprovalStatusEnum } from "../models/assesment-comment.model";
+import axios from "axios";
 
 export const getComments = async (req: ARequest, res: Response, next: NextFunction) => {
   try {
@@ -153,6 +154,7 @@ export const updateApproval = async (req: ARequest, res: Response, next: NextFun
       if (llmUrl) {
         (async () => {
           try {
+            const FormData = require('form-data');
             const formData = new FormData();
             formData.append('assessment_id', assessment._id.toString());
             formData.append('evidence_type', comment.evidenceType || '');
@@ -160,25 +162,25 @@ export const updateApproval = async (req: ARequest, res: Response, next: NextFun
             formData.append('framework', assessment.frameworkName);
             formData.append('definition', assessment.controlName);
 
-            // Fetch each file from GCP and append as binary
+            // Fetch each file and append as binary
             await Promise.all(
               approvedAttachments.map(async (url) => {
-                const fileRes = await fetch(url);
-                const buffer = await fileRes.arrayBuffer();
+                const fileRes = await axios.get(url, { responseType: 'arraybuffer' });
                 const fileName = url.split('/').pop() || 'file';
-                const contentType = fileRes.headers.get('content-type') || 'application/octet-stream';
-                formData.append('attachments', new Blob([buffer], { type: contentType }), fileName);
+                const contentType = fileRes.headers['content-type'] || 'application/octet-stream';
+                formData.append('attachments', Buffer.from(fileRes.data), { filename: fileName, contentType });
               })
             );
 
-            await fetch(`${llmUrl}/evaluate`, {
-              method: 'POST',
-              headers: { 'x-api-key': process.env.LLM_API_KEY || '' },
-              body: formData,
+            await axios.post(`${llmUrl}/evaluate`, formData, {
+              headers: { 
+                'x-api-key': process.env.LLM_API_KEY || '',
+                ...formData.getHeaders()
+              },
             });
             console.log("requesteddd LLM");
-          } catch (err) {
-            console.error('[AI Trigger] Failed to reach LLM service:', err);
+          } catch (err: any) {
+            console.error('[AI Trigger] Failed to reach LLM service:', err.message);
           }
         })();
       }
