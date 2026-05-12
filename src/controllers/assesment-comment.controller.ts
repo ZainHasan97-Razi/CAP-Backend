@@ -154,33 +154,22 @@ export const updateApproval = async (req: ARequest, res: Response, next: NextFun
       if (llmUrl) {
         (async () => {
           try {
-            const FormData = require('form-data');
-            const formData = new FormData();
-            formData.append('assessment_id', assessment._id.toString());
-            formData.append('evidence_type', comment.evidenceType || '');
-            formData.append('comment', comment.content);
-            formData.append('framework', assessment.frameworkName);
-            formData.append('definition', assessment.controlName);
-
-            // Fetch each file and append as binary
-            await Promise.all(
-              approvedAttachments.map(async (url) => {
-                const fileRes = await axios.get(url, { responseType: 'arraybuffer' });
-                const fileName = url.split('/').pop() || 'file';
-                const contentType = fileRes.headers['content-type'] || 'application/octet-stream';
-                formData.append('attachments', Buffer.from(fileRes.data), { filename: fileName, contentType });
-              })
-            );
-
-            await axios.post(`${llmUrl}/evaluate`, formData, {
-              headers: { 
+            await axios.post(`${llmUrl}/evaluate`, {
+              assessment_id: assessment._id.toString(),
+              evidence_type: comment.evidenceType ?? 'implementation',
+              comment: comment.content,
+              framework: assessment.frameworkName,
+              definition: assessment.controlName,
+              attachments: approvedAttachments,
+            }, {
+              headers: {
                 'x-api-key': process.env.LLM_API_KEY || '',
-                ...formData.getHeaders()
+                'Content-Type': 'application/json',
               },
             });
             console.log("requesteddd LLM");
           } catch (err: any) {
-            console.error('[AI Trigger] Failed to reach LLM service:', err.message);
+            console.error('[AI Trigger] Failed to reach LLM service:', JSON.stringify(err.response.data));
           }
         })();
       }
