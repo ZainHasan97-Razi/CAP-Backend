@@ -21,7 +21,7 @@ This document covers the AI integration layer for the CAP Assessment platform. I
 | AI Team | `GET /api/ai/controls/:controlCode` | `x-api-key` | Get control details |
 | AI Team | `POST /api/ai/webhook/result` | `x-webhook-secret` | Deliver AI result back |
 
-> The `POST /api/assesment/:id/trigger-ai` endpoint still exists for manual triggering if needed, but AI is now **automatically triggered on each evidence approval**.
+> The `POST /api/assesment/:id/trigger-ai` endpoint still exists for manual triggering if needed, but AI is now **automatically triggered when a comment with attachments is posted**.
 
 ---
 
@@ -32,23 +32,22 @@ This document covers the AI integration layer for the CAP Assessment platform. I
       |                           |                         |                         |
       |-- adds comment            |                         |                         |
       |   with attachment ------->|-- POST create comment ->|                         |
-      |                           |                         | approvalStatus=pending  |
-      |                           |                         |                         |
-      |                           |-- PATCH approval ------>|                         |
-      |                           |   { status: approved }  |-- POST /analyze ------->|
-      |                           |<-- 200 comment updated -|   (approved attachments)|
-      |                           |                         |                         |
+      |                           |<-- 200 comment created -|-- POST /evaluate ------>|
+      |                           |                         |   (attachment URLs)     |
       |                           |                         |   (processing...)       |
       |                           |                         |<-- POST /webhook/result-|
       |                           |                         |   (saves to aiResult)   |
       |                           |-- GET /assesment/:id -->|                         |
       |                           |<-- assessment.aiResult -|                         |
+      |                           |                         |                         |
+      |                           |-- PATCH approval ------>|                         |
+      |                           |<-- 200 comment updated -|                         |
 ```
 
 **Key points:**
-- AI is triggered **automatically on each approval** — no manual button needed
-- Only **approved attachment URLs** are sent to the AI machine
-- The trigger is fire-and-forget — the approval response returns immediately
+- AI is triggered **automatically when a top-level comment with attachments is posted** — no approval needed
+- Attachment URLs are sent directly to the AI machine
+- The trigger is fire-and-forget — the comment creation response returns immediately
 - Frontend polls `GET /api/assesment/:id` to check when `aiResult` is updated
 
 ---
@@ -121,9 +120,9 @@ Comment A (rejected) ← auditor replies: "Please provide a signed copy"
 Comment B (pending)  ← participant adds new comment with corrected file
 ```
 
-### 5. After Approval — AI Result
+### 5. After Comment Post — AI Result
 
-When the auditor approves a comment, the backend automatically triggers the AI machine with all currently approved attachments for that assessment. The frontend does not need to do anything extra — just poll for the updated `aiResult`.
+When a participant posts a top-level comment with attachments, the backend automatically triggers the AI machine with those attachment URLs. The frontend does not need to do anything extra — just poll for the updated `aiResult`.
 
 **Polling for AI result after approval:**
 ```typescript
@@ -190,8 +189,8 @@ const handleApprove = async (commentId: string) => {
 
 | State | What to show |
 |-------|-------------|
-| `aiResult === null`, no approved evidence yet | "No AI result yet. Approve evidence to trigger analysis." |
-| `aiResult === null`, evidence was just approved | Spinner + "AI is analyzing approved evidence..." |
+| `aiResult === null`, no evidence posted yet | "No AI result yet. Submit evidence to trigger analysis." |
+| `aiResult === null`, evidence was just posted | Spinner + "AI is analyzing submitted evidence..." |
 | `aiResult !== null` | Display the result |
 
 ### 7. Where `aiResult` Lives
@@ -357,7 +356,7 @@ Both values will be shared by the backend team.
 
 ### 4. Receiving a Trigger (Inbound from Backend)
 
-When an auditor approves evidence, the backend calls your service at:
+When a participant posts a comment with attachments, the backend calls your service at:
 ```
 POST <LLM_URL>/evaluate
 ```

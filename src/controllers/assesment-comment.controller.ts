@@ -32,6 +32,36 @@ export const createComment = async (req: ARequest, res: Response, next: NextFunc
     
     const comment = await assesmentCommentService.create(payload);
     res.json({ message: 'Comment created successfully', comment });
+
+    // Trigger AI when a top-level comment is posted with attachments
+    if (!payload.parentCommentId && payload.attachments?.length > 0) {
+      const llmUrl = process.env.LLM_URL;
+      if (llmUrl) {
+        const assessment = await assesmentService.findById(assessmentId);
+        if (assessment) {
+          (async () => {
+            try {
+              await axios.post(`${llmUrl}/evaluate`, {
+                assessment_id: assessment._id.toString(),
+                evidence_type: comment.evidenceType ?? 'implementation',
+                comment: comment.content,
+                framework: assessment.frameworkName,
+                definition: assessment.controlName,
+                attachments: payload.attachments,
+              }, {
+                headers: {
+                  'x-api-key': process.env.LLM_API_KEY || '',
+                  'Content-Type': 'application/json',
+                },
+              });
+              console.log('LLM triggered on comment post');
+            } catch (err: any) {
+              console.error('[AI Trigger] Failed to reach LLM service:', err.message);
+            }
+          })();
+        }
+      }
+    }
   } catch (error) {
     console.error(error);
     next(error);
@@ -141,39 +171,6 @@ export const updateApproval = async (req: ARequest, res: Response, next: NextFun
     }
 
     const updated = await assesmentCommentService.setApprovalStatus(commentId, status);
-
-    // Trigger AI on approval
-    if (status === ApprovalStatusEnum.approved) {
-      const approvedAttachments = await assesmentCommentService.findApprovedAttachmentsByAssessment(
-        comment.assessmentId.toString()
-      );
-
-      const llmUrl = process.env.LLM_URL;
-      console.log("llmUrl::: ", llmUrl);
-      
-      if (llmUrl) {
-        (async () => {
-          try {
-            await axios.post(`${llmUrl}/evaluate`, {
-              assessment_id: assessment._id.toString(),
-              evidence_type: comment.evidenceType ?? 'implementation',
-              comment: comment.content,
-              framework: assessment.frameworkName,
-              definition: assessment.controlName,
-              attachments: approvedAttachments,
-            }, {
-              headers: {
-                'x-api-key': process.env.LLM_API_KEY || '',
-                'Content-Type': 'application/json',
-              },
-            });
-            console.log("requesteddd LLM");
-          } catch (err: any) {
-            console.error('[AI Trigger] Failed to reach LLM service:', JSON.stringify(err.response.data));
-          }
-        })();
-      }
-    }
 
     res.json({ message: `Evidence ${status}`, comment: updated });
   } catch (error) {
