@@ -11,6 +11,7 @@ export const issueJwt = (user: UserDocument) => {
     _id: user._id.toString(),
     email: user.email,
     userName: user.userName,
+    systemRoles: user.systemRoles as any ?? [],
   }
 
   const signedToken = jwt.sign(payload, process.env.JWT_SECRET, {

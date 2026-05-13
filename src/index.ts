@@ -3,6 +3,7 @@ import dotenv from 'dotenv';
 import path from 'path';
 import rootRouter from './routes/root.route';
 import { connectDB } from "./database";
+import { ensureSystemRolesSeeded } from './controllers/system-role.controller';
 import { errorHandler } from "./middleware/error.handler";
 import { allowingCors } from "./utils/allow.cors";
 
@@ -22,6 +23,7 @@ app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 app.use("/api", rootRouter)
 app.use(errorHandler);
 connectDB();
+ensureSystemRolesSeeded();
 
 app.listen(PORT, () => {
   console.log(`\x1b[34mServer is running on port:\x1b[0m \x1b[35m${PORT}\x1b[0m`);

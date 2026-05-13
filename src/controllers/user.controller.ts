@@ -2,6 +2,8 @@ import { ARequest } from "types/auth.request.type";
 import { NextFunction, Response } from 'express';
 import userService from "../services/user.service";
 import { ApiError } from "../middleware/validate.request";
+import { IUser } from "types/req.user.type";
+import { SystemRoleEnum } from "../models/system-role.model";
 
 export const findById = async (req: ARequest, res: Response, next: NextFunction) => {
   try {
@@ -47,6 +49,26 @@ export const findByDepartments = async (req: ARequest, res: Response, next: Next
     const users = await userService.findByDepartments(ids);
     
     res.json(users);
+  } catch (error) {
+    console.error(error);
+    next(error);
+  }
+}
+
+export const updateSystemRoles = async (req: ARequest, res: Response, next: NextFunction) => {
+  try {
+    const caller = req.user as IUser;
+    if (!caller.systemRoles?.includes(SystemRoleEnum.super_admin)) {
+      throw ApiError.forbidden('Only super admins can update system roles');
+    }
+
+    const { id } = req.params;
+    const { systemRoles } = req.body;
+
+    const user = await userService.updateSystemRoles(id, systemRoles);
+    if (!user) throw ApiError.notFound('User not found');
+
+    res.json({ message: 'System roles updated', user });
   } catch (error) {
     console.error(error);
     next(error);

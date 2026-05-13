@@ -63,10 +63,15 @@ const findByDepartments = async (departmentIds: (string | MongoIdType)[]) => {
   .lean();
 };
 
+const updateSystemRoles = async (id: string, systemRoles: string[]) => {
+  return await UserModel.findByIdAndUpdate(id, { systemRoles }, { new: true }).select('-password');
+};
+
 export default {
   findByEmail,
   findById,
   createUser,
   list,
   findByDepartments,
+  updateSystemRoles,
 }

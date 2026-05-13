@@ -1,4 +1,5 @@
 import mongoose, { HydratedDocument, InferSchemaType, model, Schema } from 'mongoose';
+import { SystemRoleEnum } from './system-role.model';
 
 export const UserStatusEnum = {
   pending: "pending",
@@ -6,8 +7,6 @@ export const UserStatusEnum = {
   inactive: "inactive"
 } as const
 export type UserStatusEnumType = keyof typeof UserStatusEnum;
-
-
 
 export const userSchema = new Schema(
   {
@@ -20,6 +19,11 @@ export const userSchema = new Schema(
     role: { type: String, required: true },
     departmentId: { type: mongoose.Types.ObjectId, ref: "Department", default: null },
     department: { type: String, default: null },
+    systemRoles: {
+      type: [String],
+      enum: Object.values(SystemRoleEnum),
+      default: ['control_owner'],
+    },
   },
   { timestamps: true },
 );

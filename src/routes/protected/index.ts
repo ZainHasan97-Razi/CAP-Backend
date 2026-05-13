@@ -10,6 +10,7 @@ import assesmentCommentRoute from './assesment-comment.route';
 import uploadRoute from './upload.route';
 import seederRoute from './seeder.route';
 import emailRoute from './email.route';
+import systemRoleRoute from './system-role.route';
 
 const router = Router();
 
@@ -24,5 +25,6 @@ router.use('/assesment-comment', assesmentCommentRoute)
 router.use('/upload', uploadRoute)
 router.use('/seeder', seederRoute)
 router.use('/email', emailRoute)
+router.use('/system-roles', systemRoleRoute)
 
 export default router;
