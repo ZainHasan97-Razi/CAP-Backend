@@ -90,6 +90,7 @@ const createFromCsv = async (displayName: string, type: string, csvBuffer: Buffe
         const subdomainName = sanitizeSpecialChars(row.subdomainName?.trim()) || null;
         const controlCode = sanitizeSpecialChars(row.controlCode?.trim());
         const controlName = sanitizeSpecialChars(row.controlName?.trim());
+        const description = row.description?.trim() || '';
         
         // Extract dynamic properties from columns starting with "property:"
         const properties: Record<string, string> = {};
@@ -109,7 +110,7 @@ const createFromCsv = async (displayName: string, type: string, csvBuffer: Buffe
         if (!controlName) errors.push(`Row ${rowIndex}: controlName is required`);
         
         if (domainCode && domainName && controlCode && controlName) {
-          controls.push({ domainCode, domainName, subdomainCode, subdomainName, controlCode, controlName, properties });
+          controls.push({ domainCode, domainName, subdomainCode, subdomainName, controlCode, controlName, description, properties });
         }
       })
       .on('end', async () => {
