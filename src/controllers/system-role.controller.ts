@@ -8,7 +8,10 @@ export const ensureSystemRolesSeeded = async () => {
   const ops = Object.entries(DEFAULT_ROLE_PERMISSIONS).map(([role, permissions]) => ({
     updateOne: {
       filter: { role },
-      update: { $setOnInsert: { role, permissions } },
+      update: {
+        $set: { permissions },
+        $setOnInsert: { role },
+      },
       upsert: true,
     },
   }));
@@ -31,12 +34,16 @@ export const getAllSystemRoles = async (req: ARequest, res: Response, next: Next
 };
 
 export const getPermissions = (_req: ARequest, res: Response) => {
-  const permissions = Object.entries(PERMISSION_META).map(([key, meta]) => ({
-    key,
-    label: meta.label,
-    description: meta.description,
-  }));
-  res.json(permissions);
+  const view: any[] = [];
+  const action: any[] = [];
+
+  Object.entries(PERMISSION_META).forEach(([key, meta]) => {
+    const entry = { key, label: meta.label, description: meta.description };
+    if (meta.type === 'view') view.push(entry);
+    else action.push(entry);
+  });
+
+  res.json({ view, action });
 };
 
 export const updateRolePermissions = async (req: ARequest, res: Response, next: NextFunction) => {
