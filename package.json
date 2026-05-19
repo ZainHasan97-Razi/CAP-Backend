@@ -40,18 +40,15 @@
   },
   "homepage": "https://github.com/ZainHasan97-Razi/CAP-Backend#readme",
   "devDependencies": {
+    "nodemon": "^3.1.11"
+  },
+  "dependencies": {
+    "@google-cloud/storage": "^7.18.0",
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
     "@types/jsonwebtoken": "^9.0.10",
     "@types/multer": "^2.0.0",
     "@types/node": "^24.10.1",
-    "nodemon": "^3.1.11",
-    "ts-node": "^10.9.2",
-    "ts-node-dev": "^2.0.0",
-    "typescript": "^5.9.3"
-  },
-  "dependencies": {
-    "@google-cloud/storage": "^7.18.0",
     "@types/nodemailer": "^7.0.9",
     "axios": "^1.13.2",
     "bcryptjs": "^3.0.3",
@@ -65,6 +62,9 @@
     "moment": "^2.30.1",
     "mongoose": "^8.20.1",
     "multer": "^2.0.2",
-    "nodemailer": "^7.0.13"
+    "nodemailer": "^7.0.13",
+    "ts-node": "^10.9.2",
+    "ts-node-dev": "^2.0.0",
+    "typescript": "^5.9.3"
   }
 }
