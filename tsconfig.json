@@ -52,7 +52,8 @@
     "sourceMap": true,
     "outDir": "./dist",
     "rootDir": ".",
-    "baseUrl": "./src"
+    "baseUrl": "./src",
+    "ignoreDeprecations": "5.0"
   },
   "lib": ["es2015"],
   "include": ["src"]
