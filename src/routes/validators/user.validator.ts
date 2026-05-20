@@ -20,7 +20,16 @@ export const list_validation = validateRequest([
 export const register_validation = validateRequest([
   body("userName").trim().isLength({min: 3, max: 50}).withMessage("Username must be between 3-50 characters"),
   body("email").isEmail().withMessage("Please enter a valid email."),
-  body("password").trim().isLength({ min: 6 }).withMessage("Password must be at least 6 characters"),
+  body("password")
+    .trim()
+    .isLength({ min: 8 })
+    .withMessage("Password must be at least 8 characters")
+    .matches(/[a-z]/)
+    .withMessage("Password must contain at least one lowercase letter")
+    .matches(/[A-Z]/)
+    .withMessage("Password must contain at least one uppercase letter")
+    .matches(/[!@#$%^&*(),.?":{}|<>]/)
+    .withMessage("Password must contain at least one special character"),
   body("role").trim().not().isEmpty().withMessage("Role is required"),
   body("departmentId").isMongoId().withMessage("Department ID must be valid"),
 ]);
