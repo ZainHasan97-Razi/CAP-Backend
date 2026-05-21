@@ -24,6 +24,7 @@ export const userSchema = new Schema(
       enum: Object.values(SystemRoleEnum),
       default: ['control_owner'],
     },
+    sessionId: { type: String, default: null },
   },
   { timestamps: true },
 );

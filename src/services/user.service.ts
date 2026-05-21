@@ -67,6 +67,10 @@ const updateSystemRoles = async (id: string, systemRoles: string[]) => {
   return await UserModel.findByIdAndUpdate(id, { systemRoles }, { new: true }).select('-password');
 };
 
+const updateSessionId = async (id: string, sessionId: string | null) => {
+  return await UserModel.findByIdAndUpdate(id, { sessionId });
+};
+
 export default {
   findByEmail,
   findById,
@@ -74,4 +78,5 @@ export default {
   list,
   findByDepartments,
   updateSystemRoles,
+  updateSessionId,
 }

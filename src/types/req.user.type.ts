@@ -5,4 +5,5 @@ export type IUser = {
   userName: string;
   email: string;
   systemRoles: SystemRoleEnumType[];
+  sessionId: string;
 };

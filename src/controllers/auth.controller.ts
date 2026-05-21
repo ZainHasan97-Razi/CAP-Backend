@@ -5,6 +5,9 @@ import roleService from "../services/role.service";
 import { CreateUserDto } from "../models/user.model";
 import { issueJwt } from "../utils/jwt";
 import { ApiError } from '../middleware/validate.request';
+import { ARequest } from '../types/auth.request.type';
+import { IUser } from '../types/req.user.type';
+import crypto from 'crypto';
 const bcrypt = require('bcryptjs');
 
 export const register = async (req: Request, res: Response, next: NextFunction) => {
@@ -63,16 +66,28 @@ export const login = async (req: Request, res: Response, next: NextFunction) => 
       throw ApiError.unauthorized("Invalid password");
     }
 
-    const token = issueJwt(user);
+    const sessionId = crypto.randomUUID();
+    await userService.updateSessionId(user._id.toString(), sessionId);
+
+    const token = issueJwt(user, sessionId);
     if (!token) {
-      // return res.status(500).json({ error: 'Error generating token' });
       throw ApiError.internalServer("Error generating token");
     }
 
-    // In a real app, you would generate a JWT token here and send it back
     res.json({ user, token: token.token });
   } catch (error) {
     console.error(error);
-    next(error); // pass to global handler
+    next(error);
+  }
+}
+
+export const logout = async (req: ARequest, res: Response, next: NextFunction) => {
+  try {
+    const user = req.user as IUser;
+    await userService.updateSessionId(user._id, null);
+    res.json({ message: 'Logged out successfully' });
+  } catch (error) {
+    console.error(error);
+    next(error);
   }
 }
