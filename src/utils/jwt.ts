@@ -4,7 +4,7 @@ import { IUser } from "types/req.user.type";
 let jwt = require('jsonwebtoken');
 // key will come from env
 
-export const issueJwt = (user: UserDocument) => {
+export const issueJwt = (user: UserDocument, sessionId: string) => {
   const expiresIn = '10d';
 
   const payload: IUser = {
@@ -12,6 +12,7 @@ export const issueJwt = (user: UserDocument) => {
     email: user.email,
     userName: user.userName,
     systemRoles: user.systemRoles as any ?? [],
+    sessionId,
   }
 
   const signedToken = jwt.sign(payload, process.env.JWT_SECRET, {
