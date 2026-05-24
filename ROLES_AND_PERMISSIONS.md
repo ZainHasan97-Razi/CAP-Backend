@@ -70,11 +70,11 @@ Permissions follow a **module-based convention**:
 
 | Role | Permissions |
 |---|---|
-| `compliance_specialist` | `view_dashboard`, `view_assessment`, `manage_assessment`, `view_framework`, `view_control`, `view_evidence`, `view_user`, `view_report` |
-| `compliance_manager` | `view_dashboard`, `view_assessment`, `manage_assessment`, `view_framework`, `view_control`, `view_evidence`, `view_user`, `view_report` |
-| `control_owner` | `view_assessment`, `view_evidence`, `manage_evidence`, `view_report` |
+| `compliance_specialist` | `view_dashboard`, `view_assessment`, `manage_assessment`, `view_framework`, `view_control`, `view_evidence`, `manage_evidence`, `view_user`, `view_report` |
+| `compliance_manager` | `view_dashboard`, `view_assessment`, `view_framework`, `view_control`, `view_evidence`, `manage_evidence`, `view_user`, `view_report` |
+| `control_owner` | `view_evidence`, `manage_evidence` |
 | `executive` | `view_dashboard`, `view_report` |
-| `auditor` | `view_dashboard`, `view_assessment`, `manage_assessment`, `view_framework`, `view_control`, `view_evidence`, `manage_evidence`, `view_user`, `view_report` |
+| `auditor` | `view_dashboard`, `view_assessment`, `view_framework`, `view_control`, `view_evidence`, `manage_evidence`, `view_user`, `view_report` |
 | `super_admin` | All permissions |
 
 > Default permissions are applied on every server startup. If a role's permissions were manually customised via the API, they **will be reset** on next restart. To preserve custom permissions, the seeder uses `$set` only for the defaults — if you want sticky custom permissions, let the backend team know and we can switch back to `$setOnInsert`.

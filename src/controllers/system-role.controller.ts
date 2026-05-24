@@ -9,8 +9,7 @@ export const ensureSystemRolesSeeded = async () => {
     updateOne: {
       filter: { role },
       update: {
-        $set: { permissions },
-        $setOnInsert: { role },
+        $setOnInsert: { role, permissions },
       },
       upsert: true,
     },
