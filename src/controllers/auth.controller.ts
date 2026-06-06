@@ -26,8 +26,9 @@ export const register = async (req: Request, res: Response, next: NextFunction) 
       throw ApiError.badRequest("Invalid department ID");
     }
 
-    // Handle role - find or create
-    const role = await roleService.findOrCreateRole(body.role);
+    // Handle role - find or create (defaults to 'user' if not provided)
+    const roleName = body.role || 'guest';
+    const role = await roleService.findOrCreateRole(roleName);
 
     // Hash password
     const hashedpassword = await bcrypt.hash(body.password, 12);
@@ -39,6 +40,7 @@ export const register = async (req: Request, res: Response, next: NextFunction) 
       department: department.displayName,
       roleId: role._id,
       role: role.name,
+      systemRoles: body.systemRoles ?? ['control_owner'],
     };
 
     const newUser = await userService.createUser(payload);

@@ -15,8 +15,8 @@ export const userSchema = new Schema(
     emailIsVerified: { type: Boolean, default: false },
     status: { type: String, enum: UserStatusEnum, default: UserStatusEnum.active },
     password: { type: String, required: true },
-    roleId: { type: mongoose.Types.ObjectId, ref: "Role", required: true },
-    role: { type: String, required: true },
+    roleId: { type: mongoose.Types.ObjectId, ref: "Role", default: null },
+    role: { type: String, required: false, default: 'guest' },
     departmentId: { type: mongoose.Types.ObjectId, ref: "Department", default: null },
     department: { type: String, default: null },
     systemRoles: {

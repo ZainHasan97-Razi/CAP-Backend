@@ -145,6 +145,33 @@ Updates the permissions for a given role. **Only `super_admin` can call this.**
 
 ---
 
+### `POST /api/auth/register`
+
+Registers a new user. `role` and `systemRoles` are both optional.
+
+**Body:**
+```json
+{
+  "userName": "John Doe",
+  "email": "john@example.com",
+  "password": "Pass@1234",
+  "departmentId": "<mongoId>",
+  "role": "auditor",
+  "systemRoles": ["compliance_specialist"]
+}
+```
+
+- `role` — optional, defaults to `"guest"` if not provided
+- `systemRoles` — optional array of system role keys, defaults to `["control_owner"]` if not provided
+- Valid `systemRoles` values: `compliance_specialist`, `compliance_manager`, `control_owner`, `executive`, `auditor`, `super_admin`
+
+**Response:**
+```json
+{ "message": "User created", "userId": "..." }
+```
+
+---
+
 ### `PATCH /api/user/:id/system-roles`
 
 Assigns system roles to a user. **Only `super_admin` can call this.**

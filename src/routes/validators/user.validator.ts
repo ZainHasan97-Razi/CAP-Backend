@@ -30,6 +30,8 @@ export const register_validation = validateRequest([
     .withMessage("Password must contain at least one uppercase letter")
     .matches(/[!@#$%^&*(),.?":{}|<>]/)
     .withMessage("Password must contain at least one special character"),
-  body("role").trim().not().isEmpty().withMessage("Role is required"),
+  body("role").optional().trim(),
   body("departmentId").isMongoId().withMessage("Department ID must be valid"),
+  body("systemRoles").optional().isArray().withMessage("systemRoles must be an array"),
+  body("systemRoles.*").optional().isIn(['compliance_specialist','compliance_manager','control_owner','executive','auditor','super_admin']).withMessage("Invalid system role"),
 ]);
