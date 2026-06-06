@@ -3,13 +3,15 @@ import { NextFunction, Response } from 'express';
 import SystemRoleModel, { DEFAULT_ROLE_PERMISSIONS, PERMISSION_META, ROLE_META, SystemRoleEnum } from '../models/system-role.model';
 import { ApiError } from '../middleware/validate.request';
 import { IUser } from 'types/req.user.type';
+import UserModel from '../models/user.model';
 
 export const ensureSystemRolesSeeded = async () => {
   const ops = Object.entries(DEFAULT_ROLE_PERMISSIONS).map(([role, permissions]) => ({
     updateOne: {
       filter: { role },
       update: {
-        $setOnInsert: { role, permissions },
+        $set: { permissions },
+        $setOnInsert: { role },
       },
       upsert: true,
     },
@@ -21,11 +23,23 @@ export const ensureSystemRolesSeeded = async () => {
 export const getAllSystemRoles = async (req: ARequest, res: Response, next: NextFunction) => {
   try {
     const roles = await SystemRoleModel.find().lean();
+
+    // Count users per system role in one query
+    const userCounts = await UserModel.aggregate([
+      { $unwind: '$systemRoles' },
+      { $group: { _id: '$systemRoles', count: { $sum: 1 } } },
+    ]);
+    const userCountMap: Record<string, number> = {};
+    userCounts.forEach(({ _id, count }) => { userCountMap[_id] = count; });
+
     const enriched = roles.map((r) => ({
       ...r,
       label: ROLE_META[r.role as keyof typeof ROLE_META]?.label ?? r.role,
       description: ROLE_META[r.role as keyof typeof ROLE_META]?.description ?? '',
+      userCount: userCountMap[r.role] ?? 0,
+      permissionCount: r.permissions.length,
     }));
+
     res.json(enriched);
   } catch (error) {
     next(error);

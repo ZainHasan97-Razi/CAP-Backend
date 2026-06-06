@@ -9,15 +9,16 @@ const router = Router();
 router.get('/', getAllSystemRoles);
 router.get('/permissions', getPermissions);
 
-router.patch(
-  '/:role/permissions',
-  validateRequest([
-    param('role').isIn(Object.values(SystemRoleEnum)).withMessage('Invalid system role'),
-    body('permissions').isArray().withMessage('Permissions must be an array'),
-    body('permissions.*').isIn(Object.values(PermissionEnum)).withMessage('Invalid permission key'),
-  ]),
-  updateRolePermissions
-);
+// [FUTURE] Toggle permission for a role — uncomment to enable editable permissions UI
+// router.patch(
+//   '/:role/permissions',
+//   validateRequest([
+//     param('role').isIn(Object.values(SystemRoleEnum)).withMessage('Invalid system role'),
+//     body('permissions').isArray().withMessage('Permissions must be an array'),
+//     body('permissions.*').isIn(Object.values(PermissionEnum)).withMessage('Invalid permission key'),
+//   ]),
+//   updateRolePermissions
+// );
 
 router.post('/seed', seedSystemRoles);
 

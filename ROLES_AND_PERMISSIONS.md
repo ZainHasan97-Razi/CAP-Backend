@@ -89,7 +89,7 @@ All endpoints require `Authorization: Bearer <token>`.
 
 ### `GET /api/system-roles`
 
-Returns all system roles with their current permissions, label and description.
+Returns all system roles with their current permissions, label, description, user count and permission count.
 
 **Response:**
 ```json
@@ -100,11 +100,16 @@ Returns all system roles with their current permissions, label and description.
     "label": "Compliance Specialist",
     "description": "Creates assessments, assigns controls and findings, handles approval workflow",
     "permissions": ["view_dashboard", "view_assessment", "manage_assessment"],
+    "permissionCount": 3,
+    "userCount": 5,
     "createdAt": "...",
     "updatedAt": "..."
   }
 ]
 ```
+
+> `userCount` — number of users assigned to this system role (for display as info badge on the column)
+> `permissionCount` — number of permissions currently enabled for this role (for display as info badge on the column)
 
 ---
 
@@ -127,7 +132,12 @@ Returns all available permissions grouped by type. Use this to build the permiss
 
 ---
 
-### `PATCH /api/system-roles/:role/permissions`
+### `PATCH /api/system-roles/:role/permissions` *(currently disabled)*
+
+> **This endpoint is commented out and not active.** The permissions UI shows tick/cross icons as read-only display.
+> To re-enable the editable toggle UI in the future, uncomment the route in `src/routes/protected/system-role.route.ts`.
+
+<!--
 
 Updates the permissions for a given role. **Only `super_admin` can call this.**
 
@@ -142,6 +152,8 @@ Updates the permissions for a given role. **Only `super_admin` can call this.**
 ```
 
 **Response:** Updated role document.
+
+-->
 
 ---
 
