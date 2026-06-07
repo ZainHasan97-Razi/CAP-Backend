@@ -1,4 +1,6 @@
-# Frontend Migration Guide - Control Model Field Changes
+# Frontend Migration Guide — Control Model Field Changes
+
+→ Back to [README](../../README.md)
 
 ## Overview
 The backend Control model has been updated to support a hierarchical structure with Domain → Subdomain → Control. All field names have been changed to reflect this new structure.

@@ -1,4 +1,6 @@
-# Analytics API Documentation
+# Analytics API
+
+→ Back to [README](../../README.md)
 
 ## Overview
 The Analytics API provides comprehensive insights into assessment compliance metrics, framework-specific distributions, and overall progress tracking. It supports metric-based analytics for both **maturity_level** and **percentage** type frameworks.

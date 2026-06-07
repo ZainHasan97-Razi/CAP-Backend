@@ -1,5 +1,7 @@
 # Roles & Permissions
 
+→ Back to [README](../../README.md)
+
 ## Overview
 
 The system uses **System Roles** to control what a user can see and do. Each user can have one or more system roles (`systemRoles: string[]`). Permissions are stored per role in the database and can be updated by a `super_admin` via the API.
