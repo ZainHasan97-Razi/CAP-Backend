@@ -794,10 +794,15 @@ GET http://localhost:9000/api/assessments/by-metric?frameworkId=507f1f77bcf86cd7
     description: string;
     frameworkName: string;
     framework: string;
-    controlId: string;
+    controlId: string;         // control code e.g. "3.1.1-1"
     controlName: string;
+    domainCode: string | null;
+    domainName: string | null;
+    subdomainCode: string | null;
+    subdomainName: string | null;
     status: "open" | "in_progress" | "closed" | "discard";
     complianceMetricValue: string;
+    auditorNotes: string | null;
     startDate: number;
     dueDate: number;
     createdAt: string;
@@ -840,10 +845,15 @@ GET http://localhost:9000/api/assessments/by-metric?frameworkName=SAMA%20CSF&met
       "description": "Quarterly compliance assessment for information security governance",
       "frameworkName": "SAMA CSF",
       "framework": "507f1f77bcf86cd799439011",
-      "controlId": "SAMA-1.1",
+      "controlId": "3.1.1-1",
       "controlName": "Information Security Governance",
+      "domainCode": "3.1",
+      "domainName": "Cyber Security Leadership and Governance",
+      "subdomainCode": "3.1.1",
+      "subdomainName": "Cyber Security Governance",
       "status": "in_progress",
       "complianceMetricValue": "3",
+      "auditorNotes": null,
       "startDate": 1705305600,
       "dueDate": 1707984000,
       "createdAt": "2024-01-15T10:30:00.000Z",
@@ -856,10 +866,15 @@ GET http://localhost:9000/api/assessments/by-metric?frameworkName=SAMA%20CSF&met
       "description": "Risk management framework assessment",
       "frameworkName": "SAMA CSF",
       "framework": "507f1f77bcf86cd799439011",
-      "controlId": "SAMA-2.1",
+      "controlId": "3.1.2-1",
       "controlName": "Risk Management Framework",
+      "domainCode": "3.1",
+      "domainName": "Cyber Security Leadership and Governance",
+      "subdomainCode": "3.1.2",
+      "subdomainName": "Risk Management",
       "status": "closed",
       "complianceMetricValue": "3",
+      "auditorNotes": "Controls verified against policy documentation.",
       "startDate": 1705392000,
       "dueDate": 1708070400,
       "createdAt": "2024-01-16T10:30:00.000Z",
@@ -897,10 +912,15 @@ GET http://localhost:9000/api/assessments/by-metric?frameworkName=SAMA%20CSF&met
 | `description` | string | Assessment description |
 | `frameworkName` | string | Name of the framework |
 | `framework` | string | Framework MongoDB ObjectId |
-| `controlId` | string | Control code/identifier |
+| `controlId` | string | Control code (e.g. "3.1.1-1") |
 | `controlName` | string | Control name |
-| `status` | string | Assessment status (open, in_progress, closed, discard) |
+| `domainCode` | string \| null | Domain code from the control (e.g. "3.1") |
+| `domainName` | string \| null | Domain name from the control |
+| `subdomainCode` | string \| null | Subdomain code (null if framework has no subdomains) |
+| `subdomainName` | string \| null | Subdomain name (null if framework has no subdomains) |
+| `status` | string | Assessment status: `open` \| `in_progress` \| `closed` \| `discard` |
 | `complianceMetricValue` | string | Current metric value for this assessment |
+| `auditorNotes` | string \| null | Free-text notes added by the auditor (null if not set) |
 | `startDate` | number | Assessment start date (Unix timestamp) |
 | `dueDate` | number | Assessment due date (Unix timestamp) |
 | `createdAt` | string | ISO 8601 timestamp |

@@ -89,11 +89,12 @@ Only these fields can be updated:
   "description": "Updated description",
   "status": "in_progress",
   "attachments": ["https://storage.example.com/file.pdf"],
-  "complianceMetricValue": "3"
+  "complianceMetricValue": "3",
+  "auditorNotes": "Controls verified against policy documentation."
 }
 ```
 
-`complianceMetricValue` must be a value that exists in the framework's `complianceMetric.values` array. Returns `"Invalid complianceMetricValue for this framework"` if not.
+`complianceMetricValue` must be a value that exists in the framework's `complianceMetric.values` array. `auditorNotes` is a free-text string, send `null` to clear it. Returns `"Invalid complianceMetricValue for this framework"` if not.
 
 ---
 
