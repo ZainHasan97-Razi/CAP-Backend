@@ -28,6 +28,7 @@ export const assesmentSchema = new Schema(
     complianceMetricValue: {type: String, default: null},
     commonAssessmentId: {type: mongoose.Types.ObjectId, default: null, ref: "Assesment"},
     aiResult: {type: mongoose.Schema.Types.Mixed, default: null},
+    auditorNotes: {type: String, default: null},
     startDate: {type: Number, required: true}, // unix seconds
     dueDate: {type: Number, required: true}, // unix seconds
     createdBy: {type: String, required: true}, // some auditor person
@@ -38,7 +39,7 @@ export const assesmentSchema = new Schema(
 // export type AssesmentSchemaType = InferSchemaType<typeof assesmentSchema>;
 export type AssesmentSchemaType = ExtractAndFix<InferSchemaType<typeof assesmentSchema>>;
 export type AssesmentDocument = HydratedDocument<AssesmentSchemaType>;
-export type CreateAssesmentDto = Omit<AssesmentSchemaType, "createdAt" | "updatedAt" | "status" | "commonAssessmentId" | "complianceMetricValue" | "aiResult">;
+export type CreateAssesmentDto = Omit<AssesmentSchemaType, "createdAt" | "updatedAt" | "status" | "commonAssessmentId" | "complianceMetricValue" | "aiResult" | "auditorNotes">;
 export type UpdateAssesmentDto = Omit<AssesmentSchemaType, "createdAt" | "updatedAt">;
 
 const AssesmentModel = model('Assesment', assesmentSchema);

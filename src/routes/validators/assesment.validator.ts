@@ -54,8 +54,9 @@ export const updateAssesment_validation = validateRequest([
   body('description').optional().trim(),
   body('status').optional().isIn(Object.values(AssesmentStatusEnum)).withMessage('Invalid status value'),
   body('complianceMetricValue').optional().isString().withMessage('Compliance metric value must be a string'),
+  body('auditorNotes').optional({ nullable: true }).isString().withMessage('Auditor notes must be a string'),
   body().custom((value, { req }) => {
-    const allowedFields = ['attachments', 'description', 'status', 'complianceMetricValue'];
+    const allowedFields = ['attachments', 'description', 'status', 'complianceMetricValue', 'auditorNotes'];
     const extraFields = Object.keys(req.body).filter(field => !allowedFields.includes(field));
     if (extraFields.length > 0) {
       throw new Error(`Unexpected fields: ${extraFields.join(', ')}`);

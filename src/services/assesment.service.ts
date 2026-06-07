@@ -462,7 +462,7 @@ const findByMetric = async (filters: ByMetricFilters) => {
   const { frameworkId, frameworkName, metricValue, startDate, endDate, page = 1, limit = 10 } = filters;
   const FrameworkModel = (await import("../models/framework.model")).default;
   
-  // Build query - NO DATE FILTERS (analytics doesn't use them for distribution)
+  // Build query
   const query: any = {
     complianceMetricValue: String(metricValue)
   };
@@ -475,18 +475,41 @@ const findByMetric = async (filters: ByMetricFilters) => {
   } else {
     throw new Error('Either frameworkId or frameworkName is required');
   }
+
+  if (startDate) query.startDate = { $gte: startDate };
+  if (endDate) query.dueDate = { $lte: endDate };
   
   const skip = (page - 1) * limit;
   
-  const [data, total] = await Promise.all([
+  const ControlModel = (await import("../models/control.model")).default;
+
+  const [rawData, total] = await Promise.all([
     AssesmentModel.find(query)
-      .select('assesmentId name description frameworkName framework controlId controlName status complianceMetricValue startDate dueDate createdAt updatedAt')
+      .select('assesmentId name description frameworkName framework control controlId controlName status complianceMetricValue auditorNotes startDate dueDate createdAt updatedAt')
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit)
       .lean(),
     AssesmentModel.countDocuments(query)
   ]);
+
+  // Populate control domain/subdomain fields
+  const controlIds = [...new Set(rawData.map(a => a.control.toString()))];
+  const controls = await ControlModel.find({ _id: { $in: controlIds } })
+    .select('domainCode domainName subdomainCode subdomainName')
+    .lean();
+  const controlMap = new Map(controls.map(c => [c._id.toString(), c]));
+
+  const data = rawData.map(a => {
+    const ctrl = controlMap.get(a.control.toString());
+    return {
+      ...a,
+      domainCode: ctrl?.domainCode || null,
+      domainName: ctrl?.domainName || null,
+      subdomainCode: ctrl?.subdomainCode || null,
+      subdomainName: ctrl?.subdomainName || null,
+    };
+  });
   
   // Get framework details for metricInfo
   let metricInfo: any = null;
