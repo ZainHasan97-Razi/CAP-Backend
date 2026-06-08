@@ -414,17 +414,10 @@ const getAnalytics = async (filters: { startDate?: number; endDate?: number; dom
     frameworkAnalytics.push({
       frameworkId: fwData.frameworkId,
       frameworkName: fwData.frameworkName,
-      totalAssessments: fwData.totalAssessments,
-      completedAssessments: fwData.completedAssessments,
-      totalControls: fwData.totalControls,
-      completedControls: fwData.completedControls,
-      progressPercentage: fwData.totalControls > 0 
-        ? Math.round((fwData.completedControls / fwData.totalControls) * 100) 
-        : 0,
+      totalApplicableControls: fwData.totalAssessments,
       metricType: complianceMetric?.type || null,
       metricLabel: complianceMetric?.label || null,
       distribution: Array.from(metricDistribution.values()),
-      compliantCount: highestMetricCount
     });
   }
   
@@ -547,7 +540,7 @@ const getFrameworkSummaries = async (filters: { startDate?: number; endDate?: nu
       frameworkName,
       metricType,
       metricLabel: complianceMetric?.label || null,
-      totalAssessments: total,
+      totalApplicableControls: total,
       ...summaryData
     });
   }
@@ -681,8 +674,7 @@ const getFrameworkAnalytics = async (frameworkId: string, filters: { startDate?:
         frameworkName: framework.displayName,
         metricType: framework.complianceMetric?.type || null,
         metricLabel: framework.complianceMetric?.label || null,
-        totalAssessments: 0,
-        compliantCount: 0,
+        totalApplicableControls: 0,
         distribution: metricDistribution,
         appliedDomainCode: domainCode,
         availableDomains: uniqueDomains,
@@ -727,8 +719,7 @@ const getFrameworkAnalytics = async (frameworkId: string, filters: { startDate?:
     frameworkName: framework.displayName,
     metricType: complianceMetric?.type || null,
     metricLabel: complianceMetric?.label || null,
-    totalAssessments: assessments.length,
-    compliantCount: highestMetricCount,
+    totalApplicableControls: assessments.length,
     distribution: Array.from(metricDistribution.values()),
     appliedDomainCode: domainCode || null,
     availableDomains: uniqueDomains,

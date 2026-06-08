@@ -46,12 +46,9 @@ GET http://localhost:9000/api/assessments/analytics?startDate=1704067200&endDate
 {
   completedAssessments: number;
   frameworkAnalytics: Array<{
+    frameworkId: string;
     frameworkName: string;
-    totalAssessments: number;
-    completedAssessments: number;
-    totalControls: number;
-    completedControls: number;
-    progressPercentage: number;
+    totalApplicableControls: number;
     metricType: "maturity_level" | "percentage" | null;
     metricLabel: string | null;
     distribution: Array<{
@@ -59,7 +56,6 @@ GET http://localhost:9000/api/assessments/analytics?startDate=1704067200&endDate
       label: string;
       count: number;
     }>;
-    compliantCount: number;
   }>;
 }
 ```
@@ -79,16 +75,12 @@ GET http://localhost:9000/api/assessments/analytics?startDate=1704067200&endDate
 
 | Field | Type | Description |
 |-------|------|-------------|
+| `frameworkId` | string | Framework MongoDB ObjectId |
 | `frameworkName` | string | Name of the framework |
-| `totalAssessments` | number | Total assessments for this framework |
-| `completedAssessments` | number | Assessments with all controls closed |
-| `totalControls` | number | Total controls across all assessments |
-| `completedControls` | number | Total closed controls |
-| `progressPercentage` | number | Overall progress (completedControls / totalControls * 100) |
+| `totalApplicableControls` | number | Total number of applicable controls |
 | `metricType` | string \| null | Type of compliance metric: "maturity_level" or "percentage" |
-| `metricLabel` | string \| null | Display label for the metric (e.g., "Maturity Level", "Compliance Percentage") |
+| `metricLabel` | string \| null | Display label for the metric |
 | `distribution` | array | Distribution of assessments across metric values |
-| `compliantCount` | number | Count of assessments at the highest metric level (compliant) |
 
 ### Distribution Object
 
@@ -115,12 +107,9 @@ GET http://localhost:9000/api/assessments/analytics
   "completedAssessments": 5,
   "frameworkAnalytics": [
     {
+      "frameworkId": "507f1f77bcf86cd799439011",
       "frameworkName": "SAMA CSF",
-      "totalAssessments": 28,
-      "completedAssessments": 3,
-      "totalControls": 150,
-      "completedControls": 120,
-      "progressPercentage": 80,
+      "totalApplicableControls": 28,
       "metricType": "maturity_level",
       "metricLabel": "Maturity Level",
       "distribution": [
@@ -129,16 +118,12 @@ GET http://localhost:9000/api/assessments/analytics
         { "value": "3", "label": "Defined", "count": 8 },
         { "value": "4", "label": "Quantitatively Managed", "count": 3 },
         { "value": "5", "label": "Optimizing", "count": 2 }
-      ],
-      "compliantCount": 2
+      ]
     },
     {
+      "frameworkId": "507f1f77bcf86cd799439022",
       "frameworkName": "NCA Cybersecurity Controls",
-      "totalAssessments": 15,
-      "completedAssessments": 2,
-      "totalControls": 80,
-      "completedControls": 65,
-      "progressPercentage": 81,
+      "totalApplicableControls": 15,
       "metricType": "percentage",
       "metricLabel": "Compliance Percentage",
       "distribution": [
@@ -147,8 +132,7 @@ GET http://localhost:9000/api/assessments/analytics
         { "value": "50", "label": "50%", "count": 5 },
         { "value": "75", "label": "75%", "count": 3 },
         { "value": "100", "label": "100%", "count": 2 }
-      ],
-      "compliantCount": 2
+      ]
     }
   ]
 }
@@ -169,12 +153,9 @@ GET http://localhost:9000/api/assessments/analytics?startDate=1704067200&endDate
   "completedAssessments": 3,
   "frameworkAnalytics": [
     {
+      "frameworkId": "507f1f77bcf86cd799439033",
       "frameworkName": "ISO 27001",
-      "totalAssessments": 12,
-      "completedAssessments": 3,
-      "totalControls": 60,
-      "completedControls": 48,
-      "progressPercentage": 80,
+      "totalApplicableControls": 12,
       "metricType": "maturity_level",
       "metricLabel": "Maturity Level",
       "distribution": [
@@ -183,8 +164,7 @@ GET http://localhost:9000/api/assessments/analytics?startDate=1704067200&endDate
         { "value": "3", "label": "Defined", "count": 3 },
         { "value": "4", "label": "Quantitatively Managed", "count": 2 },
         { "value": "5", "label": "Optimizing", "count": 1 }
-      ],
-      "compliantCount": 1
+      ]
     }
   ]
 }
@@ -215,11 +195,6 @@ GET http://localhost:9000/api/assessments/analytics?startDate=1893456000
 
 **Used by:** SAMA, ISO 27001, etc.
 
-**Characteristics:**
-- Typically 5 levels (1-5)
-- Highest level (e.g., "5 - Optimizing") = Compliant
-- Distribution shows how many assessments are at each maturity level
-
 **Example Distribution:**
 ```json
 {
@@ -231,25 +206,15 @@ GET http://localhost:9000/api/assessments/analytics?startDate=1893456000
     { "value": "3", "label": "Defined", "count": 8 },
     { "value": "4", "label": "Quantitatively Managed", "count": 3 },
     { "value": "5", "label": "Optimizing", "count": 2 }
-  ],
-  "compliantCount": 2
+  ]
 }
 ```
-
-**Interpretation:**
-- 2 assessments reached the highest maturity level (Optimizing) → Compliant
-- 26 assessments are still progressing through lower levels
 
 ---
 
 ### 2. Percentage Type
 
 **Used by:** NCA, Custom percentage-based frameworks
-
-**Characteristics:**
-- Values represent compliance percentage (0%, 25%, 50%, 75%, 100%)
-- Highest percentage (e.g., "100%") = Fully Compliant
-- Distribution shows how many assessments are at each percentage level
 
 **Example Distribution:**
 ```json
@@ -262,14 +227,9 @@ GET http://localhost:9000/api/assessments/analytics?startDate=1893456000
     { "value": "50", "label": "50%", "count": 5 },
     { "value": "75", "label": "75%", "count": 3 },
     { "value": "100", "label": "100%", "count": 2 }
-  ],
-  "compliantCount": 2
+  ]
 }
 ```
-
-**Interpretation:**
-- 2 assessments reached 100% compliance → Fully Compliant
-- 13 assessments are at various stages of compliance (0-75%)
 
 ---
 
@@ -278,52 +238,25 @@ GET http://localhost:9000/api/assessments/analytics?startDate=1893456000
 ### 1. Dashboard Overview
 Display high-level metrics:
 - Total completed assessments
-- Overall progress per framework
+- Distribution per framework
 
 ### 2. Framework-Specific Charts
 
 **For Maturity Level Frameworks:**
 ```javascript
-// Bar chart showing maturity distribution
 const chartData = framework.distribution.map(d => ({
   label: d.label,
   value: d.count
 }));
-
-// Highlight compliant count
-const compliantLabel = framework.distribution[framework.distribution.length - 1].label;
-const compliantCount = framework.compliantCount;
 ```
 
 **For Percentage Frameworks:**
 ```javascript
-// Pie chart showing compliance distribution
 const chartData = framework.distribution.map(d => ({
   label: d.label,
   value: d.count,
-  percentage: (d.count / framework.totalAssessments) * 100
+  percentage: (d.count / framework.totalApplicableControls) * 100
 }));
-```
-
-### 3. Progress Tracking
-```javascript
-// Calculate overall compliance rate
-const complianceRate = (framework.completedControls / framework.totalControls) * 100;
-
-// Show progress bar
-<ProgressBar value={framework.progressPercentage} />
-```
-
-### 4. Compliance Reporting
-```javascript
-// Generate compliance report
-const report = {
-  framework: framework.frameworkName,
-  totalAssessments: framework.totalAssessments,
-  compliantAssessments: framework.compliantCount,
-  complianceRate: (framework.compliantCount / framework.totalAssessments) * 100,
-  metricType: framework.metricType
-};
 ```
 
 ---
@@ -334,12 +267,9 @@ const report = {
 
 ```typescript
 interface FrameworkAnalytics {
+  frameworkId: string;
   frameworkName: string;
-  totalAssessments: number;
-  completedAssessments: number;
-  totalControls: number;
-  completedControls: number;
-  progressPercentage: number;
+  totalApplicableControls: number;
   metricType: "maturity_level" | "percentage" | null;
   metricLabel: string | null;
   distribution: Array<{
@@ -347,29 +277,21 @@ interface FrameworkAnalytics {
     label: string;
     count: number;
   }>;
-  compliantCount: number;
 }
 
 function FrameworkAnalyticsCard({ framework }: { framework: FrameworkAnalytics }) {
   return (
     <div className="analytics-card">
       <h3>{framework.frameworkName}</h3>
-      
       <div className="stats">
-        <div>Total Assessments: {framework.totalAssessments}</div>
-        <div>Progress: {framework.progressPercentage}%</div>
-        <div>Compliant: {framework.compliantCount}</div>
+        <div>Total Applicable Controls: {framework.totalApplicableControls}</div>
       </div>
-      
       <div className="distribution">
         <h4>{framework.metricLabel} Distribution</h4>
         {framework.distribution.map(item => (
           <div key={item.value} className="distribution-item">
             <span>{item.label}</span>
-            <span>{item.count} assessments</span>
-            <ProgressBar 
-              value={(item.count / framework.totalAssessments) * 100} 
-            />
+            <span>{item.count}</span>
           </div>
         ))}
       </div>
@@ -433,32 +355,11 @@ function CompliancePieChart({ framework }: { framework: FrameworkAnalytics }) {
 
 ## Calculation Logic
 
-### 1. Completed Assessments
-An assessment is considered "completed" when **all** its controls have status = "closed".
-
-```
-Assessment Group (assesmentId):
-  - Control 1: closed
-  - Control 2: closed
-  - Control 3: closed
-→ Assessment is COMPLETED
-```
-
-### 2. Progress Percentage
-```
-progressPercentage = (completedControls / totalControls) * 100
-```
-
-### 4. Metric Distribution
+### Metric Distribution
 Counts assessments based on their `complianceMetricValue`:
 - Groups all assessments by framework
 - Counts how many assessments have each metric value
 - Includes all possible values from framework's `complianceMetric.values` (even if count = 0)
-
-### 5. Compliant Count
-Number of assessments at the **highest metric value**:
-- For maturity_level: Last value in values array (e.g., "5")
-- For percentage: Last value in values array (e.g., "100")
 
 ---
 
@@ -565,8 +466,8 @@ Array<{
   frameworkName: string;
   metricType: "percentage";
   metricLabel: string | null;
-  totalAssessments: number;
-  completionPercentage: number;       // (closed / total) * 100, rounded
+  totalApplicableControls: number;
+  completionPercentage: number;
   distribution: Array<{
     status: "open" | "in_progress" | "closed";
     count: number;
@@ -579,9 +480,9 @@ Array<{
   frameworkName: string;
   metricType: "maturity_level";
   metricLabel: string | null;
-  totalAssessments: number;
-  averageScore: number | null;        // numeric average, rounded to 1 decimal. null if no values set
-  dominantValue: string | null;       // most common value label when values are non-numeric
+  totalApplicableControls: number;
+  averageScore: number | null;
+  dominantValue: string | null;
   distribution: Array<{
     value: string;
     label: string;
@@ -600,7 +501,7 @@ Array<{
 | `frameworkName` | string | Name of the framework |
 | `metricType` | string \| null | `maturity_level` or `percentage` |
 | `metricLabel` | string \| null | Display label for the metric |
-| `totalAssessments` | number | Total assessment records for this framework |
+| `totalApplicableControls` | number | Total number of applicable controls |
 
 #### `percentage` type only
 
@@ -670,7 +571,7 @@ GET http://localhost:9000/api/assesment/framework-summaries?startDate=1704067200
     "frameworkName": "SAMA Cybersecurity Framework",
     "metricType": "maturity_level",
     "metricLabel": "Maturity Level",
-    "totalAssessments": 5,
+    "totalApplicableControls": 5,
     "averageScore": 3.0,
     "dominantValue": null,
     "distribution": [
@@ -686,7 +587,7 @@ GET http://localhost:9000/api/assesment/framework-summaries?startDate=1704067200
     "frameworkName": "NCA Cybersecurity Controls",
     "metricType": "percentage",
     "metricLabel": "Compliance Percentage",
-    "totalAssessments": 45,
+    "totalApplicableControls": 45,
     "completionPercentage": 62,
     "distribution": [
       { "status": "open", "count": 8 },
@@ -767,18 +668,17 @@ Returns distribution data for a **single framework**, with an optional `domainCo
   frameworkName: string;
   metricType: "maturity_level" | "percentage" | null;
   metricLabel: string | null;
-  totalAssessments: number;
-  compliantCount: number;           // assessments at the highest metric value
+  totalApplicableControls: number;
   distribution: Array<{
     value: string;
     label: string;
     count: number;
   }>;
-  appliedDomainCode: string | null; // the domainCode filter that was applied, null if none
+  appliedDomainCode: string | null;
   availableDomains: Array<{
     domainCode: string;
     domainName: string;
-  }>;                               // all domains for this framework — use to populate the filter dropdown
+  }>;
 }
 ```
 
@@ -803,8 +703,7 @@ GET /api/assesment/framework-analytics/507f1f77bcf86cd799439011?domainCode=3.1&s
   "frameworkName": "SAMA Cybersecurity Framework",
   "metricType": "maturity_level",
   "metricLabel": "Maturity Level",
-  "totalAssessments": 12,
-  "compliantCount": 2,
+  "totalApplicableControls": 12,
   "distribution": [
     { "value": "1", "label": "Initial", "count": 3 },
     { "value": "2", "label": "Managed", "count": 4 },
@@ -1311,9 +1210,9 @@ curl -X GET "http://localhost:9000/api/assessments/by-metric?frameworkName=NCA%2
 
 ### Key Features:
 - ✅ Overall assessment completion metrics
-- ✅ Per-framework analytics with progress tracking
+- ✅ Per-framework analytics with distribution
 - ✅ Metric-specific distribution (maturity_level & percentage)
-- ✅ Compliant count based on highest metric value
+- ✅ Total applicable controls per framework
 - ✅ Date range filtering
 - ✅ All assessment statuses included
 - ✅ Framework list with average score and hover distribution
