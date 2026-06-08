@@ -4,16 +4,14 @@ import assesmentService from "../services/assesment.service";
 import { ApiError } from "../middleware/validate.request";
 import { CreateAssesmentDto, AssesmentStatusEnumType } from "../models/assesment.model";
 import framewaorkService from "../services/framewaork.service";
-import controlService from "../services/control.service";
-import departmentService from "../services/department.service";
 import { IUser } from "types/req.user.type";
-import emailService from "../services/email.service";
 
 type UpdateRequestDto = {
   attachments?: string[];
   description?: string;
   status?: AssesmentStatusEnumType;
   complianceMetricValue?: string;
+  auditorNotes?: string;
 }
 
 type CreateRequestDto = {
@@ -21,29 +19,26 @@ type CreateRequestDto = {
   name: string;
   description: string;
   framework: string;
-  control: string;
-  departments: string[];
-  participants?: string[];
-  attachments?: string[];
   startDate: number;
   dueDate: number;
+}
+
+type AssignControlsRequestDto = {
+  controls: {
+    controlId: string;
+    departments: string[];
+    participants?: string[];
+  }[];
 }
 
 export const create = async (req: ARequest, res: Response, next: NextFunction) => {
   try {
     const body = req.body as CreateRequestDto;
     const framework = await framewaorkService.findById(body.framework);
-    if(!framework) {
+    if (!framework) {
       throw ApiError.badRequest("Invalid framework id");
     }
-    const control = await controlService.findById(body.control)
-    if(!control) {
-      throw ApiError.badRequest("Invalid control id");
-    }
-    const departments = await departmentService.findByIds(body.departments);
-    if(!departments || departments.length !== body.departments.length) {
-      throw ApiError.badRequest("Invalid department id(s)");
-    }
+
     const payload: CreateAssesmentDto = {
       assesmentId: body.assesmentId,
       name: body.name,
@@ -51,36 +46,51 @@ export const create = async (req: ARequest, res: Response, next: NextFunction) =
       frameworkType: framework.type,
       framework: framework._id,
       frameworkName: framework.displayName,
-      control: control._id,
-      controlId: control.controlCode,
-      controlName: control.controlName,
-      departments: departments.map(d => ({ id: d._id, name: d.displayName })),
-      participants: body.participants || [],
-      attachments: body.attachments || [],
+      control: null as any,
+      controlId: null as any,
+      controlName: null as any,
+      departments: [],
+      participants: [],
+      attachments: [],
       startDate: body.startDate,
       dueDate: body.dueDate,
       createdBy: (req.user as IUser).userName,
-    }
+    };
+
     const assesment = await assesmentService.create(
       payload,
       (req.user as IUser).userName,
       (req.user as IUser).userName
-    )
-    
-    // Send email notifications to participants
-    if (body.participants && body.participants.length > 0) {
-      emailService.sendAssessmentAssignmentEmail(body.participants, {
-        name: body.name,
-        description: body.description,
-        controlName: control.controlName,
-        dueDate: body.dueDate,
-      }).catch(err => console.error('Failed to send assignment emails:', err));
-    }
-    
+    );
+
     res.json({ message: 'Request success', assesment });
   } catch (error) {
     console.error(error);
-    next(error); // pass to global handler
+    next(error);
+  }
+}
+
+export const getAssignedControls = async (req: ARequest, res: Response, next: NextFunction) => {
+  try {
+    const { assesmentId } = req.params;
+    const result = await assesmentService.getAssignedControls(assesmentId);
+    res.json(result);
+  } catch (error) {
+    next(error);
+  }
+}
+
+export const assignControls = async (req: ARequest, res: Response, next: NextFunction) => {
+  try {
+    const { assesmentId } = req.params;
+    const body = req.body as AssignControlsRequestDto;
+    const user = req.user as IUser;
+
+    const result = await assesmentService.assignControls(assesmentId, body.controls, user.userName);
+    res.json(result);
+  } catch (error) {
+    console.error(error);
+    next(error);
   }
 }
 
@@ -88,7 +98,7 @@ export const update = async (req: ARequest, res: Response, next: NextFunction) =
   try {
     const { id } = req.params;
     const body = req.body as UpdateRequestDto;
-    
+
     const assesment = await assesmentService.update(id, body as any);
     if (!assesment) {
       throw ApiError.notFound("Assessment not found");
@@ -113,7 +123,7 @@ export const findById = async (req: ARequest, res: Response, next: NextFunction)
     res.json(assesment);
   } catch (error) {
     console.error(error);
-    next(error); // pass to global handler
+    next(error);
   }
 }
 
@@ -122,7 +132,6 @@ export const dashboardList = async (req: ARequest, res: Response, next: NextFunc
     const filters = {
       status: req.query.status as string,
       frameworkType: req.query.frameworkType as string,
-      department: req.query.department as string,
       search: req.query.search as string,
       dateFrom: req.query.dateFrom ? parseInt(req.query.dateFrom as string) : undefined,
       dateTo: req.query.dateTo ? parseInt(req.query.dateTo as string) : undefined,
@@ -133,7 +142,7 @@ export const dashboardList = async (req: ARequest, res: Response, next: NextFunc
       page: req.query.page ? parseInt(req.query.page as string) : 1,
       limit: req.query.limit ? parseInt(req.query.limit as string) : 10
     };
-    
+
     const result = await assesmentService.dashboardList(filters);
     res.json(result);
   } catch (error) {
@@ -148,7 +157,7 @@ export const getAnalytics = async (req: ARequest, res: Response, next: NextFunct
       startDate: req.query.startDate ? parseInt(req.query.startDate as string) : undefined,
       endDate: req.query.endDate ? parseInt(req.query.endDate as string) : undefined
     };
-    
+
     const analytics = await assesmentService.getAnalytics(filters);
     res.json(analytics);
   } catch (error) {
@@ -182,7 +191,7 @@ export const getByMetric = async (req: ARequest, res: Response, next: NextFuncti
       page: req.query.page ? parseInt(req.query.page as string) : 1,
       limit: req.query.limit ? parseInt(req.query.limit as string) : 10
     };
-    
+
     const result = await assesmentService.findByMetric(filters);
     res.json(result);
   } catch (error) {
@@ -214,7 +223,6 @@ export const triggerAiAnalysis = async (req: ARequest, res: Response, next: Next
     const aiServiceUrl = process.env.AI_SERVICE_URL;
     if (!aiServiceUrl) throw ApiError.internalServer('AI service URL not configured');
 
-    // Fire-and-forget — do not await
     fetch(`${aiServiceUrl}/analyze`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

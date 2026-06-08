@@ -15,7 +15,7 @@ CAP (Compliance Assessment Platform) is a backend system for managing compliance
 |--------|-------------|------|
 | Frameworks | Create and manage compliance frameworks with metric configuration | [→ Framework API](docs/frameworks/FRAMEWORKS_API.md) |
 | Controls | Manage controls within frameworks (hierarchical: Domain → Subdomain → Control) | [→ Controls API](docs/controls/CONTROLS_API.md) |
-| Assessments | Create, track and manage compliance assessments | [→ Assessment API](docs/assessments/ASSESSMENTS_API.md) · [→ Module Guide](docs/assessments/ASSESSMENT_MODULE_GUIDE.md) |
+| Assessments | Create, track and manage compliance assessments | [→ Assessment Module Guide](docs/assessments/ASSESSMENT_MODULE_GUIDE.md) |
 | Analytics | Dashboard analytics, framework summaries, metric distributions | [→ Analytics API](docs/analytics/ANALYTICS_API.md) |
 | AI Integration | AI-powered evidence analysis and grading | [→ AI Integration](docs/ai/AI_INTEGRATION.md) |
 | Roles & Permissions | System roles, permissions, and access control | [→ Roles & Permissions](docs/roles/ROLES_AND_PERMISSIONS.md) |
@@ -50,10 +50,12 @@ CAP (Compliance Assessment Platform) is a backend system for managing compliance
 ### Assessments
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| POST | `/api/assesment/create` | Create an assessment |
-| PUT | `/api/assesment/:id` | Update an assessment |
+| POST | `/api/assesment/create` | Create a draft assessment (no controls required) |
+| GET | `/api/assesment/dashboard` | List assessments — one row per assessment |
+| GET | `/api/assesment/:assesmentId/assigned-controls` | Get already-assigned controls for an assessment |
+| POST | `/api/assesment/:assesmentId/assign-controls` | Assign controls to a drafted assessment |
 | GET | `/api/assesment/:id` | Get assessment details |
-| GET | `/api/assesment/dashboard` | List assessments with filters & pagination |
+| PUT | `/api/assesment/:id` | Update an assessment |
 | PATCH | `/api/assesment/:id/import-evidence` | Import evidence from another assessment |
 
 ### Assessment Comments (Evidence)
@@ -99,7 +101,9 @@ CAP (Compliance Assessment Platform) is a backend system for managing compliance
 
 ## Key Concepts
 
-**Assessment grouping** — Multiple assessment records can share the same `assesmentId` (UUID) to represent a single assessment spanning multiple frameworks (common assessment).
+**Assessment grouping** — Multiple assessment records share the same `assesmentId` (UUID). One draft header record (`control: null`, `status: drafted`) is created first. Control records are added separately via the assign-controls endpoint. A common assessment spanning multiple frameworks has one draft header per framework, all sharing the same UUID.
+
+**Two-step creation flow** — Step 1: create the assessment (name, framework, dates only) → status `drafted`. Step 2: assign controls with departments and participants → per-control records with status `open`. See [Assessment Module Guide](docs/assessments/ASSESSMENT_MODULE_GUIDE.md) for full frontend page guide.
 
 **Compliance Metric** — Every framework defines a `complianceMetric` (either `maturity_level` or `percentage`) that drives how assessment scores are tracked and displayed.
 

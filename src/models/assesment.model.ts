@@ -3,10 +3,10 @@ import { ExtractAndFix } from 'types/inferred.schema.type';
 import { FrameworkTypeEnum, FrameworkTypeEnumType } from './framework.model';
 
 export const AssesmentStatusEnum = {
+  drafted: "drafted",
   open: "open",
   in_progress: "in_progress",
   closed: "closed",
-  discard: "discard",
 } as const
 export type AssesmentStatusEnumType = keyof typeof AssesmentStatusEnum;
 
@@ -18,13 +18,13 @@ export const assesmentSchema = new Schema(
     frameworkType: { type: String, enum: FrameworkTypeEnum, required: true },
     framework: {type: mongoose.Types.ObjectId, required: true, ref: "Framework"},
     frameworkName: {type: String, required: true},
-    control: {type: mongoose.Types.ObjectId, required: true, ref: "Control"},
-    controlId: {type: String, required: true},
-    controlName: {type: String, required: true},
-    departments: {type: [{id: mongoose.Types.ObjectId, name: String}], required: true},
+    control: {type: mongoose.Types.ObjectId, default: null, ref: "Control"},
+    controlId: {type: String, default: null},
+    controlName: {type: String, default: null},
+    departments: {type: [{id: mongoose.Types.ObjectId, name: String}], default: []},
     participants: {type: [String], default: []},
     attachments: {type: [String], default: []},
-    status: { type: String, enum: AssesmentStatusEnum, default: AssesmentStatusEnum.open },
+    status: { type: String, enum: AssesmentStatusEnum, default: AssesmentStatusEnum.drafted },
     complianceMetricValue: {type: String, default: null},
     commonAssessmentId: {type: mongoose.Types.ObjectId, default: null, ref: "Assesment"},
     aiResult: {type: mongoose.Schema.Types.Mixed, default: null},

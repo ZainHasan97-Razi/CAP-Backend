@@ -11,7 +11,6 @@ import commonControlService from "./common-control.service";
 interface DashboardFilters {
   status?: string;
   frameworkType?: string;
-  department?: string;
   search?: string;
   dateFrom?: number;
   dateTo?: number;
@@ -28,23 +27,77 @@ const findById = async (id: string | MongoIdType) => {
 };
 
 const create = async (payload: CreateAssesmentDto, userId: string, userName: string) => {
-  // Get framework to set complianceMetricValue
   const framework = await (await import("../models/framework.model")).default.findById(payload.framework);
-  if (!framework) {
-    throw new Error('Framework not found');
-  }
-  if (!framework.complianceMetric) {
-    throw new Error('Framework compliance metric not configured');
-  }
-  
-  // Set default complianceMetricValue from framework
-  const assessmentData: any = { 
+  if (!framework) throw new Error('Framework not found');
+  if (!framework.complianceMetric) throw new Error('Framework compliance metric not configured');
+
+  const assessmentData: any = {
     ...payload,
+    status: AssesmentStatusEnum.drafted,
     complianceMetricValue: framework.complianceMetric.defaultValue
   };
-  
-  const assessment = await AssesmentModel.create(assessmentData);
-  return assessment;
+
+  return await AssesmentModel.create(assessmentData);
+};
+
+const assignControls = async (
+  assesmentId: string,
+  controls: { controlId: string; departments: string[]; participants?: string[] }[],
+  userName: string
+) => {
+  const draftEntry = await AssesmentModel.findOne({ assesmentId }).sort({ _id: 1 });
+  if (!draftEntry) throw new Error('Assessment not found');
+
+  const departmentService = (await import('./department.service')).default;
+  const controlServiceModule = (await import('./control.service')).default;
+
+  const insertedEntries = [];
+
+  for (const item of controls) {    const control = await controlServiceModule.findById(item.controlId);
+    if (!control) throw new Error(`Control not found: ${item.controlId}`);
+
+    const departments = await departmentService.findByIds(item.departments);
+    if (!departments || departments.length !== item.departments.length) {
+      throw new Error(`Invalid department id(s) for control: ${item.controlId}`);
+    }
+
+    const existing = await AssesmentModel.findOne({ assesmentId, control: control._id });
+    if (existing) continue;
+
+    const entry = await AssesmentModel.create({
+      assesmentId,
+      name: draftEntry.name,
+      description: draftEntry.description,
+      frameworkType: draftEntry.frameworkType,
+      framework: draftEntry.framework,
+      frameworkName: draftEntry.frameworkName,
+      control: control._id,
+      controlId: control.controlCode,
+      controlName: control.controlName,
+      departments: departments.map((d: any) => ({ id: d._id, name: d.displayName })),
+      participants: item.participants || [],
+      attachments: [],
+      status: AssesmentStatusEnum.open,
+      complianceMetricValue: draftEntry.complianceMetricValue,
+      startDate: draftEntry.startDate,
+      dueDate: draftEntry.dueDate,
+      createdBy: draftEntry.createdBy,
+    });
+
+    insertedEntries.push(entry);
+
+    if (item.participants && item.participants.length > 0) {
+      const emailService = (await import('./email.service')).default;
+      emailService.sendAssessmentAssignmentEmail(item.participants, {
+        name: draftEntry.name,
+        description: draftEntry.description,
+        controlName: control.controlName,
+        dueDate: draftEntry.dueDate,
+      }).catch((err: any) => console.error('Failed to send assignment emails:', err));
+    }
+  }
+
+  return { assigned: insertedEntries.length, entries: insertedEntries };
 };
 
 const update = async (id: string | MongoIdType, data: UpdateAssesmentDto) => {
@@ -73,7 +126,6 @@ const dashboardList = async (filters: DashboardFilters = {}) => {
   const {
     status,
     frameworkType,
-    department,
     search,
     dateFrom,
     dateTo,
@@ -85,56 +137,102 @@ const dashboardList = async (filters: DashboardFilters = {}) => {
     limit = 10,
   } = filters;
 
-  const query: any = {};
-
-  if (status) query.status = status;
-  if (frameworkType) query.frameworkType = frameworkType;
-  if (department) query["departments.id"] = department;
-
-  if (search) {
-    query.$or = [
-      { name: { $regex: search, $options: "i" } },
-      { description: { $regex: search, $options: "i" } },
-      { frameworkName: { $regex: search, $options: "i" } },
-      { controlId: { $regex: search, $options: "i" } },
-      { controlName: { $regex: search, $options: "i" } },
-    ];
-  }
-
-  if (dateFrom || dateTo) {
-    query.createdAt = {};
-    if (dateFrom) query.createdAt.$gte = new Date(dateFrom * 1000);
-    if (dateTo) query.createdAt.$lte = new Date(dateTo * 1000);
-  }
-
-  if (startDateFrom || startDateTo) {
-    query.startDate = {};
-    if (startDateFrom) query.startDate.$gte = startDateFrom;
-    if (startDateTo) query.startDate.$lte = startDateTo;
-  }
-
-  if (dueDateFrom || dueDateTo) {
-    query.dueDate = {};
-    if (dueDateFrom) query.dueDate.$gte = dueDateFrom;
-    if (dueDateTo) query.dueDate.$lte = dueDateTo;
-  }
-
   const skip = (page - 1) * limit;
 
-  const [data, total] = await Promise.all([
-    AssesmentModel.find(query).sort({ _id: -1 }).skip(skip).limit(limit).lean(),
-    AssesmentModel.countDocuments(query),
+  // Base match — no status filter here, we derive it after grouping
+  const preMatch: any = {};
+  if (frameworkType) preMatch.frameworkType = frameworkType;
+  if (search) {
+    preMatch.$or = [
+      { name: { $regex: search, $options: 'i' } },
+      { description: { $regex: search, $options: 'i' } },
+      { frameworkName: { $regex: search, $options: 'i' } },
+    ];
+  }
+  if (dateFrom || dateTo) {
+    preMatch.createdAt = {};
+    if (dateFrom) preMatch.createdAt.$gte = new Date(dateFrom * 1000);
+    if (dateTo) preMatch.createdAt.$lte = new Date(dateTo * 1000);
+  }
+  if (startDateFrom || startDateTo) {
+    preMatch.startDate = {};
+    if (startDateFrom) preMatch.startDate.$gte = startDateFrom;
+    if (startDateTo) preMatch.startDate.$lte = startDateTo;
+  }
+  if (dueDateFrom || dueDateTo) {
+    preMatch.dueDate = {};
+    if (dueDateFrom) preMatch.dueDate.$gte = dueDateFrom;
+    if (dueDateTo) preMatch.dueDate.$lte = dueDateTo;
+  }
+
+  const pipeline: any[] = [
+    ...(Object.keys(preMatch).length ? [{ $match: preMatch }] : []),
+    {
+      $group: {
+        _id: '$assesmentId',
+        assessmentDocId: { $first: '$_id' },
+        assesmentId: { $first: '$assesmentId' },
+        name: { $first: '$name' },
+        description: { $first: '$description' },
+        frameworkType: { $first: '$frameworkType' },
+        framework: { $first: '$framework' },
+        frameworkName: { $first: '$frameworkName' },
+        startDate: { $first: '$startDate' },
+        dueDate: { $first: '$dueDate' },
+        createdBy: { $first: '$createdBy' },
+        createdAt: { $first: '$createdAt' },
+        totalRecords: { $sum: 1 },
+        totalControls: { $sum: { $cond: [{ $ne: ['$control', null] }, 1, 0] } },
+        closedCount: { $sum: { $cond: [{ $eq: ['$status', 'closed'] }, 1, 0] } },
+        inProgressCount: { $sum: { $cond: [{ $eq: ['$status', 'in_progress'] }, 1, 0] } },
+      },
+    },
+    {
+      // Derive status from grouped counts
+      $addFields: {
+        derivedStatus: {
+          $switch: {
+            branches: [
+              // No controls assigned yet — single entry, no control records
+              { case: { $eq: ['$totalControls', 0] }, then: 'drafted' },
+              // All controls closed
+              { case: { $eq: ['$closedCount', '$totalControls'] }, then: 'closed' },
+              // Any control in_progress
+              { case: { $gt: ['$inProgressCount', 0] }, then: 'in_progress' },
+            ],
+            default: 'open',
+          },
+        },
+      },
+    },
+    // Apply status filter on derived status
+    ...(status ? [{ $match: { derivedStatus: status } }] : []),
+    { $sort: { createdAt: -1 } },
+  ];
+
+  const countPipeline = [...pipeline, { $count: 'total' }];
+  const dataPipeline = [...pipeline, { $skip: skip }, { $limit: limit }];
+
+  const [dataResult, countResult] = await Promise.all([
+    AssesmentModel.aggregate(dataPipeline),
+    AssesmentModel.aggregate(countPipeline),
   ]);
 
   return {
-    data,
+    data: dataResult.map(({ _id, closedCount, inProgressCount, totalRecords, ...rest }) => rest),
     pagination: {
       page,
       limit,
-      total,
-      pages: Math.ceil(total / limit),
+      total: countResult[0]?.total || 0,
+      pages: Math.ceil((countResult[0]?.total || 0) / limit),
     },
   };
+};
+
+const getAssignedControls = async (assesmentId: string) => {
+  return await AssesmentModel.find({ assesmentId, control: { $ne: null } })
+    .select('_id control controlId controlName departments participants status complianceMetricValue')
+    .lean();
 };
 
 const findRecentByControlId = async (
@@ -552,7 +650,7 @@ const importEvidence = async (targetAssessmentId: string | MongoIdType, sourceAs
   }
 
   // Validate status
-  if (targetAssessment.status === AssesmentStatusEnum.closed || targetAssessment.status === AssesmentStatusEnum.discard) {
+  if (targetAssessment.status === AssesmentStatusEnum.closed) {
     throw new Error("Cannot import evidence: assessment is closed or discarded");
   }
 
@@ -644,6 +742,8 @@ const importEvidence = async (targetAssessmentId: string | MongoIdType, sourceAs
 export default {
   findById,
   create,
+  assignControls,
+  getAssignedControls,
   update,
   dashboardList,
   findRecentByControlId,

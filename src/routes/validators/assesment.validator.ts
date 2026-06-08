@@ -8,26 +8,17 @@ export const createAssesment_validation = validateRequest([
   body("name").trim().not().isEmpty().withMessage("Assessment name is required").isLength({min: 1, max: 255}).withMessage("Assessment name must be between 1-255 characters"),
   body("description").trim().not().isEmpty().withMessage("Assessment description is required"),
   body("framework").trim().isMongoId().withMessage("Framework must be a valid ID"),
-  body("control").trim().isMongoId().withMessage("Control must be a valid ID"),
-  body("departments").isArray({min: 1}).withMessage("At least one department is required"),
-  body("departments.*").isMongoId().withMessage("Each department must be a valid ID"),
   body('participants').optional({ nullable: true, checkFalsy: true })
     .isArray().withMessage('Participants must be an array'),
   body('attachments').optional({ nullable: true, checkFalsy: true })
     .isArray().withMessage('Attachments must be an array'),
   body("startDate").isInt({min:1}).withMessage('Start date must be a valid timestamp').custom((value, { req }) => {
-    if (value <= Math.floor(Date.now() / 1000)) {
-      throw new Error('Start date must be in the future');
-    }
     if (req.body.dueDate && value >= req.body.dueDate) {
       throw new Error('Start date must be before due date');
     }
     return true;
   }),
   body("dueDate").isInt({min:1}).withMessage('Due date must be a valid timestamp').custom((value, { req }) => {
-    if (value <= Math.floor(Date.now() / 1000)) {
-      throw new Error('Due date must be in the future');
-    }
     if (req.body.startDate && value <= req.body.startDate) {
       throw new Error('Due date must be after start date');
     }
@@ -67,7 +58,8 @@ export const updateAssesment_validation = validateRequest([
 
 export const dashboardList_validation = validateRequest([
   query('status').optional().isIn(Object.values(AssesmentStatusEnum)).withMessage('Invalid status value'),
-  query('department').optional().isMongoId().withMessage('Department must be a valid ID'),
+  query('frameworkType').optional().isString(),
+  query('search').optional().isString(),
   query('dateFrom').optional().isInt({min: 1}).withMessage('Date from must be a valid timestamp'),
   query('dateTo').optional().isInt({min: 1}).withMessage('Date to must be a valid timestamp'),
   query('startDateFrom').optional().isInt({min: 1}).withMessage('Start date from must be a valid timestamp'),
@@ -97,6 +89,15 @@ export const byMetric_validation = validateRequest([
     }
     return true;
   })
+]);
+
+export const assignControls_validation = validateRequest([
+  param('assesmentId').not().isEmpty().withMessage('Assessment ID is required'),
+  body('controls').isArray({ min: 1 }).withMessage('Controls must be a non-empty array'),
+  body('controls.*.controlId').trim().isMongoId().withMessage('Each controlId must be a valid ID'),
+  body('controls.*.departments').isArray({ min: 1 }).withMessage('Each control must have at least one department'),
+  body('controls.*.departments.*').isMongoId().withMessage('Each department must be a valid ID'),
+  body('controls.*.participants').optional().isArray().withMessage('Participants must be an array'),
 ]);
 
 export const importEvidence_validation = validateRequest([
