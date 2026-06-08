@@ -155,7 +155,8 @@ export const getAnalytics = async (req: ARequest, res: Response, next: NextFunct
   try {
     const filters = {
       startDate: req.query.startDate ? parseInt(req.query.startDate as string) : undefined,
-      endDate: req.query.endDate ? parseInt(req.query.endDate as string) : undefined
+      endDate: req.query.endDate ? parseInt(req.query.endDate as string) : undefined,
+      domainCode: req.query.domainCode as string | undefined,
     };
 
     const analytics = await assesmentService.getAnalytics(filters);
@@ -170,7 +171,8 @@ export const getFrameworkSummaries = async (req: ARequest, res: Response, next: 
   try {
     const filters = {
       startDate: req.query.startDate ? parseInt(req.query.startDate as string) : undefined,
-      endDate: req.query.endDate ? parseInt(req.query.endDate as string) : undefined
+      endDate: req.query.endDate ? parseInt(req.query.endDate as string) : undefined,
+      domainCode: req.query.domainCode as string | undefined,
     };
     const result = await assesmentService.getFrameworkSummaries(filters);
     res.json(result);
@@ -186,6 +188,7 @@ export const getByMetric = async (req: ARequest, res: Response, next: NextFuncti
       frameworkId: req.query.frameworkId as string,
       frameworkName: req.query.frameworkName as string,
       metricValue: req.query.metricValue as string,
+      domainCode: req.query.domainCode as string | undefined,
       startDate: req.query.startDate ? parseInt(req.query.startDate as string) : undefined,
       endDate: req.query.endDate ? parseInt(req.query.endDate as string) : undefined,
       page: req.query.page ? parseInt(req.query.page as string) : 1,
@@ -193,6 +196,22 @@ export const getByMetric = async (req: ARequest, res: Response, next: NextFuncti
     };
 
     const result = await assesmentService.findByMetric(filters);
+    res.json(result);
+  } catch (error) {
+    console.error(error);
+    next(error);
+  }
+}
+
+export const getFrameworkAnalytics = async (req: ARequest, res: Response, next: NextFunction) => {
+  try {
+    const { frameworkId } = req.params;
+    const filters = {
+      startDate: req.query.startDate ? parseInt(req.query.startDate as string) : undefined,
+      endDate: req.query.endDate ? parseInt(req.query.endDate as string) : undefined,
+      domainCode: req.query.domainCode as string | undefined,
+    };
+    const result = await assesmentService.getFrameworkAnalytics(frameworkId, filters);
     res.json(result);
   } catch (error) {
     console.error(error);

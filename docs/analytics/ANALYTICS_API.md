@@ -13,6 +13,7 @@ The Analytics API provides comprehensive insights into assessment compliance met
 |--------|-----|-------------|
 | GET | `/api/assesment/analytics` | Overall analytics with per-framework distribution |
 | GET | `/api/assesment/framework-summaries` | Framework list with average score and distribution (for hover) |
+| GET | `/api/assesment/framework-analytics/:frameworkId` | Single-framework graph data with optional domain filter |
 | GET | `/api/assesment/by-metric` | Paginated assessment list for a specific metric value |
 
 ---
@@ -536,8 +537,6 @@ curl -X GET "http://localhost:9000/api/assessments/analytics?startDate=170406720
 
 ---
 
----
-
 ## 2. Framework Summaries
 
 **Method:** `GET`  
@@ -737,7 +736,135 @@ curl -X GET "http://localhost:9000/api/assesment/framework-summaries?startDate=1
 
 ---
 
-## 3. Get Assessments by Metric Value
+## 3. Framework Analytics (Per-Graph Domain Filter)
+
+**Method:** `GET`  
+**URL:** `/api/assesment/framework-analytics/:frameworkId`  
+**Authentication:** Required (Protected route)
+
+Returns distribution data for a **single framework**, with an optional `domainCode` filter. Use this when the user selects a domain filter on a specific graph — call this endpoint for that graph only, leaving other graphs untouched.
+
+### When to use this vs `/framework-summaries`
+
+| Scenario | Endpoint |
+|----------|----------|
+| Initial page load — render all framework graphs | `GET /framework-summaries` |
+| User picks a domain filter on one specific graph | `GET /framework-analytics/:frameworkId?domainCode=3.1` |
+
+### Query Parameters
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|--------------|
+| `domainCode` | string | No | Filter assessments to controls under this domain (e.g. `3.1`) |
+| `startDate` | number | No | Filter by assessment start date (Unix timestamp in seconds) |
+| `endDate` | number | No | Filter by assessment due date (Unix timestamp in seconds) |
+
+### Response Structure
+
+```typescript
+{
+  frameworkId: string;
+  frameworkName: string;
+  metricType: "maturity_level" | "percentage" | null;
+  metricLabel: string | null;
+  totalAssessments: number;
+  compliantCount: number;           // assessments at the highest metric value
+  distribution: Array<{
+    value: string;
+    label: string;
+    count: number;
+  }>;
+  appliedDomainCode: string | null; // the domainCode filter that was applied, null if none
+  availableDomains: Array<{
+    domainCode: string;
+    domainName: string;
+  }>;                               // all domains for this framework — use to populate the filter dropdown
+}
+```
+
+### Example Requests
+
+```http
+// No filter — full framework data (same as framework-summaries for this framework)
+GET /api/assesment/framework-analytics/507f1f77bcf86cd799439011
+
+// Filtered by domain
+GET /api/assesment/framework-analytics/507f1f77bcf86cd799439011?domainCode=3.1
+
+// With date range
+GET /api/assesment/framework-analytics/507f1f77bcf86cd799439011?domainCode=3.1&startDate=1704067200&endDate=1735689599
+```
+
+### Example Response
+
+```json
+{
+  "frameworkId": "507f1f77bcf86cd799439011",
+  "frameworkName": "SAMA Cybersecurity Framework",
+  "metricType": "maturity_level",
+  "metricLabel": "Maturity Level",
+  "totalAssessments": 12,
+  "compliantCount": 2,
+  "distribution": [
+    { "value": "1", "label": "Initial", "count": 3 },
+    { "value": "2", "label": "Managed", "count": 4 },
+    { "value": "3", "label": "Defined", "count": 2 },
+    { "value": "4", "label": "Quantitatively Managed", "count": 1 },
+    { "value": "5", "label": "Optimizing", "count": 2 }
+  ],
+  "appliedDomainCode": "3.1",
+  "availableDomains": [
+    { "domainCode": "3.1", "domainName": "Cyber Security Leadership and Governance" },
+    { "domainCode": "3.2", "domainName": "Cyber Security Risk Management" },
+    { "domainCode": "3.3", "domainName": "Cyber Security Operations" }
+  ]
+}
+```
+
+### Frontend Implementation
+
+**Flow:**
+```
+Page load:
+  GET /framework-summaries  →  render all framework graphs
+
+User selects domain "3.1" on SAMA graph:
+  GET /framework-analytics/:samaId?domainCode=3.1  →  update only SAMA graph
+
+User selects domain "2.0" on NCA graph:
+  GET /framework-analytics/:ncaId?domainCode=2.0   →  update only NCA graph
+
+User clears domain filter on SAMA graph:
+  GET /framework-analytics/:samaId  →  back to full data for that graph
+```
+
+**Domain dropdown:** The `availableDomains` array in the response is always the full list of domains for that framework (unaffected by the filter). Use it to populate the domain filter dropdown on each graph.
+
+**Important:** When a `domainCode` filter is active on a graph, pass the same `domainCode` to `/api/assesment/by-metric` when the user clicks a bar to open the popup list — so the popup shows only assessments from that domain.
+
+```
+User clicks bar on SAMA graph (domainCode=3.1 active):
+  GET /api/assesment/by-metric?frameworkId=<id>&metricValue=3&domainCode=3.1
+                                                               ↑ same domain filter
+```
+
+```typescript
+const [graphData, setGraphData] = useState(initialSummaryData); // from /framework-summaries
+const [selectedDomain, setSelectedDomain] = useState<string | null>(null);
+
+const handleDomainChange = async (domainCode: string | null) => {
+  setSelectedDomain(domainCode);
+  const url = domainCode
+    ? `/api/assesment/framework-analytics/${frameworkId}?domainCode=${domainCode}`
+    : `/api/assesment/framework-analytics/${frameworkId}`;
+  const result = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+  setGraphData(await result.json());
+};
+```
+
+---
+
+## 4. Get Assessments by Metric Value
 
 ### Overview
 This endpoint returns a paginated list of assessments for a specific framework and metric value. Use this when users click on a distribution stat in the analytics dashboard to see the detailed list of assessments.
@@ -755,6 +882,7 @@ This endpoint returns a paginated list of assessments for a specific framework a
 | `metricValue` | string | Yes | The metric value to filter by (e.g., "3", "75", "100") |
 | `frameworkId` | string | Conditional | MongoDB ObjectId of the framework (required if frameworkName not provided) |
 | `frameworkName` | string | Conditional | Name of the framework (required if frameworkId not provided) |
+| `domainCode` | string | No | Filter results to controls under this domain (e.g. `3.1`) |
 | `startDate` | number | No | Filter by assessment start date (Unix timestamp in seconds) |
 | `endDate` | number | No | Filter by assessment due date (Unix timestamp in seconds) |
 | `page` | number | No | Page number (default: 1) |
@@ -768,17 +896,22 @@ This endpoint returns a paginated list of assessments for a specific framework a
 
 #### Example 1: Get SAMA Assessments at Maturity Level 3
 ```http
-GET http://localhost:9000/api/assessments/by-metric?frameworkId=507f1f77bcf86cd799439011&metricValue=3
+GET /api/assesment/by-metric?frameworkId=507f1f77bcf86cd799439011&metricValue=3
 ```
 
 #### Example 2: Get NCA Assessments at 75% Compliance
 ```http
-GET http://localhost:9000/api/assessments/by-metric?frameworkName=NCA%20Cybersecurity%20Controls&metricValue=75
+GET /api/assesment/by-metric?frameworkName=NCA%20Cybersecurity%20Controls&metricValue=75
 ```
 
-#### Example 3: With Pagination and Date Filters
+#### Example 3: Filtered by Domain Code
 ```http
-GET http://localhost:9000/api/assessments/by-metric?frameworkId=507f1f77bcf86cd799439011&metricValue=5&startDate=1704067200&endDate=1735689599&page=1&limit=20
+GET /api/assesment/by-metric?frameworkId=507f1f77bcf86cd799439011&metricValue=3&domainCode=3.1
+```
+
+#### Example 4: With Pagination and Date Filters
+```http
+GET /api/assesment/by-metric?frameworkId=507f1f77bcf86cd799439011&metricValue=5&startDate=1704067200&endDate=1735689599&page=1&limit=20
 ```
 
 ---
@@ -1184,6 +1317,8 @@ curl -X GET "http://localhost:9000/api/assessments/by-metric?frameworkName=NCA%2
 - ✅ Date range filtering
 - ✅ All assessment statuses included
 - ✅ Framework list with average score and hover distribution
+- ✅ Per-graph domain filtering via `/framework-analytics/:frameworkId`
+- ✅ Available domains list returned for dropdown population
 - ✅ Drill-down to assessment list by metric value
 
 ### Metric Types Supported:

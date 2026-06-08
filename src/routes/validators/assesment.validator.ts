@@ -72,13 +72,22 @@ export const dashboardList_validation = validateRequest([
 
 export const analytics_validation = validateRequest([
   query('startDate').optional().isInt({min: 1}).withMessage('Start date must be a valid timestamp'),
-  query('endDate').optional().isInt({min: 1}).withMessage('End date must be a valid timestamp')
+  query('endDate').optional().isInt({min: 1}).withMessage('End date must be a valid timestamp'),
+  query('domainCode').optional().isString().withMessage('Domain code must be a string'),
+]);
+
+export const frameworkAnalytics_validation = validateRequest([
+  param('frameworkId').isMongoId().withMessage('Framework ID must be a valid MongoDB ObjectId'),
+  query('startDate').optional().isInt({min: 1}).withMessage('Start date must be a valid timestamp'),
+  query('endDate').optional().isInt({min: 1}).withMessage('End date must be a valid timestamp'),
+  query('domainCode').optional().isString().withMessage('Domain code must be a string'),
 ]);
 
 export const byMetric_validation = validateRequest([
   query('metricValue').notEmpty().withMessage('Metric value is required'),
   query('frameworkId').optional().isMongoId().withMessage('Framework ID must be a valid MongoDB ObjectId'),
   query('frameworkName').optional().isString().withMessage('Framework name must be a string'),
+  query('domainCode').optional().isString().withMessage('Domain code must be a string'),
   query('startDate').optional().isInt({min: 1}).withMessage('Start date must be a valid timestamp'),
   query('endDate').optional().isInt({min: 1}).withMessage('End date must be a valid timestamp'),
   query('page').optional().isInt({min: 1}).withMessage('Page must be a positive integer'),

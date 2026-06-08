@@ -284,17 +284,19 @@ const findRecentByMultipleControlIds = async (
     .lean();
 };
 
-const getAnalytics = async (filters: { startDate?: number; endDate?: number } = {}) => {
-  const { startDate, endDate } = filters;
+const getAnalytics = async (filters: { startDate?: number; endDate?: number; domainCode?: string } = {}) => {
+  const { startDate, endDate, domainCode } = filters;
   const FrameworkModel = (await import("../models/framework.model")).default;
   
   const matchStage: any = {};
   
-  if (startDate) {
-    matchStage.startDate = { $gte: startDate };
-  }
-  if (endDate) {
-    matchStage.dueDate = { $lte: endDate };
+  if (startDate) matchStage.startDate = { $gte: startDate };
+  if (endDate) matchStage.dueDate = { $lte: endDate };
+
+  if (domainCode) {
+    const ControlModel = (await import("../models/control.model")).default;
+    const controls = await ControlModel.find({ domainCode }).select('_id').lean();
+    matchStage.control = { $in: controls.map(c => c._id) };
   }
   
   // Get all assessments with filters
@@ -410,6 +412,7 @@ const getAnalytics = async (filters: { startDate?: number; endDate?: number } = 
     }
     
     frameworkAnalytics.push({
+      frameworkId: fwData.frameworkId,
       frameworkName: fwData.frameworkName,
       totalAssessments: fwData.totalAssessments,
       completedAssessments: fwData.completedAssessments,
@@ -431,13 +434,19 @@ const getAnalytics = async (filters: { startDate?: number; endDate?: number } = 
   };
 };
 
-const getFrameworkSummaries = async (filters: { startDate?: number; endDate?: number } = {}) => {
-  const { startDate, endDate } = filters;
+const getFrameworkSummaries = async (filters: { startDate?: number; endDate?: number; domainCode?: string } = {}) => {
+  const { startDate, endDate, domainCode } = filters;
   const FrameworkModel = (await import("../models/framework.model")).default;
 
   const matchStage: any = {};
   if (startDate) matchStage.startDate = { $gte: startDate };
   if (endDate) matchStage.dueDate = { $lte: endDate };
+
+  if (domainCode) {
+    const ControlModel = (await import("../models/control.model")).default;
+    const controls = await ControlModel.find({ domainCode }).select('_id').lean();
+    matchStage.control = { $in: controls.map(c => c._id) };
+  }
 
   const assessments = await AssesmentModel.find(matchStage).lean();
 
@@ -552,20 +561,20 @@ interface ByMetricFilters {
   metricValue: string;
   startDate?: number;
   endDate?: number;
+  domainCode?: string;
   page?: number;
   limit?: number;
 }
 
 const findByMetric = async (filters: ByMetricFilters) => {
-  const { frameworkId, frameworkName, metricValue, startDate, endDate, page = 1, limit = 10 } = filters;
+  const { frameworkId, frameworkName, metricValue, startDate, endDate, domainCode, page = 1, limit = 10 } = filters;
   const FrameworkModel = (await import("../models/framework.model")).default;
+  const ControlModel = (await import("../models/control.model")).default;
   
-  // Build query
   const query: any = {
     complianceMetricValue: String(metricValue)
   };
   
-  // Filter by framework
   if (frameworkId) {
     query.framework = frameworkId;
   } else if (frameworkName) {
@@ -576,10 +585,17 @@ const findByMetric = async (filters: ByMetricFilters) => {
 
   if (startDate) query.startDate = { $gte: startDate };
   if (endDate) query.dueDate = { $lte: endDate };
-  
+
+  if (domainCode) {
+    const mongoose = (await import('mongoose')).default;
+    const fwObjectId = frameworkId ? new mongoose.Types.ObjectId(frameworkId) : null;
+    const controlQuery: any = { domainCode };
+    if (fwObjectId) controlQuery.frameworkId = fwObjectId;
+    const domainControls = await ControlModel.find(controlQuery).select('_id').lean();
+    query.control = { $in: domainControls.map(c => c._id) };
+  }
+
   const skip = (page - 1) * limit;
-  
-  const ControlModel = (await import("../models/control.model")).default;
 
   const [rawData, total] = await Promise.all([
     AssesmentModel.find(query)
@@ -635,6 +651,87 @@ const findByMetric = async (filters: ByMetricFilters) => {
       pages: Math.ceil(total / limit)
     },
     metricInfo
+  };
+};
+
+const getFrameworkAnalytics = async (frameworkId: string, filters: { startDate?: number; endDate?: number; domainCode?: string } = {}) => {
+  const { startDate, endDate, domainCode } = filters;
+  const FrameworkModel = (await import("../models/framework.model")).default;
+  const ControlModel = (await import("../models/control.model")).default;
+
+  const mongoose = (await import('mongoose')).default;
+  const frameworkObjectId = new mongoose.Types.ObjectId(frameworkId);
+
+  const framework = await FrameworkModel.findById(frameworkObjectId).lean();
+  if (!framework) throw new Error('Framework not found');
+
+  const matchStage: any = { framework: frameworkObjectId };
+  if (startDate) matchStage.startDate = { $gte: startDate };
+  if (endDate) matchStage.dueDate = { $lte: endDate };
+
+  if (domainCode) {
+    const controls = await ControlModel.find({ frameworkId: frameworkObjectId, domainCode }).select('_id').lean();
+    if (controls.length === 0) {
+      // No controls found for this domain — return empty distribution
+      const metricDistribution = framework.complianceMetric?.values?.map((v: any) => ({ value: v.value, label: v.label, count: 0 })) || [];
+      const domainDocs = await ControlModel.find({ frameworkId: frameworkObjectId }).select('domainCode domainName').lean();
+      const uniqueDomains = Array.from(new Map(domainDocs.map(d => [d.domainCode, { domainCode: d.domainCode, domainName: d.domainName }])).values());
+      return {
+        frameworkId,
+        frameworkName: framework.displayName,
+        metricType: framework.complianceMetric?.type || null,
+        metricLabel: framework.complianceMetric?.label || null,
+        totalAssessments: 0,
+        compliantCount: 0,
+        distribution: metricDistribution,
+        appliedDomainCode: domainCode,
+        availableDomains: uniqueDomains,
+      };
+    }
+    matchStage.control = { $in: controls.map(c => c._id) };
+  }
+
+  const assessments = await AssesmentModel.find(matchStage).lean();
+  const complianceMetric = framework.complianceMetric;
+
+  const metricDistribution = new Map();
+  if (complianceMetric?.values) {
+    complianceMetric.values.forEach((v: any) => {
+      metricDistribution.set(v.value, { value: v.value, label: v.label, count: 0 });
+    });
+  }
+
+  assessments.forEach(a => {
+    if (a.complianceMetricValue) {
+      const current = metricDistribution.get(String(a.complianceMetricValue));
+      if (current) current.count++;
+    }
+  });
+
+  let highestMetricCount = 0;
+  if (complianceMetric?.values?.length) {
+    const lastValue = complianceMetric.values[complianceMetric.values.length - 1];
+    highestMetricCount = metricDistribution.get(lastValue.value)?.count || 0;
+  }
+
+  // Get distinct domain codes for this framework (for the filter dropdown)
+  const domainDocs = await ControlModel.find({ frameworkId: frameworkObjectId })
+    .select('domainCode domainName')
+    .lean();
+  const uniqueDomains = Array.from(
+    new Map(domainDocs.map(d => [d.domainCode, { domainCode: d.domainCode, domainName: d.domainName }])).values()
+  );
+
+  return {
+    frameworkId,
+    frameworkName: framework.displayName,
+    metricType: complianceMetric?.type || null,
+    metricLabel: complianceMetric?.label || null,
+    totalAssessments: assessments.length,
+    compliantCount: highestMetricCount,
+    distribution: Array.from(metricDistribution.values()),
+    appliedDomainCode: domainCode || null,
+    availableDomains: uniqueDomains,
   };
 };
 
@@ -750,6 +847,7 @@ export default {
   findRecentByMultipleControlIds,
   getAnalytics,
   getFrameworkSummaries,
+  getFrameworkAnalytics,
   findByMetric,
   importEvidence,
 };
