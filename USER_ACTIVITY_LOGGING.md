@@ -69,6 +69,8 @@ Returns a paginated list of activity logs for the dashboard.
 
 **Query Parameters**
 
+**Filters:**
+
 | Parameter | Type | Description |
 |---|---|---|
 | `userId` | string | Filter by a specific user's `_id` |
@@ -78,13 +80,33 @@ Returns a paginated list of activity logs for the dashboard.
 | `action` | string | Filter by action label (partial match, case-insensitive) |
 | `method` | string | Filter by HTTP method (`GET`, `POST`, `PATCH`, `DELETE`) |
 | `statusCode` | number | Filter by HTTP status code (e.g. `200`, `400`, `500`) |
-| `pageNum` | number | Page number (default: `1`) |
-| `limit` | number | Records per page (default: `20`) |
 
-**Example Request**
+**Pagination:**
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `pageNum` | number | `1` | Page number to retrieve |
+| `limit` | number | `20` | Number of records per page (controls items per page) |
+
+> **Note:** `page` (the filter) and `pageNum` (the pagination cursor) are two different parameters. `page` filters by page name (e.g. `"Assessment List"`), while `pageNum` controls which page of results to return.
+
+**Pagination Examples**
+
 ```
+# First page, 20 records per page (defaults)
+GET /api/activity/list
+
+# Second page
+GET /api/activity/list?pageNum=2
+
+# Change items per page to 50
+GET /api/activity/list?pageNum=1&limit=50
+
+# Third page with 10 items per page
+GET /api/activity/list?pageNum=3&limit=10
+
+# Combined with filters
 GET /api/activity/list?startDate=2025-01-01&endDate=2025-01-31&method=POST&pageNum=1&limit=20
-Authorization: Bearer <token>
 ```
 
 **Example Response**
@@ -119,6 +141,15 @@ Authorization: Bearer <token>
   "totalPages": 8
 }
 ```
+
+**Pagination Response Fields**
+
+| Field | Type | Description |
+|---|---|---|
+| `total` | number | Total number of records matching the filters |
+| `page` | number | Current page number |
+| `limit` | number | Number of records returned per page |
+| `totalPages` | number | Total number of pages (`Math.ceil(total / limit)`) |
 
 ---
 
@@ -294,6 +325,38 @@ downloadActivityReport({
 
 ---
 
+### 6. Pagination — Activity Dashboard Table
+
+Use `pageNum` to navigate pages and `limit` to control how many rows the table shows. Both map directly to the "items per page" selector and page navigator in the UI.
+
+```ts
+const fetchActivityLogs = async (filters = {}, pageNum = 1, limit = 20) => {
+  const params = new URLSearchParams({
+    ...filters,
+    pageNum: String(pageNum),
+    limit:   String(limit),
+  });
+  const res = await api.get(`/activity/list?${params}`);
+  return res.data;
+  // returns: { data, total, page, limit, totalPages }
+};
+
+// Changing items per page — always reset to page 1
+const handleItemsPerPageChange = (newLimit: number) => {
+  setLimit(newLimit);
+  setCurrentPage(1);
+  fetchActivityLogs(activeFilters, 1, newLimit);
+};
+
+// Navigating to a specific page
+const handlePageChange = (newPage: number) => {
+  setCurrentPage(newPage);
+  fetchActivityLogs(activeFilters, newPage, limit);
+};
+```
+
+---
+
 ## Frontend Checklist
 
 - [ ] Axios instance configured with `X-Page-Name` and `X-Action` interceptor
@@ -303,6 +366,9 @@ downloadActivityReport({
 - [ ] Activity dashboard page restricted to `super_admin` role only
 - [ ] Date range pickers send `startDate` / `endDate` as ISO strings
 - [ ] Export button triggers CSV download via `responseType: 'blob'`
+- [ ] Pagination uses `pageNum` (page cursor) and `limit` (items per page)
+- [ ] Changing items per page resets `pageNum` to `1`
+- [ ] Table footer shows `total` record count and `totalPages` for page navigator
 
 ---
 
