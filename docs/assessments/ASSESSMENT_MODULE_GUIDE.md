@@ -179,7 +179,58 @@ Compare both lists using `control` ObjectId to determine state of each control:
 - Department dropdown (required when checked) — populate from `GET /api/department/list`
 - Participants multi-select (optional) — populate from `GET /api/user/by-departments?departmentIds=id1,id2` after department is selected
 
-**Step 3 — Save:**
+### Page 3 — Control Assignment Page (NEW PAGE)
+
+Opens when user clicks an assessment row in the dashboard.
+
+**URL pattern:** `/assessments/:assesmentId/assign-controls`
+
+**Step 1 — Fetch data (two parallel calls):**
+
+```
+GET /api/control/list/:frameworkId
+→ All controls for the framework (full list)
+
+GET /api/assesment/:assesmentId/assigned-controls
+→ Controls already assigned to this assessment
+```
+
+**Assigned controls response:**
+```json
+[
+  {
+    "_id": "<assessmentRecordMongoId>",
+    "control": "<controlObjectId>",
+    "controlId": "3.1.1",
+    "controlName": "Access Control Policy",
+    "departments": [{ "id": "...", "name": "IT Department" }],
+    "participants": ["user@example.com"],
+    "status": "open"
+  }
+]
+```
+
+**Step 2 — Render the control list:**
+
+Compare both lists using `control` ObjectId to determine state of each control:
+
+| State | How to show |
+|-------|-------------|
+| Already assigned | Checked checkbox, dept/participants pre-filled, **editable** (can update dept/participants) |
+| Not yet assigned | Unchecked checkbox, dept/participants empty, **editable** |
+| Already assigned + status `closed` | Checked checkbox, dept/participants shown, **read-only** (cannot modify a closed control) |
+
+**Each unassigned control row has:**
+- Checkbox to select
+- Department dropdown (required when checked) — populate from `GET /api/department/list`
+- Participants multi-select (optional) — populate from `GET /api/user/by-departments?departmentIds=id1,id2` after department is selected
+
+**Each already-assigned control row has:**
+- Checkbox checked and disabled (cannot unassign)
+- Department and participants **editable inline** (unless status is `closed`)
+- An **Edit** icon or inline save to trigger `PATCH /api/assesment/assigned-controls/:assessmentRecordId`
+
+**Step 3 — Save new assignments:**
 
 `POST /api/assesment/:assesmentId/assign-controls`
 
@@ -196,6 +247,46 @@ Only send the **newly selected** controls (not already-assigned ones):
   ]
 }
 ```
+
+**Step 4 — Update an already-assigned control:**
+
+`PATCH /api/assesment/assigned-controls/:assessmentRecordId`
+
+Use the `_id` from the assigned controls list as `:assessmentRecordId`. Send only the fields you want to change — both are optional:
+
+```json
+{
+  "departments": ["<deptObjectId>", "<anotherDeptObjectId>"],
+  "participants": ["user@example.com", "newperson@example.com"]
+}
+```
+
+**Response:** Updated assigned control record.
+```json
+{
+  "_id": "<assessmentRecordMongoId>",
+  "control": "<controlObjectId>",
+  "controlId": "3.1.1",
+  "controlName": "Access Control Policy",
+  "departments": [
+    { "id": "...", "name": "IT Department" },
+    { "id": "...", "name": "Risk & Compliance" }
+  ],
+  "participants": ["user@example.com", "newperson@example.com"],
+  "status": "open",
+  "complianceMetricValue": "1"
+}
+```
+
+**Error Responses:**
+```json
+{ "error": "Assessment control record not found" }         // 400
+{ "error": "Cannot update a draft record" }               // 400
+{ "error": "Cannot update a closed assessment control" }  // 400
+{ "error": "Invalid department id(s)" }                   // 400
+```
+
+> Email notifications are sent **only to newly added participants** — people already in the list do not receive a duplicate email.
 
 **After save:**
 - Each assigned control gets a new record with `status: "open"` and `complianceMetricValue` pre-set to the framework's default value
@@ -290,6 +381,7 @@ One `assesmentId` UUID groups multiple DB records:
 | GET | `/api/assesment/dashboard` | List assessments grouped by `assesmentId` |
 | GET | `/api/assesment/:assesmentId/assigned-controls` | Get already-assigned controls for an assessment |
 | POST | `/api/assesment/:assesmentId/assign-controls` | Assign controls to an assessment |
+| PATCH | `/api/assesment/assigned-controls/:assessmentRecordId` | Update departments or participants on an assigned control |
 | GET | `/api/assesment/:id` | Get a specific assessment record by MongoDB `_id` |
 | PUT | `/api/assesment/:id` | Update an assessment record |
 | PATCH | `/api/assesment/:id/import-evidence` | Import evidence from another assessment |

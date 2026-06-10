@@ -827,10 +827,54 @@ const importEvidence = async (targetAssessmentId: string | MongoIdType, sourceAs
   };
 };
 
+const updateAssignedControl = async (
+  assessmentRecordId: string,
+  data: { departments?: string[]; participants?: string[] }
+) => {
+  const departmentService = (await import('./department.service')).default;
+
+  const record = await AssesmentModel.findById(assessmentRecordId);
+  if (!record) throw new Error('Assessment control record not found');
+  if (!record.control) throw new Error('Cannot update a draft record');
+  if (record.status === AssesmentStatusEnum.closed) throw new Error('Cannot update a closed assessment control');
+
+  const updateData: any = {};
+
+  if (data.departments !== undefined) {
+    const departments = await departmentService.findByIds(data.departments);
+    if (departments.length !== data.departments.length) throw new Error('Invalid department id(s)');
+    updateData.departments = departments.map((d: any) => ({ id: d._id, name: d.displayName }));
+  }
+
+  if (data.participants !== undefined) {
+    updateData.participants = data.participants;
+  }
+
+  const updated = await AssesmentModel.findByIdAndUpdate(assessmentRecordId, updateData, { new: true })
+    .select('_id control controlId controlName departments participants status complianceMetricValue');
+
+  // Send email to any newly added participants
+  if (data.participants && data.participants.length > 0) {
+    const newParticipants = data.participants.filter(p => !record.participants.includes(p));
+    if (newParticipants.length > 0) {
+      const emailService = (await import('./email.service')).default;
+      emailService.sendAssessmentAssignmentEmail(newParticipants, {
+        name: record.name,
+        description: record.description,
+        controlName: record.controlName ?? '',
+        dueDate: record.dueDate,
+      }).catch((err: any) => console.error('Failed to send assignment emails:', err));
+    }
+  }
+
+  return updated;
+};
+
 export default {
   findById,
   create,
   assignControls,
+  updateAssignedControl,
   getAssignedControls,
   update,
   dashboardList,

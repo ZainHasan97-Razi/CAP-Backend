@@ -80,6 +80,19 @@ export const getAssignedControls = async (req: ARequest, res: Response, next: Ne
   }
 }
 
+export const updateAssignedControl = async (req: ARequest, res: Response, next: NextFunction) => {
+  try {
+    const { assessmentRecordId } = req.params;
+    const { departments, participants } = req.body;
+
+    const updated = await assesmentService.updateAssignedControl(assessmentRecordId, { departments, participants });
+    res.json(updated);
+  } catch (error) {
+    console.error(error);
+    next(error);
+  }
+}
+
 export const assignControls = async (req: ARequest, res: Response, next: NextFunction) => {
   try {
     const { assesmentId } = req.params;
