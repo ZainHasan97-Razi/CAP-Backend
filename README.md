@@ -53,6 +53,7 @@ CAP (Compliance Assessment Platform) is a backend system for managing compliance
 |--------|----------|-------------|
 | POST | `/api/assesment/create` | Create a draft assessment (no controls required) |
 | GET | `/api/assesment/dashboard` | List assessments — one row per assessment |
+| GET | `/api/assesment/my-controls` | List controls assigned to the logged-in user (My Tasks) |
 | GET | `/api/assesment/:assesmentId/assigned-controls` | Get already-assigned controls for an assessment |
 | POST | `/api/assesment/:assesmentId/assign-controls` | Assign controls to a drafted assessment |
 | PATCH | `/api/assesment/assigned-controls/:assessmentRecordId` | Update departments or participants on an assigned control |

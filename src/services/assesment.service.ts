@@ -870,12 +870,45 @@ const updateAssignedControl = async (
   return updated;
 };
 
+const getMyControls = async (email: string, filters: { status?: string; page?: number; limit?: number } = {}) => {
+  const { status, page = 1, limit = 10 } = filters;
+  const skip = (page - 1) * limit;
+
+  const query: any = {
+    participants: email,
+    control: { $ne: null },
+  };
+
+  if (status) {
+    query.status = status;
+  } else {
+    // default: exclude closed so the list stays actionable
+    query.status = { $ne: AssesmentStatusEnum.closed };
+  }
+
+  const [data, total] = await Promise.all([
+    AssesmentModel.find(query)
+      .select('_id assesmentId name frameworkName controlId controlName departments status dueDate startDate aiResult')
+      .sort({ dueDate: 1 }) // soonest due first
+      .skip(skip)
+      .limit(limit)
+      .lean(),
+    AssesmentModel.countDocuments(query),
+  ]);
+
+  return {
+    data,
+    pagination: { page, limit, total, pages: Math.ceil(total / limit) },
+  };
+};
+
 export default {
   findById,
   create,
   assignControls,
   updateAssignedControl,
   getAssignedControls,
+  getMyControls,
   update,
   dashboardList,
   findRecentByControlId,

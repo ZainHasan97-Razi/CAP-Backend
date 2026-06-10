@@ -80,6 +80,23 @@ export const getAssignedControls = async (req: ARequest, res: Response, next: Ne
   }
 }
 
+export const getMyControls = async (req: ARequest, res: Response, next: NextFunction) => {
+  try {
+    const user = req.user as IUser;
+    const filters = {
+      status: req.query.status as string | undefined,
+      page:   req.query.page  ? parseInt(req.query.page  as string) : 1,
+      limit:  req.query.limit ? parseInt(req.query.limit as string) : 10,
+    };
+
+    const result = await assesmentService.getMyControls(user.email, filters);
+    res.json(result);
+  } catch (error) {
+    console.error(error);
+    next(error);
+  }
+}
+
 export const updateAssignedControl = async (req: ARequest, res: Response, next: NextFunction) => {
   try {
     const { assessmentRecordId } = req.params;

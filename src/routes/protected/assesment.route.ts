@@ -1,8 +1,8 @@
 import { Router } from 'express';
-import { create, getAssignedControls, assignControls, updateAssignedControl, dashboardList, findById, update, getAnalytics, getFrameworkSummaries, getFrameworkAnalytics, getByMetric, importEvidence, triggerAiAnalysis } from '../../controllers/assesment.controller';
+import { create, getAssignedControls, assignControls, updateAssignedControl, getMyControls, dashboardList, findById, update, getAnalytics, getFrameworkSummaries, getFrameworkAnalytics, getByMetric, importEvidence, triggerAiAnalysis } from '../../controllers/assesment.controller';
 import { createAssesment_validation, assignControls_validation, dashboardList_validation, findById_validation, updateAssesment_validation, analytics_validation, frameworkAnalytics_validation, byMetric_validation, importEvidence_validation } from '../validators/assesment.validator';
 import { blockRoles } from '../../middleware/protect';
-import { body } from 'express-validator';
+import { body, query } from 'express-validator';
 import { validateRequest } from '../../middleware/validate.request';
 
 const router = Router();
@@ -20,6 +20,15 @@ router.patch(
     body('participants.*').optional().isEmail().withMessage('Each participant must be a valid email'),
   ]),
   updateAssignedControl
+);
+router.get(
+  '/my-controls',
+  validateRequest([
+    query('status').optional().isIn(['open', 'in_progress', 'closed']).withMessage('Invalid status'),
+    query('page').optional().isInt({ min: 1 }).withMessage('page must be a positive integer'),
+    query('limit').optional().isInt({ min: 1, max: 100 }).withMessage('limit must be between 1-100'),
+  ]),
+  getMyControls
 );
 router.put('/:id', blockRoles('super_admin'), updateAssesment_validation, update);
 router.patch('/:id/import-evidence', blockRoles('super_admin'), importEvidence_validation, importEvidence);

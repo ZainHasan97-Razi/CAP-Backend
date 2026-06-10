@@ -171,51 +171,6 @@ Compare both lists using `control` ObjectId to determine state of each control:
 
 | State | How to show |
 |-------|-------------|
-| Already assigned | Checked checkbox, dept/participants pre-filled, **disabled** (cannot re-assign) |
-| Not yet assigned | Unchecked checkbox, dept/participants empty, **editable** |
-
-**Each unassigned control row has:**
-- Checkbox to select
-- Department dropdown (required when checked) — populate from `GET /api/department/list`
-- Participants multi-select (optional) — populate from `GET /api/user/by-departments?departmentIds=id1,id2` after department is selected
-
-### Page 3 — Control Assignment Page (NEW PAGE)
-
-Opens when user clicks an assessment row in the dashboard.
-
-**URL pattern:** `/assessments/:assesmentId/assign-controls`
-
-**Step 1 — Fetch data (two parallel calls):**
-
-```
-GET /api/control/list/:frameworkId
-→ All controls for the framework (full list)
-
-GET /api/assesment/:assesmentId/assigned-controls
-→ Controls already assigned to this assessment
-```
-
-**Assigned controls response:**
-```json
-[
-  {
-    "_id": "<assessmentRecordMongoId>",
-    "control": "<controlObjectId>",
-    "controlId": "3.1.1",
-    "controlName": "Access Control Policy",
-    "departments": [{ "id": "...", "name": "IT Department" }],
-    "participants": ["user@example.com"],
-    "status": "open"
-  }
-]
-```
-
-**Step 2 — Render the control list:**
-
-Compare both lists using `control` ObjectId to determine state of each control:
-
-| State | How to show |
-|-------|-------------|
 | Already assigned | Checked checkbox, dept/participants pre-filled, **editable** (can update dept/participants) |
 | Not yet assigned | Unchecked checkbox, dept/participants empty, **editable** |
 | Already assigned + status `closed` | Checked checkbox, dept/participants shown, **read-only** (cannot modify a closed control) |
@@ -311,6 +266,103 @@ Everything on this page remains the same:
 
 ---
 
+### Page 5 — My Tasks (Sidebar Tab)
+
+**Who sees this:** Every logged-in user who has been added as a participant on at least one control. Primarily used by `control_owner` but visible to all roles.
+
+**Required permission:** `view_evidence` — guard the sidebar tab and the page with this permission check.
+
+```ts
+const canViewMyTasks = effectivePermissions.includes('view_evidence');
+```
+
+> `control_owner` has `view_evidence` and `manage_evidence` by default, so they will always see this tab. All other roles that have `view_evidence` (e.g. `compliance_specialist`, `auditor`) will also see it — which is intentional since they may also be added as participants.
+
+**Placement suggestion:** Persistent sidebar tab labelled **"My Tasks"** — always accessible regardless of which page the user is on, similar to a notifications/inbox pattern. This keeps it clearly separate from the Assessment List (which is the auditor's view).
+
+**API:** `GET /api/assesment/my-controls`
+
+**Query Parameters:**
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `status` | `open` \| `in_progress` \| `closed` | excludes `closed` | Filter by status. Omit to see active tasks only. Pass `closed` to see completed work. |
+| `page` | number | `1` | Page number |
+| `limit` | number | `10` | Items per page (max: 100) |
+
+**How it works:** The backend matches the logged-in user's `email` (from the JWT) against the `participants` array on each assessment record. No extra parameter needed — it's always scoped to the caller.
+
+**Example Requests:**
+```
+# Active tasks (default)
+GET /api/assesment/my-controls
+
+# Filter to in-progress only
+GET /api/assesment/my-controls?status=in_progress
+
+# See completed tasks
+GET /api/assesment/my-controls?status=closed
+
+# Paginate
+GET /api/assesment/my-controls?page=2&limit=20
+```
+
+**Response:**
+```json
+{
+  "data": [
+    {
+      "_id": "64abc...",
+      "assesmentId": "uuid-abc-123",
+      "name": "SAMA CSF Q1 2025",
+      "frameworkName": "SAMA CSF",
+      "controlId": "3.1.1-1",
+      "controlName": "Establish a cyber security committee",
+      "departments": [{ "id": "...", "name": "IT Security" }],
+      "status": "open",
+      "startDate": 1704067200,
+      "dueDate": 1735689600,
+      "aiResult": null
+    }
+  ],
+  "pagination": {
+    "page": 1,
+    "limit": 10,
+    "total": 4,
+    "pages": 1
+  }
+}
+```
+
+**What to show per row:**
+
+| Field | Display |
+|---|---|
+| `name` | Assessment name |
+| `frameworkName` | Framework badge |
+| `controlId` + `controlName` | Control being assessed |
+| `departments[].name` | Assigned department(s) |
+| `status` | Status badge (`open` / `in_progress`) |
+| `dueDate` | Due date — highlight red if overdue |
+| `aiResult` | Show AI result indicator if not null |
+| Action | **"Upload Evidence"** button → navigates to `GET /api/assesment/:_id` detail page |
+
+**Sidebar badge:** Show a count of active tasks (status `open` or `in_progress`) on the "My Tasks" sidebar tab as a notification badge. Fetch this on login and refresh after any evidence upload.
+
+```ts
+const fetchMyTasksCount = async () => {
+  const res = await api.get('/assesment/my-controls?limit=1');
+  return res.data.pagination.total; // total active tasks
+};
+```
+
+**Navigation on row click:** Use the `_id` field to navigate to the Assessment Detail page where the user uploads evidence:
+```ts
+navigate(`/assessments/${task._id}`);
+```
+
+---
+
 ## Status Reference
 
 | Status | What it means |
@@ -379,6 +431,7 @@ One `assesmentId` UUID groups multiple DB records:
 |--------|----------|-------------|
 | POST | `/api/assesment/create` | Create a drafted assessment |
 | GET | `/api/assesment/dashboard` | List assessments grouped by `assesmentId` |
+| GET | `/api/assesment/my-controls` | Controls assigned to the logged-in user (My Tasks sidebar) |
 | GET | `/api/assesment/:assesmentId/assigned-controls` | Get already-assigned controls for an assessment |
 | POST | `/api/assesment/:assesmentId/assign-controls` | Assign controls to an assessment |
 | PATCH | `/api/assesment/assigned-controls/:assessmentRecordId` | Update departments or participants on an assigned control |
