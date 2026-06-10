@@ -444,27 +444,132 @@ One `assesmentId` UUID groups multiple DB records:
 
 ---
 
-## Evidence & Approval Flow (Unchanged)
+## Evidence & Approval Flow
+
+### How it works
 
 ```
-Participant adds comment with attachment
+Participant posts comment with attachment
         ↓
-approvalStatus = "pending"
-AI analysis triggered automatically
+backend saves comment, approvalStatus = "pending"
+AI triggered immediately (fire-and-forget)
         ↓
-Auditor reviews evidence
+compliance_specialist reviews evidence
         ↓
     approved?
    ↙         ↘
   YES          NO
   ↓             ↓
-Green badge   Red badge
-AI re-runs    Auditor replies with reason
+Green badge   Red badge + specialist replies with reason
               Participant adds new top-level comment
-              (new comment starts as "pending")
+              (new comment starts as "pending", AI re-triggers)
 ```
 
-### Comment Tracking
+### approvalStatus values
+
+| Value | Meaning |
+|-------|---------|
+| `pending` | Uploaded, waiting for review |
+| `approved` | Compliance specialist approved |
+| `rejected` | Compliance specialist rejected |
+| `null` | Plain text comment or reply — no approval needed |
+
+### Approval Button — Who Sees It
+
+Only `compliance_specialist` can approve or reject evidence.
+
+```ts
+const canApprove = user.systemRoles.includes('compliance_specialist');
+// show approve/reject buttons only when canApprove && comment.approvalStatus !== null
+```
+
+### Approve or Reject Evidence
+
+**Method:** `PATCH`  
+**URL:** `/api/assesment-comment/comments/:commentId/approval`  
+**Auth:** `Authorization: Bearer <jwt_token>`
+
+**Request Body:**
+```json
+{ "status": "approved" }
+```
+```json
+{ "status": "rejected" }
+```
+```json
+{ "status": "pending" }
+```
+
+**Response:**
+```json
+{
+  "message": "Evidence approved",
+  "comment": {
+    "_id": "507f1f77bcf86cd799439020",
+    "approvalStatus": "approved",
+    "attachments": ["https://..."]
+  }
+}
+```
+
+**Error Responses:**
+```json
+{ "error": "Comment not found" }                                          // 404
+{ "error": "Cannot approve a reply" }                                     // 400
+{ "error": "Only comments with attachments can be approved" }             // 400
+{ "error": "Only compliance specialists can approve evidence" }           // 403
+```
+
+### UI States per Comment
+
+| `approvalStatus` | compliance_specialist sees | other roles see |
+|-----------------|---------------------------|------------------|
+| `pending` | Approve + Reject buttons | `pending` badge |
+| `approved` | Green badge + Revoke button | Green badge |
+| `rejected` | Red badge + Revoke button | Red badge |
+| `null` | Nothing | Nothing |
+
+### AI Result Panel States
+
+| State | What to show |
+|-------|--------------|
+| `aiResult === null`, no evidence posted | "No AI result yet. Submit evidence to trigger analysis." |
+| `aiResult === null`, evidence just posted | Spinner + "AI is analyzing submitted evidence..." |
+| `aiResult !== null` | Display grade, gaps, recommendations |
+
+### Polling for AI Result
+
+After posting a comment with attachments, poll `GET /api/assesment/:id` until `aiResult` is populated:
+
+```ts
+const pollForAiResult = async (assessmentId: string, token: string) => {
+  const MAX_ATTEMPTS = 20;  // ~2 minutes
+  const INTERVAL_MS = 6000;
+
+  for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+    await new Promise(resolve => setTimeout(resolve, INTERVAL_MS));
+    const res = await fetch(`/api/assesment/${assessmentId}`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    const assessment = await res.json();
+    if (assessment.aiResult !== null) return assessment.aiResult;
+  }
+
+  throw new Error('AI result timed out.');
+};
+```
+
+### AI Result Fields to Display
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `aiResult.grade` | string | Overall compliance grade (e.g. `A`, `B`, `C`) |
+| `aiResult.gaps` | string[] | Identified compliance gaps |
+| `aiResult.recommendations` | string[] | Recommended actions |
+
+Arabic equivalents: `aiResult.arabic_output.grade`, `.gaps`, `.recommendations`.
+
+### Comment importedFrom Tracking
 
 | `importedFrom` field | Meaning |
 |----------------------|---------|

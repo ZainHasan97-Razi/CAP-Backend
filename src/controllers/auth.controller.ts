@@ -83,7 +83,8 @@ export const login = async (req: Request, res: Response, next: NextFunction) => 
       throw ApiError.internalServer("Error generating token");
     }
 
-    res.json({ user, token: token.token });
+    const { password: _, sessionId: __, ...safeUser } = user.toObject();
+    res.json({ user: safeUser, token: token.token });
   } catch (error) {
     console.error(error);
     next(error);

@@ -163,11 +163,12 @@ export const updateApproval = async (req: ARequest, res: Response, next: NextFun
       throw ApiError.badRequest('Only comments with attachments can be approved');
     }
 
-    // Only the assessment creator (auditor) can approve/reject
+    // Only compliance_specialist can approve/reject
     const assessment = await assesmentService.findById(comment.assessmentId.toString());
     if (!assessment) throw ApiError.notFound('Assessment not found');
-    if (assessment.createdBy !== user.userName) {
-      throw ApiError.forbidden('Only the assessment owner can approve evidence');
+    const canApprove = user.systemRoles?.includes('compliance_specialist');
+    if (!canApprove) {
+      throw ApiError.forbidden('Only compliance specialists can approve evidence');
     }
 
     const updated = await assesmentCommentService.setApprovalStatus(commentId, status);
