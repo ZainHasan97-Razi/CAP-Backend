@@ -60,7 +60,7 @@ Permissions follow a **module-based convention**:
 | Key | Label | Description |
 |---|---|---|
 | `compliance_specialist` | Compliance Specialist | Creates assessments, assigns controls and findings, handles approval workflow |
-| `compliance_manager` | Compliance Manager | Validates and approves assessments, assigns assessments to team |
+| `compliance_manager` | Compliance Manager | Creates, manages, validates and approves assessments, assigns assessments to team |
 | `control_owner` | Control Owner | Raises evidence, provides action plans and target date commitments |
 | `executive` | Executive | Views the executive dashboard and reports |
 | `auditor` | Auditor | Same as Compliance Specialist plus validates compliance closure assessments |
@@ -73,7 +73,7 @@ Permissions follow a **module-based convention**:
 | Role | Permissions |
 |---|---|
 | `compliance_specialist` | `view_dashboard`, `view_assessment`, `manage_assessment`, `view_framework`, `view_control`, `view_evidence`, `manage_evidence`, `view_user`, `view_report` |
-| `compliance_manager` | `view_dashboard`, `view_assessment`, `view_framework`, `view_control`, `view_evidence`, `manage_evidence`, `view_user`, `view_report` |
+| `compliance_manager` | `view_dashboard`, `view_assessment`, `manage_assessment`, `view_framework`, `view_control`, `view_evidence`, `manage_evidence`, `view_user`, `view_report` |
 | `control_owner` | `view_evidence`, `manage_evidence` |
 | `executive` | `view_dashboard`, `view_report` |
 | `auditor` | `view_dashboard`, `view_assessment`, `view_framework`, `view_control`, `view_evidence`, `manage_evidence`, `view_user`, `view_report` |

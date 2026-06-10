@@ -68,7 +68,7 @@ export const PERMISSION_META: Record<PermissionEnumType, { label: string; descri
 
 export const ROLE_META: Record<SystemRoleEnumType, { label: string; description: string }> = {
   compliance_specialist: { label: 'Compliance Specialist', description: 'Creates assessments, assigns controls and findings, handles approval workflow' },
-  compliance_manager:    { label: 'Compliance Manager',    description: 'Validates and approves assessments, assigns assessments to team' },
+  compliance_manager:    { label: 'Compliance Manager',    description: 'Creates, manages, validates and approves assessments, assigns assessments to team' },
   control_owner:         { label: 'Control Owner',         description: 'Raises evidence, provides action plans and target date commitments' },
   executive:             { label: 'Executive',             description: 'Views the executive dashboard and reports' },
   auditor:               { label: 'Auditor',               description: 'Same as Compliance Specialist plus validates compliance closure assessments' },
@@ -90,6 +90,7 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<SystemRoleEnumType, PermissionEnum
   compliance_manager: [
     'view_dashboard',
     'view_assessment',
+    'manage_assessment',
     'view_framework',
     'view_control',
     'view_evidence',
