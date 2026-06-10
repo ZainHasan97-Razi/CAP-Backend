@@ -64,7 +64,7 @@ Permissions follow a **module-based convention**:
 | `control_owner` | Control Owner | Raises evidence, provides action plans and target date commitments |
 | `executive` | Executive | Views the executive dashboard and reports |
 | `auditor` | Auditor | Same as Compliance Specialist plus validates compliance closure assessments |
-| `super_admin` | Super Admin | Full platform access — manages roles, frameworks, dashboard, and all settings |
+| `super_admin` | Super Admin | System administration — manages users, roles, departments, frameworks, controls and platform settings. Cannot create or modify assessments or evidence. |
 
 ---
 
@@ -77,9 +77,9 @@ Permissions follow a **module-based convention**:
 | `control_owner` | `view_evidence`, `manage_evidence` |
 | `executive` | `view_dashboard`, `view_report` |
 | `auditor` | `view_dashboard`, `view_assessment`, `view_framework`, `view_control`, `view_evidence`, `manage_evidence`, `view_user`, `view_report` |
-| `super_admin` | All permissions |
+| `super_admin` | `view_dashboard`, `view_framework`, `manage_framework`, `view_control`, `manage_control`, `view_user`, `manage_user`, `view_department`, `manage_department`, `view_report`, `manage_roles_permissions`, `manage_platform` |
 
-> Default permissions are applied on every server startup. If a role's permissions were manually customised via the API, they **will be reset** on next restart. To preserve custom permissions, the seeder uses `$set` only for the defaults — if you want sticky custom permissions, let the backend team know and we can switch back to `$setOnInsert`.
+> `super_admin` can fully manage frameworks and controls but is intentionally blocked from all assessment and evidence operations. Assessment creation, updates, assign-controls, import-evidence, and approval are blocked at the route level — a `super_admin` will receive a `403` on any of those actions.
 
 ---
 

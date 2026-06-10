@@ -4,6 +4,7 @@ import { IUser } from "../types/req.user.type";
 import { verifyToken } from "../utils/jwt";
 import { ApiError } from "./validate.request";
 import userService from "../services/user.service";
+import { SystemRoleEnumType } from "../models/system-role.model";
 
 export const protect = async (
   req: Request,
@@ -40,3 +41,16 @@ export const protect = async (
     return next(ApiError.unauthorized("Not authorized to access this route"));
   }
 };
+
+/**
+ * Blocks the specified roles from accessing a route.
+ * Usage: router.post('/create', blockRoles('super_admin'), handler)
+ */
+export const blockRoles = (...roles: SystemRoleEnumType[]) =>
+  (req: Request, res: Response, next: NextFunction) => {
+    const user = (req as ARequest).user as IUser;
+    if (user?.systemRoles?.some(r => roles.includes(r as SystemRoleEnumType))) {
+      return next(ApiError.forbidden('You do not have permission to perform this action'));
+    }
+    next();
+  };

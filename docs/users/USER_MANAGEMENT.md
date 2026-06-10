@@ -451,7 +451,7 @@ Triggered by the "Edit Roles" action on a user row. Only `super_admin` sees this
 | `control_owner` | Control Owner | Raises evidence, provides action plans |
 | `executive` | Executive | Views dashboard and reports only |
 | `auditor` | Auditor | Compliance Specialist + validates closure assessments |
-| `super_admin` | Super Admin | Full platform access |
+| `super_admin` | Super Admin | System administration only — users, roles, departments, frameworks, controls and platform settings. **Cannot create or modify assessments or evidence.** |
 
 **On save:** send the full checked array — this is a replace, not an append:
 

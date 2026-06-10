@@ -1,16 +1,16 @@
 import { Router } from 'express';
 import { create, getAssignedControls, assignControls, dashboardList, findById, update, getAnalytics, getFrameworkSummaries, getFrameworkAnalytics, getByMetric, importEvidence, triggerAiAnalysis } from '../../controllers/assesment.controller';
 import { createAssesment_validation, assignControls_validation, dashboardList_validation, findById_validation, updateAssesment_validation, analytics_validation, frameworkAnalytics_validation, byMetric_validation, importEvidence_validation } from '../validators/assesment.validator';
-
+import { blockRoles } from '../../middleware/protect';
 
 const router = Router();
 
-router.post('/create', createAssesment_validation, create);
-router.post('/:assesmentId/assign-controls', assignControls_validation, assignControls);
+router.post('/create', blockRoles('super_admin'), createAssesment_validation, create);
+router.post('/:assesmentId/assign-controls', blockRoles('super_admin'), assignControls_validation, assignControls);
 router.get('/:assesmentId/assigned-controls', getAssignedControls);
-router.put('/:id', updateAssesment_validation, update);
-router.patch('/:id/import-evidence', importEvidence_validation, importEvidence);
-router.post('/:id/trigger-ai', findById_validation, triggerAiAnalysis);
+router.put('/:id', blockRoles('super_admin'), updateAssesment_validation, update);
+router.patch('/:id/import-evidence', blockRoles('super_admin'), importEvidence_validation, importEvidence);
+router.post('/:id/trigger-ai', blockRoles('super_admin'), findById_validation, triggerAiAnalysis);
 router.get('/dashboard', dashboardList_validation, dashboardList);
 router.get('/analytics', analytics_validation, getAnalytics);
 router.get('/framework-summaries', analytics_validation, getFrameworkSummaries);

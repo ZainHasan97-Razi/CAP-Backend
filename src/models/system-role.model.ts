@@ -72,7 +72,7 @@ export const ROLE_META: Record<SystemRoleEnumType, { label: string; description:
   control_owner:         { label: 'Control Owner',         description: 'Raises evidence, provides action plans and target date commitments' },
   executive:             { label: 'Executive',             description: 'Views the executive dashboard and reports' },
   auditor:               { label: 'Auditor',               description: 'Same as Compliance Specialist plus validates compliance closure assessments' },
-  super_admin:           { label: 'Super Admin',           description: 'Full platform access — manages roles, frameworks, dashboard, and all settings' },
+  super_admin:           { label: 'Super Admin',           description: 'System administration — manages users, roles, departments, frameworks and platform settings. Cannot create or modify assessments.' },
 };
 
 export const DEFAULT_ROLE_PERMISSIONS: Record<SystemRoleEnumType, PermissionEnumType[]> = {
@@ -117,14 +117,10 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<SystemRoleEnumType, PermissionEnum
   ],
   super_admin: [
     'view_dashboard',
-    'view_assessment',
-    'manage_assessment',
     'view_framework',
     'manage_framework',
     'view_control',
     'manage_control',
-    'view_evidence',
-    'manage_evidence',
     'view_user',
     'manage_user',
     'view_department',
