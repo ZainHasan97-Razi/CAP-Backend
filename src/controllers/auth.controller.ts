@@ -7,11 +7,18 @@ import { issueJwt } from "../utils/jwt";
 import { ApiError } from '../middleware/validate.request';
 import { ARequest } from '../types/auth.request.type';
 import { IUser } from '../types/req.user.type';
+import { SystemRoleEnum } from '../models/system-role.model';
 import crypto from 'crypto';
 const bcrypt = require('bcryptjs');
 
-export const register = async (req: Request, res: Response, next: NextFunction) => {
+export const register = async (req: ARequest, res: Response, next: NextFunction) => {
   try {
+    const caller = req.user as IUser;
+    const allowed = [SystemRoleEnum.super_admin, SystemRoleEnum.compliance_specialist, SystemRoleEnum.compliance_manager];
+    if (!caller?.systemRoles?.some(r => allowed.includes(r as any))) {
+      throw ApiError.forbidden('You do not have permission to register new users');
+    }
+
     const { body } = req;
 
     // Check if user exists

@@ -1,13 +1,14 @@
 import { Router } from 'express';
 import { findById, list, findByDepartments, updateSystemRoles } from '../../controllers/user.controller';
-import { logout } from '../../controllers/auth.controller';
-import { list_validation } from '../validators/user.validator';
+import { logout, register } from '../../controllers/auth.controller';
+import { list_validation, register_validation } from '../validators/user.validator';
 import { body } from 'express-validator';
 import { validateRequest } from '../../middleware/validate.request';
 import { SystemRoleEnum } from '../../models/system-role.model';
 
 const router = Router();
 
+router.post('/register', register_validation, register);
 router.post('/logout', logout);
 router.get('/list', list_validation, list);
 router.get('/by-departments', findByDepartments);

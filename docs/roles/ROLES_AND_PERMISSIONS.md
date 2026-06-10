@@ -159,30 +159,9 @@ Updates the permissions for a given role. **Only `super_admin` can call this.**
 
 ---
 
-### `POST /api/auth/register`
+### `POST /api/user/register` and `POST /api/department/create`
 
-Registers a new user. `role` and `systemRoles` are both optional.
-
-**Body:**
-```json
-{
-  "userName": "John Doe",
-  "email": "john@example.com",
-  "password": "Pass@1234",
-  "departmentId": "<mongoId>",
-  "role": "auditor",
-  "systemRoles": ["compliance_specialist"]
-}
-```
-
-- `role` — optional, defaults to `"guest"` if not provided
-- `systemRoles` — optional array of system role keys, defaults to `["control_owner"]` if not provided
-- Valid `systemRoles` values: `compliance_specialist`, `compliance_manager`, `control_owner`, `executive`, `auditor`, `super_admin`
-
-**Response:**
-```json
-{ "message": "User created", "userId": "..." }
-```
+These endpoints are documented in the [User Management guide](../users/USER_MANAGEMENT.md), including role guards, request/response shapes, and the full frontend integration guide for the Register User form and the department "Add New Department" modal.
 
 ---
 
@@ -266,6 +245,10 @@ hasPermission(effectivePermissions, 'manage_framework') // show edit button
 2. Fetch `GET /api/system-roles` — renders each role as a card/row
 3. Fetch `GET /api/system-roles/permissions` — use `view` and `action` groups to render two sections of checkboxes per role
 4. On save call `PATCH /api/system-roles/:role/permissions` with the full updated permissions array
+
+---
+
+For the Register User page access guard, department dropdown "Add New Department" flow, user list pagination, and role assignment modal — see the [User Management guide](../users/USER_MANAGEMENT.md).
 
 ---
 

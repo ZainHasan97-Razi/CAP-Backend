@@ -18,6 +18,7 @@ CAP (Compliance Assessment Platform) is a backend system for managing compliance
 | Assessments | Create, track and manage compliance assessments | [→ Assessment Module Guide](docs/assessments/ASSESSMENT_MODULE_GUIDE.md) |
 | Analytics | Dashboard analytics, framework summaries, metric distributions | [→ Analytics API](docs/analytics/ANALYTICS_API.md) |
 | AI Integration | AI-powered evidence analysis and grading | [→ AI Integration](docs/ai/AI_INTEGRATION.md) |
+| Users & Departments | User registration, listing, role assignment, department management | [→ User Management](docs/users/USER_MANAGEMENT.md) |
 | Roles & Permissions | System roles, permissions, and access control | [→ Roles & Permissions](docs/roles/ROLES_AND_PERMISSIONS.md) |
 
 ---
@@ -25,10 +26,10 @@ CAP (Compliance Assessment Platform) is a backend system for managing compliance
 ## Quick Reference — All Endpoints
 
 ### Auth
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| POST | `/api/auth/register` | Register a new user |
-| POST | `/api/auth/login` | Login and get JWT token |
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| POST | `/api/auth/login` | Public | Login and get JWT token |
+| POST | `/api/auth/logout` | Bearer token | Logout current session |
 
 ### Frameworks
 | Method | Endpoint | Description |
@@ -77,11 +78,21 @@ CAP (Compliance Assessment Platform) is a backend system for managing compliance
 |--------|----------|-------------|
 | GET | `/api/common-control/list` | List common controls with mapped framework controls |
 
-### Users & Departments
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/api/user/by-departments` | Get users by department IDs |
-| PATCH | `/api/user/:id/system-roles` | Assign system roles to a user |
+### Users
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| POST | `/api/user/register` | Bearer token — `super_admin`, `compliance_specialist`, or `compliance_manager` only | Register a new user |
+| GET | `/api/user/list` | Bearer token | List all users (paginated) |
+| GET | `/api/user/by-departments` | Bearer token | Get users by department IDs |
+| GET | `/api/user/:id` | Bearer token | Get user by ID |
+| PATCH | `/api/user/:id/system-roles` | Bearer token — `super_admin` only | Assign system roles to a user |
+
+### Departments
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| GET | `/api/department/list` | Public | List all active departments |
+| POST | `/api/department/create` | Bearer token — `super_admin` or `executive` only | Create a new department |
+| PATCH | `/api/department/update` | Bearer token | Update a department |
 
 ### Roles
 | Method | Endpoint | Description |
