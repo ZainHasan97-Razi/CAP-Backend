@@ -250,6 +250,144 @@ Use the `_id` from the assigned controls list as `:assessmentRecordId`. Send onl
 
 ---
 
+### Page 3b — Bulk Close Controls (compliance_manager only)
+
+This feature lives inside the Control Assignment Page. It allows a `compliance_manager` to close multiple assigned controls at once instead of going into each detail page individually.
+
+#### Role guard
+
+Only render the "Select Many" button when:
+
+```ts
+const canBulkClose = user.systemRoles.includes('compliance_manager');
+```
+
+Do not show the button for any other role.
+
+---
+
+#### UI Flow
+
+**Default state** — a "Select Many" button sits in the top-right of the assigned controls section:
+
+```
+[ Assign Controls page header ]
+                              [ Select Many ]   ← compliance_manager only
+──────────────────────────────────────────────
+  Domain filter: [ All | Domain A | Domain B ]
+──────────────────────────────────────────────
+  Control 1 — open
+  Control 2 — in_progress
+  Control 3 — closed          ← greyed out
+```
+
+**Selection mode** — after clicking "Select Many":
+
+1. "Select Many" becomes **"Cancel"**
+2. **"Close Selected (0)"** button appears — disabled until ≥ 1 item is checked
+3. A **"Select All"** checkbox appears in the list header
+4. Each `open` or `in_progress` row gets a **checkbox** on its left
+5. `closed` rows get **no checkbox** and stay greyed out — not selectable
+
+```
+[ Cancel ]  [ Close Selected (0) ]   ← disabled
+──────────────────────────────────────────────
+  Domain filter: [ All | Domain A | Domain B ]
+──────────────────────────────────────────────
+  [✓] Select All
+──────────────────────────────────────────────
+  [ ] Control 1 — open
+  [ ] Control 2 — in_progress
+      Control 3 — closed              ← no checkbox
+```
+
+**Domain filter behaviour in selection mode:**
+- The domain filter is client-side — it filters the already-fetched list locally
+- "Select All" selects only controls **currently visible** (matching the active domain filter)
+- Switching domain while items are selected **clears all selections**
+
+**Confirmation dialog** — clicking "Close Selected (N)" shows:
+
+```
+┌─────────────────────────────────────────┐
+│  Close 3 controls?                      │
+│                                         │
+│  This will permanently set the          │
+│  selected controls to "closed".         │
+│  This action cannot be undone.          │
+│                                         │
+│  [ Cancel ]      [ Close Controls ]     │
+└─────────────────────────────────────────┘
+```
+
+**After success:**
+1. Close dialog, exit selection mode
+2. Re-fetch `GET /api/assesment/:assesmentId/assigned-controls` to sync row statuses
+3. Show toast:
+   - `skipped === 0` → `"3 controls closed successfully"`
+   - `skipped > 0` → `"3 controls closed, 1 already closed and skipped"`
+
+**On error:** keep dialog open, show the error message, let the user retry or cancel.
+
+---
+
+#### API Call
+
+**Method:** `PATCH`  
+**URL:** `/api/assesment/:assesmentId/bulk-close`  
+**Auth:** `Authorization: Bearer <jwt_token>`  
+**Role:** `compliance_manager` only — all other roles receive `403`
+
+Use the `_id` field from the assigned-controls response as the record IDs:
+
+```json
+{
+  "recordIds": [
+    "<assessmentRecordMongoId_1>",
+    "<assessmentRecordMongoId_2>",
+    "<assessmentRecordMongoId_3>"
+  ]
+}
+```
+
+**Response `200`:**
+
+```json
+{
+  "message": "Bulk close completed",
+  "closed": 3,
+  "skipped": 1,
+  "results": [
+    { "recordId": "<id_1>", "status": "closed" },
+    { "recordId": "<id_2>", "status": "closed" },
+    { "recordId": "<id_3>", "status": "closed" },
+    { "recordId": "<id_4>", "status": "skipped", "reason": "already closed" }
+  ]
+}
+```
+
+**Error Responses:**
+
+```json
+{ "statusCode": 403, "message": "Only compliance managers can bulk close controls" }
+{ "statusCode": 400, "message": "recordIds must be a non-empty array" }
+{ "statusCode": 400, "message": "Record <id> does not belong to this assessment" }
+```
+
+> Backend validates that **all** recordIds belong to the `:assesmentId` before touching anything — if any ID is foreign the entire request is rejected.
+
+---
+
+#### Key field mapping
+
+| Assigned-controls field | Used for |
+|---|---|
+| `_id` | Sent in `recordIds` to the bulk-close endpoint |
+| `status` | Determines if checkbox is shown (`open`/`in_progress` → show, `closed` → hide) |
+| `controlId` + `controlName` | Row display |
+
+---
+
 ### Page 4 — Assessment Detail Page (Unchanged)
 
 Accessed via the **View icon** on the dashboard row, using `assessmentDocId`.
@@ -435,6 +573,7 @@ One `assesmentId` UUID groups multiple DB records:
 | GET | `/api/assesment/:assesmentId/assigned-controls` | Get already-assigned controls for an assessment |
 | POST | `/api/assesment/:assesmentId/assign-controls` | Assign controls to an assessment |
 | PATCH | `/api/assesment/assigned-controls/:assessmentRecordId` | Update departments or participants on an assigned control |
+| PATCH | `/api/assesment/:assesmentId/bulk-close` | Bulk close selected control records — `compliance_manager` only |
 | GET | `/api/assesment/:id` | Get a specific assessment record by MongoDB `_id` |
 | PUT | `/api/assesment/:id` | Update an assessment record |
 | PATCH | `/api/assesment/:id/import-evidence` | Import evidence from another assessment |

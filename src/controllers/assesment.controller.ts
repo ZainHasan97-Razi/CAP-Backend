@@ -263,6 +263,24 @@ export const importEvidence = async (req: ARequest, res: Response, next: NextFun
   }
 }
 
+export const bulkClose = async (req: ARequest, res: Response, next: NextFunction) => {
+  try {
+    const { assesmentId } = req.params;
+    const { recordIds } = req.body;
+    const user = req.user as IUser;
+
+    if (!user.systemRoles?.includes('compliance_manager')) {
+      throw ApiError.forbidden('Only compliance managers can bulk close controls');
+    }
+
+    const result = await assesmentService.bulkClose(assesmentId, recordIds);
+    res.json(result);
+  } catch (error) {
+    console.error(error);
+    next(error);
+  }
+}
+
 export const triggerAiAnalysis = async (req: ARequest, res: Response, next: NextFunction) => {
   try {
     const { id } = req.params;

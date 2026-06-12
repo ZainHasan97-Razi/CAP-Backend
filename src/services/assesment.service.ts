@@ -827,6 +827,37 @@ const importEvidence = async (targetAssessmentId: string | MongoIdType, sourceAs
   };
 };
 
+const bulkClose = async (assesmentId: string, recordIds: string[]) => {
+  // Validate all records belong to this assesmentId before touching anything
+  const records = await AssesmentModel.find({ _id: { $in: recordIds } }).select('_id assesmentId control status').lean();
+
+  for (const record of records) {
+    if (record.assesmentId !== assesmentId) {
+      throw new Error(`Record ${record._id} does not belong to this assessment`);
+    }
+    if (!record.control) {
+      throw new Error(`Cannot close a draft header record: ${record._id}`);
+    }
+  }
+
+  const results = [];
+  let closed = 0;
+  let skipped = 0;
+
+  for (const record of records) {
+    if (record.status === AssesmentStatusEnum.closed) {
+      results.push({ recordId: record._id, status: 'skipped', reason: 'already closed' });
+      skipped++;
+    } else {
+      await AssesmentModel.findByIdAndUpdate(record._id, { status: AssesmentStatusEnum.closed });
+      results.push({ recordId: record._id, status: 'closed' });
+      closed++;
+    }
+  }
+
+  return { message: 'Bulk close completed', closed, skipped, results };
+};
+
 const updateAssignedControl = async (
   assessmentRecordId: string,
   data: { departments?: string[]; participants?: string[] }
@@ -918,4 +949,5 @@ export default {
   getFrameworkAnalytics,
   findByMetric,
   importEvidence,
+  bulkClose,
 };

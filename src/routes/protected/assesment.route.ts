@@ -1,13 +1,18 @@
 import { Router } from 'express';
-import { create, getAssignedControls, assignControls, updateAssignedControl, getMyControls, dashboardList, findById, update, getAnalytics, getFrameworkSummaries, getFrameworkAnalytics, getByMetric, importEvidence, triggerAiAnalysis } from '../../controllers/assesment.controller';
+import { create, getAssignedControls, assignControls, updateAssignedControl, getMyControls, dashboardList, findById, update, getAnalytics, getFrameworkSummaries, getFrameworkAnalytics, getByMetric, importEvidence, triggerAiAnalysis, bulkClose } from '../../controllers/assesment.controller';
 import { createAssesment_validation, assignControls_validation, dashboardList_validation, findById_validation, updateAssesment_validation, analytics_validation, frameworkAnalytics_validation, byMetric_validation, importEvidence_validation } from '../validators/assesment.validator';
 import { blockRoles } from '../../middleware/protect';
-import { body, query } from 'express-validator';
+import { body, query, param } from 'express-validator';
 import { validateRequest } from '../../middleware/validate.request';
 
 const router = Router();
 
 router.post('/create', blockRoles('super_admin'), createAssesment_validation, create);
+router.patch('/:assesmentId/bulk-close', blockRoles('super_admin'), validateRequest([
+  param('assesmentId').not().isEmpty().withMessage('Assessment ID is required'),
+  body('recordIds').isArray({ min: 1 }).withMessage('recordIds must be a non-empty array'),
+  body('recordIds.*').isMongoId().withMessage('Each recordId must be a valid MongoDB ObjectId'),
+]), bulkClose);
 router.post('/:assesmentId/assign-controls', blockRoles('super_admin'), assignControls_validation, assignControls);
 router.get('/:assesmentId/assigned-controls', getAssignedControls);
 router.patch(
