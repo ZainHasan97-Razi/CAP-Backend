@@ -601,14 +601,17 @@ const findByMetric = async (filters: ByMetricFilters) => {
   ]);
 
   // Populate control domain/subdomain fields
-  const controlIds = [...new Set(rawData.map(a => a.control.toString()))];
-  const controls = await ControlModel.find({ _id: { $in: controlIds } })
-    .select('domainCode domainName subdomainCode subdomainName')
-    .lean();
+  const recordsWithControl = rawData.filter(a => a.control);
+  const controlIds = [...new Set(recordsWithControl.map(a => a.control!.toString()))];
+  const controls = controlIds.length > 0
+    ? await ControlModel.find({ _id: { $in: controlIds } })
+        .select('domainCode domainName subdomainCode subdomainName')
+        .lean()
+    : [];
   const controlMap = new Map(controls.map(c => [c._id.toString(), c]));
 
   const data = rawData.map(a => {
-    const ctrl = controlMap.get(a.control.toString());
+    const ctrl = a.control ? controlMap.get(a.control.toString()) : null;
     return {
       ...a,
       domainCode: ctrl?.domainCode || null,
@@ -617,13 +620,13 @@ const findByMetric = async (filters: ByMetricFilters) => {
       subdomainName: ctrl?.subdomainName || null,
     };
   });
-  
+
   // Get framework details for metricInfo
   let metricInfo: any = null;
   if (data.length > 0) {
     const framework = await FrameworkModel.findById(data[0].framework).lean();
-    if (framework && framework.complianceMetric) {
-      const metricValueObj = framework.complianceMetric.values.find((v: any) => v.value === metricValue);
+    if (framework?.complianceMetric) {
+      const metricValueObj = framework.complianceMetric.values?.find((v: any) => v.value === metricValue);
       metricInfo = {
         frameworkName: framework.displayName,
         frameworkId: framework._id,
