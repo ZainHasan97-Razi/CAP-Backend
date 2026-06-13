@@ -67,6 +67,12 @@ const updateSystemRoles = async (id: string, systemRoles: string[]) => {
   return await UserModel.findByIdAndUpdate(id, { systemRoles }, { new: true }).select('-password');
 };
 
+const updatePassword = async (id: string, newPassword: string) => {
+  const bcrypt = require('bcryptjs');
+  const hashed = await bcrypt.hash(newPassword, 12);
+  return await UserModel.findByIdAndUpdate(id, { password: hashed }, { new: true }).select('-password');
+};
+
 const updateSessionId = async (id: string, sessionId: string | null) => {
   return await UserModel.findByIdAndUpdate(id, { sessionId });
 };
@@ -79,4 +85,5 @@ export default {
   findByDepartments,
   updateSystemRoles,
   updateSessionId,
+  updatePassword,
 }

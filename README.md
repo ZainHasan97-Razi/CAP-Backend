@@ -88,6 +88,7 @@ CAP (Compliance Assessment Platform) is a backend system for managing compliance
 | GET | `/api/user/by-departments` | Bearer token | Get users by department IDs |
 | GET | `/api/user/:id` | Bearer token | Get user by ID |
 | PATCH | `/api/user/:id/system-roles` | Bearer token — `super_admin` only | Assign system roles to a user |
+| PATCH | `/api/user/:id/password` | Bearer token — `super_admin` only | Update a user's password |
 
 ### Departments
 | Method | Endpoint | Auth | Description |

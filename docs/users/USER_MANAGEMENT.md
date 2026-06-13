@@ -212,6 +212,35 @@ Replaces the `systemRoles` array for a user. This is a **full replace** — what
 
 ---
 
+### `PATCH /api/user/:id/password`
+
+> `super_admin` only.
+
+Updates the password for any user. The new password is hashed before storing. The target user's session is **not invalidated** — they can continue using their existing token until it expires or they log out.
+
+**Request Body:**
+```json
+{ "password": "NewPass@1234" }
+```
+
+| Field | Required | Validation |
+|---|---|---|
+| `password` | Yes | Min 6 characters |
+
+**Response:**
+```json
+{ "message": "Password updated successfully" }
+```
+
+**Error Responses:**
+```json
+{ "error": "Only super admins can update user passwords" }  // 403
+{ "error": "User not found" }                               // 404
+{ "error": "Password must be at least 6 characters" }       // 400
+```
+
+---
+
 ### `POST /api/user/logout`
 
 Clears the session. The JWT is not blocklisted — the server-side `sessionId` is nulled, so the existing token will fail on the next protected request.
@@ -468,6 +497,35 @@ const handleSaveRoles = async (userId: string, selectedRoles: string[]) => {
 
 ---
 
+### Update Password Modal (User List page)
+
+Triggered by a **"Reset Password"** button on a user row. Only `super_admin` sees this button.
+
+**UI:** Small modal with a single password input and a confirm button.
+
+```
+┌──────────────────────────────────────┐
+│  Reset Password for Jane Smith     │
+│                                    │
+│  New Password  [ ______________ ]  │
+│                                    │
+│  [ Cancel ]       [ Save ]         │
+└──────────────────────────────────────┘
+```
+
+**On save:**
+
+```ts
+const handleUpdatePassword = async (userId: string, newPassword: string) => {
+  await api.patch(`/user/${userId}/password`, { password: newPassword });
+  // show success toast, close modal
+};
+```
+
+**Validation:** Minimum 6 characters (enforce client-side before submitting).
+
+---
+
 ## Frontend Checklist
 
 **User List page**
@@ -496,3 +554,8 @@ const handleSaveRoles = async (userId: string, selectedRoles: string[]) => {
 - [ ] Pre-populated with user's current `systemRoles`
 - [ ] Sends full array on save (full replace, not diff)
 - [ ] Save button disabled if zero roles selected
+
+**Reset password modal**
+- [ ] Only `super_admin` can open it
+- [ ] Single password input, min 6 characters enforced client-side
+- [ ] On success — show success toast and close modal

@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { findById, list, findByDepartments, updateSystemRoles } from '../../controllers/user.controller';
+import { findById, list, findByDepartments, updateSystemRoles, updatePassword } from '../../controllers/user.controller';
 import { logout, register } from '../../controllers/auth.controller';
 import { list_validation, register_validation } from '../validators/user.validator';
 import { body } from 'express-validator';
@@ -19,6 +19,13 @@ router.patch(
     body('systemRoles.*').isIn(Object.values(SystemRoleEnum)).withMessage('Invalid system role'),
   ]),
   updateSystemRoles
+);
+router.patch(
+  '/:id/password',
+  validateRequest([
+    body('password').isString().isLength({ min: 6 }).withMessage('Password must be at least 6 characters'),
+  ]),
+  updatePassword
 );
 router.get('/:id', findById);
 

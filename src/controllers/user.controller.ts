@@ -74,3 +74,24 @@ export const updateSystemRoles = async (req: ARequest, res: Response, next: Next
     next(error);
   }
 }
+
+export const updatePassword = async (req: ARequest, res: Response, next: NextFunction) => {
+  try {
+    const caller = req.user as IUser;
+    if (!caller.systemRoles?.includes(SystemRoleEnum.super_admin)) {
+      throw ApiError.forbidden('Only super admins can update user passwords');
+    }
+
+    const { id } = req.params;
+    const { password } = req.body;
+
+    const user = await userService.findById(id);
+    if (!user) throw ApiError.notFound('User not found');
+
+    await userService.updatePassword(id, password);
+    res.json({ message: 'Password updated successfully' });
+  } catch (error) {
+    console.error(error);
+    next(error);
+  }
+}
