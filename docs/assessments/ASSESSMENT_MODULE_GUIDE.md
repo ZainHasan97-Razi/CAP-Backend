@@ -388,19 +388,105 @@ Use the `_id` field from the assigned-controls response as the record IDs:
 
 ---
 
-### Page 4 — Assessment Detail Page (Unchanged)
+### Page 4 — Assessment Detail Page
 
 Accessed via the **View icon** on the dashboard row, using `assessmentDocId`.
 
 **URL pattern:** `/assessments/:id`
 
-Everything on this page remains the same:
+**Fetch the record on mount:**
+```
+GET /api/assesment/:id
+```
+Use the MongoDB `_id` of the **individual control record** (the `assessmentDocId` from the dashboard, or the `_id` from the assigned-controls list). This is a control-level record, not the draft header.
+
+**What this page handles:**
 - Evidence upload (comments with attachments)
 - Approval flow (auditor approves/rejects)
 - AI analysis result display
 - Import evidence from previous assessment
-- Update compliance metric value
-- Close assessment
+- Update compliance metric value (`complianceMetricValue`)
+- Close assessment (`status: "closed"`)
+
+---
+
+#### Updating Maturity Level / Compliance Metric Value
+
+**Who can do this:** `compliance_specialist` and `compliance_manager`
+
+```ts
+const canUpdateMetric = user.systemRoles.some(r =>
+  ['compliance_specialist', 'compliance_manager'].includes(r)
+);
+```
+
+Show the maturity level dropdown only when `canUpdateMetric` is true. For all other roles render it as read-only text.
+
+**API call:**
+
+```
+PUT /api/assesment/:id
+Authorization: Bearer <token>
+Content-Type: application/json
+
+{ "complianceMetricValue": "3" }
+```
+
+> **Critical — use the right `:id`:** this must be the MongoDB `_id` of the **control record** (the one with `control: ObjectId`, not the draft header with `control: null`). Use `assessmentDocId` from the dashboard response, or the `_id` from `GET /api/assesment/:assesmentId/assigned-controls`.
+
+**Available values** come from the framework's `complianceMetric.values` array — fetch them via `GET /api/framework/:id` and use `complianceMetric.values` to build the dropdown options:
+
+```ts
+// Example values for a maturity_level framework
+[
+  { value: "0", label: "Not Implemented" },
+  { value: "1", label: "Initial" },
+  { value: "2", label: "Developing" },
+  { value: "3", label: "Defined" },
+  { value: "4", label: "Managed" },
+  { value: "5", label: "Optimized" }
+]
+```
+
+```ts
+const handleMetricUpdate = async (assessmentId: string, value: string) => {
+  await api.put(`/assesment/${assessmentId}`, { complianceMetricValue: value });
+};
+```
+
+**Allowed fields for `PUT /api/assesment/:id`:**
+
+| Field | Description |
+|---|---|
+| `complianceMetricValue` | Maturity level or percentage value — must match a valid value from the framework |
+| `status` | `open` \| `in_progress` \| `closed` \| `drafted` |
+| `attachments` | Array of attachment URLs |
+| `description` | Assessment description |
+| `auditorNotes` | Auditor's notes (string or null) |
+
+**Error Responses:**
+```json
+{ "error": "Assessment not found" }                          // 404
+{ "error": "Invalid complianceMetricValue for this framework" } // 400
+```
+
+---
+
+#### Closing an Assessment
+
+**Who can do this:** `compliance_specialist` and `compliance_manager`
+
+```ts
+const canClose = user.systemRoles.some(r =>
+  ['compliance_specialist', 'compliance_manager'].includes(r)
+);
+```
+
+```
+PUT /api/assesment/:id
+
+{ "status": "closed" }
+```
 
 ---
 

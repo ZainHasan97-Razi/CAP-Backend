@@ -38,7 +38,7 @@ Permissions follow a **module-based convention**:
 |---|---|---|---|
 | `view_dashboard` | view | View Dashboard | Access the dashboard / analytics page |
 | `view_assessment` | view | View Assessments | Access the assessments list and detail pages |
-| `manage_assessment` | action | Manage Assessments | Create, approve, reject, revert and close assessments |
+| `manage_assessment` | action | Manage Assessments | Create, assign controls, update maturity level, close assessments, and bulk close controls |
 | `view_framework` | view | View Frameworks | Access the frameworks list and detail pages |
 | `manage_framework` | action | Manage Frameworks | Upload, edit and delete compliance frameworks |
 | `view_control` | view | View Controls | Access the controls list and detail pages |
@@ -59,8 +59,8 @@ Permissions follow a **module-based convention**:
 
 | Key | Label | Description |
 |---|---|---|
-| `compliance_specialist` | Compliance Specialist | Creates assessments, assigns controls and findings, handles approval workflow |
-| `compliance_manager` | Compliance Manager | Creates, manages, validates and approves assessments, assigns assessments to team |
+| `compliance_specialist` | Compliance Specialist | Creates assessments, assigns controls, updates maturity level, handles approval workflow |
+| `compliance_manager` | Compliance Manager | Creates, manages, validates and closes assessments, updates maturity level, bulk-closes controls |
 | `control_owner` | Control Owner | Raises evidence, provides action plans and target date commitments |
 | `executive` | Executive | Views the executive dashboard and reports |
 | `auditor` | Auditor | Same as Compliance Specialist plus validates compliance closure assessments |
@@ -80,6 +80,27 @@ Permissions follow a **module-based convention**:
 | `super_admin` | `view_dashboard`, `view_framework`, `manage_framework`, `view_control`, `manage_control`, `view_user`, `manage_user`, `view_department`, `manage_department`, `view_report`, `manage_roles_permissions`, `manage_platform` |
 
 > `super_admin` can fully manage frameworks and controls but is intentionally blocked from all assessment and evidence operations. Assessment creation, updates, assign-controls, import-evidence, and approval are blocked at the route level — a `super_admin` will receive a `403` on any of those actions.
+
+---
+
+## Assessment Action — Role Reference
+
+Quick reference for which roles can perform each assessment-related action. Use this to drive frontend button visibility.
+
+| Action | compliance_specialist | compliance_manager | auditor | control_owner | super_admin |
+|---|---|---|---|---|---|
+| Create assessment | ✅ | ✅ | ❌ | ❌ | ❌ |
+| Assign controls | ✅ | ✅ | ❌ | ❌ | ❌ |
+| Update maturity level (`complianceMetricValue`) | ✅ | ✅ | ❌ | ❌ | ❌ |
+| Close assessment (`status: closed`) | ✅ | ✅ | ❌ | ❌ | ❌ |
+| Bulk close controls | ❌ | ✅ | ❌ | ❌ | ❌ |
+| Upload evidence (comments) | ✅ | ✅ | ✅ | ✅ | ❌ |
+| Approve / reject evidence | ✅ | ❌ | ❌ | ❌ | ❌ |
+| Import evidence | ✅ | ✅ | ❌ | ❌ | ❌ |
+| Update password of any user | ❌ | ❌ | ❌ | ❌ | ✅ |
+| Assign system roles to users | ❌ | ❌ | ❌ | ❌ | ✅ |
+
+> Rows marked ❌ for a role mean the backend will return `403` or the button should not be rendered in the UI.
 
 ---
 
@@ -182,6 +203,22 @@ Assigns system roles to a user. **Only `super_admin` can call this.**
   "message": "System roles updated",
   "user": { ... }
 }
+```
+
+---
+
+### `PATCH /api/user/:id/password`
+
+Updates the password for any user. **Only `super_admin` can call this.**
+
+**Body:**
+```json
+{ "password": "NewPass@1234" }
+```
+
+**Response:**
+```json
+{ "message": "Password updated successfully" }
 ```
 
 ---
