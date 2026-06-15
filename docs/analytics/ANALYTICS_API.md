@@ -514,7 +514,7 @@ Array<{
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `averageScore` | number \| null | Average of all numeric `complianceMetricValue` fields, rounded to 1 decimal. `null` when values are non-numeric |
+| `averageScore` | number \| null | **`maturity_level` only.** Weighted average: `(ML1*nc1 + ML2*nc2 + ... + MLn*ncn) / (nc1+nc2+...+ncn)`. Excludes controls at value `"0"` (unassessed/default) and `null` from both numerator and denominator. `null` when all controls are at `"0"` or unassessed, or when values are non-numeric |
 | `dominantValue` | string \| null | Label of the most common value when metric values are non-numeric. `null` when values are numeric |
 | `distribution` | array | Count per metric value: `[{ value, label, count }]` (all possible values included, even if count = 0) |
 
@@ -528,17 +528,34 @@ Example: 28 closed, 9 in_progress, 8 open out of 45 total
   completionPercentage = round(28 / 45 * 100) = 62
 ```
 
-#### `maturity_level` — Metric value average or dominant label
+#### `maturity_level` — Weighted average excluding zero
+
+> **Applies only to frameworks where `complianceMetric.type === "maturity_level"`.**
+> `percentage` type frameworks use status-based `completionPercentage` instead and never return `averageScore`.
+
 ```
-averageScore = sum(complianceMetricValue) / count(assessments with a value)
+averageScore = (ML1*nc1 + ML2*nc2 + ... + MLn*ncn) / (nc1 + nc2 + ... + ncn)
 
-Numeric example:
-  2 at Level 5 → 10, 2 at Level 1 → 2, 1 at Level 3 → 3
-  averageScore = 15 / 5 = 3.0
+Where:
+  MLx  = numeric maturity level value (e.g. 1, 2, 3, 4, 5)
+  ncx  = number of controls at that level
 
-Non-numeric example (values like "implemented", "not-implemented"):
-  averageScore = null
-  dominantValue = label of the value with the highest count
+Excludes: value "0" (default/unassessed) and null from both numerator and denominator.
+Controls still at "0" are counted in the distribution bar chart but NOT in the average.
+
+Example — 10 controls: 3 at L1, 4 at L3, 2 at L5, 1 at L0 (excluded)
+  averageScore = (1*3 + 3*4 + 5*2) / (3 + 4 + 2)
+               = (3 + 12 + 10) / 9
+               = 25 / 9
+               = 2.78
+
+If ALL controls are at "0" or null → averageScore = null
+```
+
+Non-numeric example (values like `"implemented"`, `"not-implemented"`):
+```
+averageScore = null
+dominantValue = label of the value with the highest count ("0" included in this fallback)
 ```
 
 ### Score Display Logic
@@ -546,13 +563,14 @@ Non-numeric example (values like "implemented", "not-implemented"):
 ```typescript
 function getScoreDisplay(framework) {
   if (framework.metricType === 'percentage') {
-    return `${framework.completionPercentage}%`;  // e.g. "62%"
+    return `${framework.completionPercentage}%`;     // e.g. "62%"
   }
   // maturity_level
   if (framework.averageScore !== null) {
-    return `${framework.averageScore} / 5`;       // e.g. "3.0 / 5"
+    const max = framework.distribution.length - 1;  // max level derived from values count
+    return `${framework.averageScore} / ${max}`;    // e.g. "2.78 / 5"
   }
-  return framework.dominantValue ?? 'N/A';        // e.g. "Partially Implemented"
+  return framework.dominantValue ?? 'N/A';           // e.g. "Partially Implemented"
 }
 ```
 
@@ -572,7 +590,7 @@ GET http://localhost:9000/api/assesment/framework-summaries?startDate=1704067200
     "metricType": "maturity_level",
     "metricLabel": "Maturity Level",
     "totalApplicableControls": 5,
-    "averageScore": 3.0,
+    "averageScore": 2.78,
     "dominantValue": null,
     "distribution": [
       { "value": "1", "label": "Initial", "count": 2 },

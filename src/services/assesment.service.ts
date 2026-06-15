@@ -495,29 +495,34 @@ const getFrameworkSummaries = async (filters: { startDate?: number; endDate?: nu
         });
       }
 
-      let totalNumericValue = 0;
-      let countWithValue = 0;
+      // weighted average: (ML1*nc1 + ML2*nc2 + ... MLn*ncn) / (nc1+nc2+...+ncn)
+      // excludes value "0" and null from both numerator and denominator
+      let weightedSum = 0;
+      let eligibleCount = 0;
       const valueCounts = new Map<string, number>();
 
       fwAssessments.forEach(a => {
-        if (a.complianceMetricValue) {
-          const strVal = String(a.complianceMetricValue);
-          const numVal = parseFloat(strVal);
-          if (!isNaN(numVal)) {
-            totalNumericValue += numVal;
-            countWithValue++;
-          }
+        const strVal = a.complianceMetricValue ? String(a.complianceMetricValue) : null;
+        if (strVal) {
           valueCounts.set(strVal, (valueCounts.get(strVal) || 0) + 1);
           const dist = distributionMap.get(strVal);
           if (dist) dist.count++;
+        }
+        // exclude null and "0" from weighted average
+        if (strVal && strVal !== '0') {
+          const numVal = parseFloat(strVal);
+          if (!isNaN(numVal)) {
+            weightedSum += numVal;
+            eligibleCount++;
+          }
         }
       });
 
       let averageScore: number | null = null;
       let dominantValue: string | null = null;
 
-      if (countWithValue > 0) {
-        averageScore = Math.round((totalNumericValue / countWithValue) * 10) / 10;
+      if (eligibleCount > 0) {
+        averageScore = Math.round((weightedSum / eligibleCount) * 100) / 100;
       } else if (valueCounts.size > 0) {
         let maxCount = 0;
         valueCounts.forEach((count, val) => {
