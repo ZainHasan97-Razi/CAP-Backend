@@ -27,4 +27,15 @@ ensureSystemRolesSeeded();
 
 app.listen(PORT, () => {
   console.log(`\x1b[34mServer is running on port:\x1b[0m \x1b[35m${PORT}\x1b[0m`);
+
+  const llmUrl = process.env.LLM_URL;
+  if (llmUrl) {
+    const ping = () =>
+      fetch(`${llmUrl}/health`)
+        .then(() => console.log('[AI Keep-Alive] pinged'))
+        .catch((err) => console.warn('[AI Keep-Alive] ping failed:', err.message));
+
+    ping();
+    setInterval(ping, 14 * 60 * 1000); // every 14 minutes
+  }
 });
