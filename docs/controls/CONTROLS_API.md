@@ -20,6 +20,7 @@ Controls are the individual compliance requirements within a framework, organize
   controlCode: string;      // e.g. "3.1.1-1" — unique per framework
   controlName: string;      // e.g. "Establish a cyber security committee"
   description: string;
+  notes: string;            // Evidence guidelines written by compliance team — shown to users on Assessment Detail Page
   properties: Record<string, string>;  // framework-specific custom fields
   status: "active" | "inactive";
 }
@@ -77,6 +78,7 @@ Returns full control details plus recent closed assessments for the same control
   "subdomainCode": "3.1.1",
   "subdomainName": "Cyber Security Governance",
   "description": "",
+  "notes": "",
   "status": "active",
   "properties": {},
   "recentAssessments": [
@@ -120,18 +122,23 @@ Returns full control details plus recent closed assessments for the same control
 ### Update Control
 **PATCH** `/api/control/update/:id`
 
+**Allowed roles:** `super_admin`, `compliance_manager`, `compliance_specialist` — all others get 403.
+
 `:id` is the MongoDB `_id`. Only these fields can be updated — `controlCode` and domain/subdomain fields are immutable after creation.
 
 ```json
 {
   "controlName": "Updated control name",
   "description": "Updated description",
+  "notes": "Please upload the signed committee charter and meeting minutes from the last 12 months.",
   "status": "inactive",
   "properties": {
     "riskLevel": "critical"
   }
 }
 ```
+
+**`notes` field** — Free-text evidence guidelines written by the compliance team. Displayed to users on the Assessment Detail Page when they are uploading evidence documents. Empty string by default.
 
 ---
 

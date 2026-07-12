@@ -29,8 +29,9 @@ export const updateControl_validation = validateRequest([
   body("description").optional({ nullable: true, checkFalsy: true }).trim(),
   body("properties").optional({ nullable: true, checkFalsy: true }).isObject().withMessage("Properties must be an object"),
   body("status").optional({ nullable: true, checkFalsy: true }).isIn(["active", "inactive"]).withMessage("Invalid status"),
+  body("notes").optional({ nullable: true }).trim(),
   body().custom((value, { req }) => {
-    const allowedFields = ['controlName', 'description', 'properties', 'status'];
+    const allowedFields = ['controlName', 'description', 'properties', 'status', 'notes'];
     const extraFields = Object.keys(req.body).filter(field => !allowedFields.includes(field));
     if (extraFields.length > 0) {
       throw new Error(`Unexpected fields: ${extraFields.join(', ')}`);
