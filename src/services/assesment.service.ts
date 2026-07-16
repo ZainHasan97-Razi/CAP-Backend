@@ -821,6 +821,36 @@ const importEvidence = async (targetAssessmentId: string | MongoIdType, sourceAs
 
   await targetAssessment.save();
 
+  // Trigger AI for each imported comment that has attachments (fire-and-forget)
+  const llmUrl = process.env.LLM_URL;
+  if (llmUrl && copiedComments.length > 0) {
+    const axios = (await import('axios')).default;
+    for (const comment of copiedComments) {
+      if (comment.attachments && comment.attachments.length > 0) {
+        (async () => {
+          try {
+            await axios.post(`${llmUrl}/evaluate`, {
+              assessment_id: targetAssessment._id.toString(),
+              evidence_type: comment.evidenceType ?? 'implementation',
+              comment: comment.content,
+              framework: targetAssessment.frameworkName,
+              definition: targetAssessment.controlName,
+              attachments: comment.attachments,
+            }, {
+              headers: {
+                'x-api-key': process.env.LLM_API_KEY || '',
+                'Content-Type': 'application/json',
+              },
+            });
+            console.log('[AI Trigger] Triggered on evidence import for assessment:', targetAssessment._id);
+          } catch (err: any) {
+            console.error('[AI Trigger] Failed on evidence import:', err.message);
+          }
+        })();
+      }
+    }
+  }
+
   return {
     message: "Evidence imported successfully",
     assessment: targetAssessment,
