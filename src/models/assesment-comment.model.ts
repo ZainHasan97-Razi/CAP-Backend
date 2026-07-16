@@ -25,6 +25,7 @@ export const assesmentCommentSchema = new Schema(
     attachments: { type: [String], default: [] },
     evidenceType: { type: String, enum: EvidenceTypeEnum, default: null },
     approvalStatus: { type: String, enum: ApprovalStatusEnum, default: null }, // null for replies or comments without attachments
+    evidenceValidatedAt: { type: Number, default: null }, // unix seconds, set by uploader, top-level comments only
     importedFrom: { type: mongoose.Types.ObjectId, default: null, ref: "Assesment" },
     isEdited: { type: Boolean, default: false },
     editedAt: { type: Date },

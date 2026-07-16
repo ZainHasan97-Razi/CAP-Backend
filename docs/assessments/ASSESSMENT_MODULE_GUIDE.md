@@ -671,10 +671,38 @@ One `assesmentId` UUID groups multiple DB records:
 
 ## Evidence & Approval Flow
 
-### How it works
+### Add Evidence Comment
 
+**POST** `/api/assesment-comment/:assessmentId/comments/create`
+
+```json
+{
+  "content": "This document outlines our access control policy",
+  "attachments": ["https://storage.example.com/policy.pdf"],
+  "evidenceType": "implementation",
+  "evidenceValidatedAt": 1704067200
+}
 ```
-Participant posts comment with attachment
+
+| Field | Required | Description |
+|-------|----------|-------------|
+| `content` | Yes | Comment text (max 2000 chars) |
+| `attachments` | No | Array of file URLs |
+| `evidenceType` | No | `implementation` \| `design` \| `architectural` |
+| `evidenceValidatedAt` | No | Unix timestamp (seconds) — the date the document/evidence was validated or issued. Top-level comments only. Preserved when evidence is reused across assessments. |
+
+**`evidenceValidatedAt` rules:**
+- Only applies to top-level comments (not replies)
+- Set by the person uploading the evidence
+- Carries over automatically when evidence is imported/reused in another assessment (common control or evidence import flow)
+- Use this to show how old the evidence is — e.g. "Validated 14 months ago"
+- Send `null` to clear it on update
+
+**Side effects:**
+- If assessment status is `open` and comment has attachments or evidenceType → status auto-updates to `in_progress`
+- Top-level comments with attachments get `approvalStatus: "pending"` automatically
+- Replies and plain-text comments get `approvalStatus: null`
+- AI analysis is triggered automatically when a top-level comment with attachments is posted
         ↓
 backend saves comment, approvalStatus = "pending"
 AI triggered immediately (fire-and-forget)
@@ -800,3 +828,32 @@ Arabic equivalents: `aiResult.arabic_output.grade`, `.gaps`, `.recommendations`.
 |----------------------|---------|
 | `null` | Manually added — preserved on re-import |
 | `ObjectId` | Imported from that assessment — replaced on re-import |
+
+---
+
+## Comment Shape Reference
+
+Fields returned on every comment from `GET /api/assesment-comment/:assessmentId/comments`:
+
+```typescript
+{
+  _id: string;
+  assessmentId: string;
+  parentCommentId: string | null;     // null = top-level
+  content: string;
+  author: string;
+  authorName: string;
+  attachments: string[];              // file URLs
+  evidenceType: "implementation" | "design" | "architectural" | null;
+  evidenceValidatedAt: number | null; // Unix timestamp — when the evidence was validated/issued
+  approvalStatus: "pending" | "approved" | "rejected" | null;
+  importedFrom: string | null;        // ObjectId of source assessment if imported
+  isEdited: boolean;
+  editedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+  replies: Comment[];                 // nested, top-level only
+}
+```
+
+`evidenceValidatedAt` is only meaningful on top-level comments with attachments. Replies always have it as `null`.

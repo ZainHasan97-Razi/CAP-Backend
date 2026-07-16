@@ -255,7 +255,7 @@ export const importEvidence = async (req: ARequest, res: Response, next: NextFun
     const { sourceAssessmentId } = req.body;
     const user = req.user as IUser;
 
-    const result = await assesmentService.importEvidence(id, sourceAssessmentId, user.userName);
+    const result = await assesmentService.importEvidence(id, sourceAssessmentId, user.userName, user.email);
     res.json(result);
   } catch (error) {
     console.error(error);

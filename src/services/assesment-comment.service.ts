@@ -85,6 +85,7 @@ const copyCommentsFromAssessment = async (
     authorName: userName,
     attachments: comment.attachments || [],
     evidenceType: comment.evidenceType,
+    evidenceValidatedAt: comment.evidenceValidatedAt ?? null,
     importedFrom: importedFromId || null
   }));
   

@@ -9,6 +9,7 @@ export const createComment_validation = validateRequest([
   body("content").trim().isLength({min: 1, max: 2000}).withMessage("Content must be between 1-2000 characters"),
   body("attachments").optional().isArray().withMessage("Attachments must be an array"),
   body("evidenceType").optional().isIn(evidenceTypeValues).withMessage("Invalid evidence type"),
+  body("evidenceValidatedAt").optional({ nullable: true }).isInt({ min: 1 }).withMessage("evidenceValidatedAt must be a valid Unix timestamp"),
 ]);
 
 export const createReply_validation = validateRequest([
@@ -23,6 +24,7 @@ export const updateComment_validation = validateRequest([
   body("content").trim().isLength({min: 1, max: 2000}).withMessage("Content must be between 1-2000 characters"),
   body("attachments").optional().isArray().withMessage("Attachments must be an array"),
   body("evidenceType").optional().isIn(evidenceTypeValues).withMessage("Invalid evidence type"),
+  body("evidenceValidatedAt").optional({ nullable: true }).isInt({ min: 1 }).withMessage("evidenceValidatedAt must be a valid Unix timestamp"),
 ]);
 
 export const deleteComment_validation = validateRequest([

@@ -86,6 +86,7 @@ export const createReply = async (req: ARequest, res: Response, next: NextFuncti
       author: user.userName,
       authorName: user.userName,
       evidenceType: parentComment.evidenceType, // Inherit from parent
+      evidenceValidatedAt: undefined, // not allowed on replies
     };
     
     const reply = await assesmentCommentService.create(payload);
@@ -118,6 +119,10 @@ export const updateComment = async (req: ARequest, res: Response, next: NextFunc
     
     if (!comment.parentCommentId && req.body.evidenceType !== undefined) {
       updateData.evidenceType = req.body.evidenceType;
+    }
+
+    if (!comment.parentCommentId && req.body.evidenceValidatedAt !== undefined) {
+      updateData.evidenceValidatedAt = req.body.evidenceValidatedAt;
     }
     
     const updatedComment = await assesmentCommentService.update(commentId, updateData);

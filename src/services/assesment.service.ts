@@ -734,61 +734,58 @@ const getFrameworkAnalytics = async (frameworkId: string, filters: { startDate?:
   };
 };
 
-const importEvidence = async (targetAssessmentId: string | MongoIdType, sourceAssessmentId: string | MongoIdType, userName: string) => {
+const importEvidence = async (targetAssessmentId: string | MongoIdType, sourceAssessmentId: string | MongoIdType, userName: string, userEmail: string) => {
+  const { ApiError } = await import("../middleware/validate.request");
+
   const targetAssessment = await AssesmentModel.findById(targetAssessmentId);
-  if (!targetAssessment) {
-    throw new Error("Assessment not found");
-  }
+  if (!targetAssessment) throw ApiError.notFound("Assessment not found");
 
   const sourceAssessment = await AssesmentModel.findById(sourceAssessmentId);
-  if (!sourceAssessment) {
-    throw new Error("Source assessment not found");
+  if (!sourceAssessment) throw ApiError.notFound("Source assessment not found");
+
+  if (targetAssessment.status === AssesmentStatusEnum.closed) {
+    throw ApiError.badRequest("Cannot import evidence into a closed assessment");
   }
 
-  // Validate status
-  if (targetAssessment.status === AssesmentStatusEnum.closed) {
-    throw new Error("Cannot import evidence: assessment is closed or discarded");
+  if (!targetAssessment.control) {
+    throw ApiError.badRequest("Cannot import evidence into a drafted assessment — assign a control first");
+  }
+
+  if (!sourceAssessment.control) {
+    throw ApiError.badRequest("Source assessment has no control assigned");
+  }
+
+  // Allow if user is the creator OR a participant on the target assessment
+  const isOwner = targetAssessment.createdBy === userName;
+  const isParticipant = targetAssessment.participants.includes(userEmail);
+  if (!isOwner && !isParticipant) {
+    throw ApiError.forbidden("Only the assessment owner or an assigned participant can import evidence");
   }
 
   // Validate control match - allow if:
   // 1. Same control ObjectId
-  // 2. Same assesmentId (common assessment group)  
+  // 2. Same assesmentId (common assessment group)
   // 3. Both controls belong to same common control
   const sameControl = targetAssessment.control.toString() === sourceAssessment.control.toString();
   const sameAssessmentGroup = targetAssessment.assesmentId === sourceAssessment.assesmentId;
-  
+
   let belongToSameCommonControl = false;
   if (!sameControl && !sameAssessmentGroup) {
-    // Check if both controls belong to same common control by querying directly
     const CommonControlModel = (await import("../models/common-control.model")).default;
-    const targetControlId = targetAssessment.control.toString();
     const sourceControlId = sourceAssessment.control.toString();
-    
-    // Find common controls that contain the target control
     const commonControlsWithTarget = await CommonControlModel.find({
       'mappedControls.controlId': targetAssessment.control
     }).lean();
-    
-    // Check if any of these common controls also contain the source control
     for (const cc of commonControlsWithTarget) {
-      const hasSourceControl = cc.mappedControls.some(
-        (mc: any) => mc.controlId && mc.controlId.toString() === sourceControlId
-      );
-      
-      if (hasSourceControl) {
+      if (cc.mappedControls.some((mc: any) => mc.controlId?.toString() === sourceControlId)) {
         belongToSameCommonControl = true;
         break;
       }
     }
   }
-  
-  if (!sameControl && !sameAssessmentGroup && !belongToSameCommonControl) {
-    throw new Error("Cannot import evidence: assessments have different controls");
-  }
 
-  // Validate ownership
-  if (targetAssessment.createdBy !== userName) {
-    throw new Error("Only assessment owner can import evidence");
+  if (!sameControl && !sameAssessmentGroup && !belongToSameCommonControl) {
+    throw ApiError.badRequest("Cannot import evidence: assessments have different controls");
   }
 
   // Delete previously imported comments if re-importing
