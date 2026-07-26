@@ -112,7 +112,6 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<SystemRoleEnumType, PermissionEnum
     'view_framework',
     'view_control',
     'view_evidence',
-    'manage_evidence',
     'view_user',
     'view_report',
   ],

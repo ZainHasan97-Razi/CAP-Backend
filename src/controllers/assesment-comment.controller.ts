@@ -10,6 +10,17 @@ import axios from "axios";
 export const getComments = async (req: ARequest, res: Response, next: NextFunction) => {
   try {
     const { assessmentId } = req.params;
+    const user = req.user as IUser;
+
+    // Row-level security: control_owner can only view comments for assessments they're assigned to
+    if (user.systemRoles?.includes('control_owner') && !user.systemRoles.some(r => r !== 'control_owner')) {
+      const assessment = await assesmentService.findById(assessmentId);
+      if (!assessment) throw ApiError.notFound('Assessment not found');
+      if (!assessment.participants.includes(user.email)) {
+        throw ApiError.forbidden('You are not assigned to this assessment');
+      }
+    }
+
     const comments = await assesmentCommentService.findByAssessmentId(assessmentId);
     res.json({ message: 'Request success', comments });
   } catch (error) {
@@ -174,6 +185,11 @@ export const updateApproval = async (req: ARequest, res: Response, next: NextFun
     const canApprove = user.systemRoles?.includes('compliance_specialist');
     if (!canApprove) {
       throw ApiError.forbidden('Only compliance specialists can approve evidence');
+    }
+
+    // SoD: creator cannot approve their own evidence
+    if (assessment.createdBy === user.userName) {
+      throw ApiError.forbidden('Assessment creator cannot approve evidence on their own assessment');
     }
 
     const updated = await assesmentCommentService.setApprovalStatus(commentId, status);
