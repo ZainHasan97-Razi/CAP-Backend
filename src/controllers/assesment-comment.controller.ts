@@ -5,23 +5,30 @@ import assesmentService from "../services/assesment.service";
 import { ApiError } from "../middleware/validate.request";
 import { IUser } from "types/req.user.type";
 import { ApprovalStatusEnum } from "../models/assesment-comment.model";
+import userActivityService from "../services/user-activity.service";
 import axios from "axios";
+
+const getIp = (req: any) =>
+  (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() ||
+  req.socket?.remoteAddress || 'unknown';
 
 export const getComments = async (req: ARequest, res: Response, next: NextFunction) => {
   try {
     const { assessmentId } = req.params;
     const user = req.user as IUser;
 
-    // Row-level security: control_owner can only view comments for assessments they're assigned to
-    if (user.systemRoles?.includes('control_owner') && !user.systemRoles.some(r => r !== 'control_owner')) {
-      const assessment = await assesmentService.findById(assessmentId);
-      if (!assessment) throw ApiError.notFound('Assessment not found');
-      if (!assessment.participants.includes(user.email)) {
-        throw ApiError.forbidden('You are not assigned to this assessment');
-      }
-    }
-
     const comments = await assesmentCommentService.findByAssessmentId(assessmentId);
+
+    // Read-receipt log — evidence view event
+    userActivityService.auditLog({
+      userId: user._id, userName: user.userName, email: user.email,
+      sessionId: user.sessionId, ipAddress: getIp(req),
+      eventType: 'EVIDENCE', eventSubtype: 'EVIDENCE_VIEW',
+      resourceType: 'EVIDENCE', resourceId: assessmentId,
+      action: 'READ', result: 'SUCCESS',
+      apiUrl: req.originalUrl, method: req.method,
+    }).catch(() => {});
+
     res.json({ message: 'Request success', comments });
   } catch (error) {
     console.error(error);
@@ -33,15 +40,47 @@ export const createComment = async (req: ARequest, res: Response, next: NextFunc
   try {
     const { assessmentId } = req.params;
     const user = req.user as IUser;
-    
+
+    // SoD: only compliance_manager or control_owner can upload evidence (attachments)
+    const hasAttachments = req.body.attachments?.length > 0;
+    if (hasAttachments) {
+      const canUpload = user.systemRoles?.some(r => r === 'compliance_manager' || r === 'control_owner');
+      if (!canUpload) {
+        userActivityService.auditLog({
+          userId: user._id, userName: user.userName, email: user.email,
+          sessionId: user.sessionId, ipAddress: getIp(req),
+          eventType: 'AUTHORIZATION', eventSubtype: 'ACCESS_DENIED',
+          resourceType: 'EVIDENCE', resourceId: assessmentId,
+          action: 'CREATE', result: 'DENIED',
+          failureReason: 'Role not permitted to upload evidence',
+          apiUrl: req.originalUrl, method: req.method,
+        }).catch(() => {});
+        throw ApiError.forbidden('Only compliance managers and control owners can upload evidence');
+      }
+    }
+
     const payload = {
       ...req.body,
       assessmentId,
       author: user.userName,
       authorName: user.userName,
     };
-    
+
     const comment = await assesmentCommentService.create(payload);
+
+    // Evidence upload audit log
+    if (hasAttachments) {
+      userActivityService.auditLog({
+        userId: user._id, userName: user.userName, email: user.email,
+        sessionId: user.sessionId, ipAddress: getIp(req),
+        eventType: 'EVIDENCE', eventSubtype: 'EVIDENCE_UPLOAD',
+        resourceType: 'EVIDENCE', resourceId: comment._id.toString(),
+        action: 'CREATE', result: 'SUCCESS',
+        afterValue: { assessmentId, attachments: payload.attachments, evidenceType: payload.evidenceType },
+        apiUrl: req.originalUrl, method: req.method,
+      }).catch(() => {});
+    }
+
     res.json({ message: 'Comment created successfully', comment });
 
     // Trigger AI when a top-level comment is posted with attachments
@@ -147,19 +186,41 @@ export const updateComment = async (req: ARequest, res: Response, next: NextFunc
 export const deleteComment = async (req: ARequest, res: Response, next: NextFunction) => {
   try {
     const { commentId } = req.params;
-    
+
     const comment = await assesmentCommentService.findById(commentId);
     if (!comment) {
       throw ApiError.badRequest("Comment not found");
     }
-    
+
     const user = req.user as IUser;
     if (comment.author !== user.userName) {
       throw ApiError.forbidden("You can only delete your own comments");
     }
-    
+
     await assesmentCommentService.deleteById(commentId);
+
+    userActivityService.auditLog({
+      userId: user._id, userName: user.userName, email: user.email,
+      sessionId: user.sessionId, ipAddress: getIp(req),
+      eventType: 'EVIDENCE', eventSubtype: 'EVIDENCE_DELETE',
+      resourceType: 'EVIDENCE', resourceId: commentId,
+      action: 'DELETE', result: 'SUCCESS',
+      beforeValue: { assessmentId: comment.assessmentId, attachments: comment.attachments },
+      apiUrl: req.originalUrl, method: req.method,
+    }).catch(() => {});
+
     res.json({ message: 'Comment deleted successfully' });
+  } catch (error) {
+    console.error(error);
+    next(error);
+  }
+};
+
+export const getCommentVersionHistory = async (req: ARequest, res: Response, next: NextFunction) => {
+  try {
+    const { commentId } = req.params;
+    const versions = await assesmentCommentService.getVersionHistory(commentId);
+    res.json({ message: 'Request success', versions });
   } catch (error) {
     console.error(error);
     next(error);
@@ -179,12 +240,12 @@ export const updateApproval = async (req: ARequest, res: Response, next: NextFun
       throw ApiError.badRequest('Only comments with attachments can be approved');
     }
 
-    // Only compliance_specialist can approve/reject
+    // Only compliance_manager or assessment_reviewer can approve/reject evidence
     const assessment = await assesmentService.findById(comment.assessmentId.toString());
     if (!assessment) throw ApiError.notFound('Assessment not found');
-    const canApprove = user.systemRoles?.includes('compliance_specialist');
+    const canApprove = user.systemRoles?.some(r => r === 'compliance_manager' || r === 'assessment_reviewer');
     if (!canApprove) {
-      throw ApiError.forbidden('Only compliance specialists can approve evidence');
+      throw ApiError.forbidden('Only compliance managers and assessment reviewers can approve evidence');
     }
 
     // SoD: creator cannot approve their own evidence

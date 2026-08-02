@@ -69,12 +69,45 @@ const updateSystemRoles = async (id: string, systemRoles: string[]) => {
 
 const updatePassword = async (id: string, newPassword: string) => {
   const bcrypt = require('bcryptjs');
+  const user = await UserModel.findById(id);
+  if (!user) throw new Error('User not found');
+
+  // Check last 12 passwords for reuse
+  const history = user.passwordHistory ?? [];
+  for (const oldHash of history) {
+    const reused = await bcrypt.compare(newPassword, oldHash);
+    if (reused) throw new Error('Password was used recently. Choose a different password.');
+  }
+
   const hashed = await bcrypt.hash(newPassword, 12);
-  return await UserModel.findByIdAndUpdate(id, { password: hashed }, { new: true }).select('-password');
+  const updatedHistory = [hashed, ...history].slice(0, 12);
+
+  return await UserModel.findByIdAndUpdate(
+    id,
+    { password: hashed, passwordHistory: updatedHistory },
+    { new: true }
+  ).select('-password');
 };
 
 const updateSessionId = async (id: string, sessionId: string | null) => {
   return await UserModel.findByIdAndUpdate(id, { sessionId });
+};
+
+const incrementFailedLogin = async (email: string) => {
+  const LOCK_AFTER  = 5;
+  const LOCK_MINUTES = 30;
+  const user = await UserModel.findOne({ email });
+  if (!user) return null;
+  const attempts = (user.failedLoginAttempts ?? 0) + 1;
+  const update: any = { failedLoginAttempts: attempts };
+  if (attempts >= LOCK_AFTER) {
+    update.lockedUntil = new Date(Date.now() + LOCK_MINUTES * 60 * 1000);
+  }
+  return await UserModel.findByIdAndUpdate(user._id, update, { new: true });
+};
+
+const resetFailedLogin = async (id: string) => {
+  return await UserModel.findByIdAndUpdate(id, { failedLoginAttempts: 0, lockedUntil: null });
 };
 
 export default {
@@ -86,4 +119,6 @@ export default {
   updateSystemRoles,
   updateSessionId,
   updatePassword,
+  incrementFailedLogin,
+  resetFailedLogin,
 }

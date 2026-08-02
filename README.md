@@ -57,6 +57,9 @@ CAP (Compliance Assessment Platform) is a backend system for managing compliance
 | GET | `/api/assesment/:assesmentId/assigned-controls` | Get already-assigned controls for an assessment |
 | POST | `/api/assesment/:assesmentId/assign-controls` | Assign controls to a drafted assessment |
 | PATCH | `/api/assesment/assigned-controls/:assessmentRecordId` | Update departments or participants on an assigned control |
+| PATCH | `/api/assesment/:assesmentId/bulk-close` | Bulk close selected control records — `compliance_manager` only |
+| PATCH | `/api/assesment/:id/request-review` | Request reviewer sign-off — `compliance_manager` only |
+| PATCH | `/api/assesment/:id/reviewer-signoff` | Approve assessment for closure — `assessment_reviewer` only |
 | GET | `/api/assesment/:id` | Get assessment details |
 | PUT | `/api/assesment/:id` | Update an assessment |
 | PATCH | `/api/assesment/:id/import-evidence` | Import evidence from another assessment |
@@ -64,16 +67,23 @@ CAP (Compliance Assessment Platform) is a backend system for managing compliance
 ### Assessment Comments (Evidence)
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| POST | `/api/assesment-comment/:assessmentId/comments/create` | Add a comment/evidence |
-| GET | `/api/assesment-comment/:assessmentId/comments` | Get comments for an assessment |
-| PATCH | `/api/assesment-comment/comments/:commentId/approval` | Approve or reject evidence |
+| POST | `/api/assesment-comment/:assessmentId/comments/create` | Add a comment/evidence — attachments restricted to `compliance_manager` and `control_owner` |
+| GET | `/api/assesment-comment/:assessmentId/comments` | Get comments for an assessment (includes `isStale` flag) |
+| PATCH | `/api/assesment-comment/comments/:commentId/approval` | Approve or reject evidence — `compliance_manager` or `assessment_reviewer` only |
+| GET | `/api/assesment-comment/comments/:commentId/versions` | Get full version history for a comment |
 
 ### Analytics
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | GET | `/api/assesment/analytics` | Overall analytics with per-framework distribution |
 | GET | `/api/assesment/framework-summaries` | Framework cards with average score and hover distribution |
+| GET | `/api/assesment/framework-analytics/:frameworkId` | Single-framework graph data with optional domain filter |
 | GET | `/api/assessments/by-metric` | Paginated assessment list for a specific metric value |
+
+### Audit Logs
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| GET | `/api/activity/list` | Bearer token — `auditor` or `super_admin` only | List audit log entries (paginated) |
 
 ### Common Controls
 | Method | Endpoint | Description |
@@ -121,9 +131,40 @@ CAP (Compliance Assessment Platform) is a backend system for managing compliance
 
 **Compliance Metric** — Every framework defines a `complianceMetric` (either `maturity_level` or `percentage`) that drives how assessment scores are tracked and displayed.
 
-**Evidence flow** — Participants upload evidence via comments → Auditor approves → AI analyzes → Result stored on the assessment.
+**Evidence flow** — `compliance_manager` or `control_owner` uploads evidence via comments → `compliance_manager` or `assessment_reviewer` approves → AI analyzes → Result stored on the assessment. The assessment creator cannot approve their own evidence (SoD enforcement).
 
-**Roles** — Users have `systemRoles` (e.g. `compliance_specialist`, `auditor`, `super_admin`) that map to granular `view_*` / `manage_*` permissions.
+**Roles** — Users have `systemRoles` (e.g. `compliance_specialist`, `auditor`, `super_admin`) that map to granular `view_*` / `manage_*` permissions. See [Roles & Permissions](docs/roles/ROLES_AND_PERMISSIONS.md) for the full matrix.
+
+**Segregation of Duties (SoD)** — Key enforced separations:
+- `super_admin` cannot create, update, or approve assessments or evidence — blocked at route level
+- `compliance_specialist` cannot upload evidence attachments — only plain-text comments
+- `auditor` is strictly read-only — no `manage_evidence`
+- Assessment creator (`createdBy`) cannot approve evidence on their own assessment
+- Assessment creator cannot sign off as `assessment_reviewer` on their own assessment
+- `super_admin` cannot modify their own `systemRoles`
+- `control_owner` is subject to row-level security — can only access assessments where their email is in `participants`
+
+**Assessment closure flow** — Closing requires a mandatory two-step sign-off: `compliance_manager` calls `PATCH /:id/request-review` → `assessment_reviewer` calls `PATCH /:id/reviewer-signoff` → `compliance_manager` calls `PUT /:id` with `{ status: "closed" }`. The backend rejects closure if `reviewerApproval` is not `"approved"`.
+
+**Session security** — `super_admin` JWT expires in 4 hours; all other roles in 8 hours. Account locks after 5 failed login attempts. Logout invalidates the server-side session immediately.
+
+**Audit logging** — All authentication events, role changes, password resets, access denials, and user creation are written to structured audit logs with SHA-256 hash for tamper detection. Logs auto-expire after a configurable TTL (default: 60 days).
+
+**Evidence versioning** — Every re-upload of attachments creates a new version; all prior versions are retained. Evidence older than 12 months is flagged as `isStale: true`.
+
+---
+
+## System Roles Summary
+
+| Role | JWT Expiry | Key Capabilities |
+|------|-----------|-----------------|
+| `compliance_specialist` | 8h | Create assessments, assign controls, update maturity level, import evidence |
+| `compliance_manager` | 8h | All specialist actions + upload evidence, approve evidence, request reviewer sign-off, close assessments (after reviewer approval), bulk-close controls |
+| `control_owner` | 8h | Upload evidence and view comments for assigned controls only (row-level security enforced) |
+| `auditor` | 8h | Read-only access to all modules including audit logs |
+| `assessment_reviewer` | 8h | Read-only + mandatory second sign-off on evidence approval and assessment closure |
+| `executive` | 8h | Dashboard and reports only |
+| `super_admin` | 4h | User/role/department/framework/platform management only — zero assessment or evidence access |
 
 ---
 

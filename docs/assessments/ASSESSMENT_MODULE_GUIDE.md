@@ -474,19 +474,83 @@ const handleMetricUpdate = async (assessmentId: string, value: string) => {
 
 #### Closing an Assessment
 
-**Who can do this:** `compliance_specialist` and `compliance_manager`
+**Who can do this:** `compliance_manager` only — but only after an `assessment_reviewer` has signed off.
+
+Closing an assessment is a **two-step process**:
+
+```
+Step 1 — compliance_manager requests review:
+  PATCH /api/assesment/:id/request-review
+  → sets reviewerApproval: "pending"
+
+Step 2 — assessment_reviewer approves:
+  PATCH /api/assesment/:id/reviewer-signoff
+  → sets reviewerApproval: "approved"
+
+Step 3 — compliance_manager closes:
+  PUT /api/assesment/:id  { "status": "closed" }
+  → backend enforces reviewerApproval === "approved" before accepting
+```
+
+**`reviewerApproval` field values:**
+
+| Value | Meaning |
+|-------|---------|
+| `null` | No review requested yet |
+| `"pending"` | Review requested, awaiting `assessment_reviewer` sign-off |
+| `"approved"` | Reviewer signed off — assessment can now be closed |
+
+**Request Review**
+
+`PATCH /api/assesment/:id/request-review` — `compliance_manager` only
+
+```json
+// No body required
+```
+
+**Error Responses:**
+```json
+{ "error": "Cannot request review on a draft assessment" }         // 400
+{ "error": "Assessment is already closed" }                        // 400
+{ "error": "Review already requested" }                            // 400
+{ "error": "Assessment already approved by reviewer" }             // 400
+```
+
+**Reviewer Sign-off**
+
+`PATCH /api/assesment/:id/reviewer-signoff` — `assessment_reviewer` only
+
+```json
+// No body required
+```
+
+**Error Responses:**
+```json
+{ "error": "No pending review request for this assessment" }       // 400
+{ "error": "Assessment creator cannot sign off as reviewer" }      // 403
+```
+
+**Frontend button visibility:**
 
 ```ts
-const canClose = user.systemRoles.some(r =>
-  ['compliance_specialist', 'compliance_manager'].includes(r)
-);
+// Show "Request Review" button when:
+const canRequestReview =
+  user.systemRoles.includes('compliance_manager') &&
+  assessment.reviewerApproval === null &&
+  assessment.status !== 'closed';
+
+// Show "Approve for Closure" button when:
+const canSignOff =
+  user.systemRoles.includes('assessment_reviewer') &&
+  assessment.reviewerApproval === 'pending';
+
+// Show "Close Assessment" button when:
+const canClose =
+  user.systemRoles.includes('compliance_manager') &&
+  assessment.reviewerApproval === 'approved';
 ```
 
-```
-PUT /api/assesment/:id
-
-{ "status": "closed" }
-```
+> Closed assessments are **immutable** — once `status: closed` is set, no further updates of any kind are accepted. The backend returns `403` on any `PUT /api/assesment/:id` call against a closed record.
 
 ---
 
@@ -660,12 +724,15 @@ One `assesmentId` UUID groups multiple DB records:
 | POST | `/api/assesment/:assesmentId/assign-controls` | Assign controls to an assessment |
 | PATCH | `/api/assesment/assigned-controls/:assessmentRecordId` | Update departments or participants on an assigned control |
 | PATCH | `/api/assesment/:assesmentId/bulk-close` | Bulk close selected control records — `compliance_manager` only |
+| PATCH | `/api/assesment/:id/request-review` | Request reviewer sign-off — `compliance_manager` only |
+| PATCH | `/api/assesment/:id/reviewer-signoff` | Approve assessment for closure — `assessment_reviewer` only |
 | GET | `/api/assesment/:id` | Get a specific assessment record by MongoDB `_id` |
 | PUT | `/api/assesment/:id` | Update an assessment record |
 | PATCH | `/api/assesment/:id/import-evidence` | Import evidence from another assessment |
-| POST | `/api/assesment-comment/:assessmentId/comments/create` | Add evidence comment |
-| GET | `/api/assesment-comment/:assessmentId/comments` | Get comments for an assessment |
-| PATCH | `/api/assesment-comment/comments/:commentId/approval` | Approve or reject evidence |
+| POST | `/api/assesment-comment/:assessmentId/comments/create` | Add evidence comment — `compliance_manager` and `control_owner` only for attachments |
+| GET | `/api/assesment-comment/:assessmentId/comments` | Get comments for an assessment (includes `isStale` flag) |
+| PATCH | `/api/assesment-comment/comments/:commentId/approval` | Approve or reject evidence — `compliance_manager` or `assessment_reviewer` only |
+| GET | `/api/assesment-comment/comments/:commentId/versions` | Get full version history for a comment |
 
 ---
 
@@ -674,6 +741,8 @@ One `assesmentId` UUID groups multiple DB records:
 ### Add Evidence Comment
 
 **POST** `/api/assesment-comment/:assessmentId/comments/create`
+
+> **Who can upload evidence (attachments):** `compliance_manager` and `control_owner` only. All other roles (including `compliance_specialist`) can post plain-text comments but will receive `403` if `attachments` is non-empty.
 
 ```json
 {
@@ -729,10 +798,12 @@ Green badge   Red badge + specialist replies with reason
 
 ### Approval Button — Who Sees It
 
-Only `compliance_specialist` can approve or reject evidence.
+Only `compliance_manager` or `assessment_reviewer` can approve or reject evidence. The creator of the assessment (`createdBy`) is blocked from approving even if they hold one of these roles — enforced at the workflow level.
 
 ```ts
-const canApprove = user.systemRoles.includes('compliance_specialist');
+const canApprove = user.systemRoles.some(r =>
+  ['compliance_manager', 'assessment_reviewer'].includes(r)
+);
 // show approve/reject buttons only when canApprove && comment.approvalStatus !== null
 ```
 
@@ -767,10 +838,11 @@ const canApprove = user.systemRoles.includes('compliance_specialist');
 
 **Error Responses:**
 ```json
-{ "error": "Comment not found" }                                          // 404
-{ "error": "Cannot approve a reply" }                                     // 400
-{ "error": "Only comments with attachments can be approved" }             // 400
-{ "error": "Only compliance specialists can approve evidence" }           // 403
+{ "error": "Comment not found" }                                                              // 404
+{ "error": "Cannot approve a reply" }                                                         // 400
+{ "error": "Only comments with attachments can be approved" }                                 // 400
+{ "error": "Only compliance managers and assessment reviewers can approve evidence" }          // 403
+{ "error": "Assessment creator cannot approve evidence on their own assessment" }              // 403
 ```
 
 ### UI States per Comment
@@ -848,6 +920,9 @@ Fields returned on every comment from `GET /api/assesment-comment/:assessmentId/
   evidenceValidatedAt: number | null; // Unix timestamp — when the evidence was validated/issued
   approvalStatus: "pending" | "approved" | "rejected" | null;
   importedFrom: string | null;        // ObjectId of source assessment if imported
+  version: number;                    // starts at 1, increments each time attachments are changed
+  previousVersionId: string | null;   // ObjectId of the archived previous version document
+  isStale: boolean;                   // true if evidenceValidatedAt is older than 12 months
   isEdited: boolean;
   editedAt: string | null;
   createdAt: string;
@@ -857,3 +932,24 @@ Fields returned on every comment from `GET /api/assesment-comment/:assessmentId/
 ```
 
 `evidenceValidatedAt` is only meaningful on top-level comments with attachments. Replies always have it as `null`.
+
+`isStale` is a computed field — not stored in DB. When `true`, show a warning badge on the evidence item (e.g. "Evidence may be outdated — validated over 12 months ago").
+
+`version` starts at 1. Each time attachments are changed via `PUT /comments/:commentId/update`, the old state is archived as a new document and `version` is incremented on the live record.
+
+### Evidence Version History
+
+**GET** `/api/assesment-comment/comments/:commentId/versions`
+
+Returns the full version chain for a comment, from newest to oldest.
+
+```json
+{
+  "message": "Request success",
+  "versions": [
+    { "_id": "...", "version": 3, "attachments": [...], "createdAt": "..." },
+    { "_id": "...", "version": 2, "attachments": [...], "createdAt": "..." },
+    { "_id": "...", "version": 1, "attachments": [...], "createdAt": "..." }
+  ]
+}
+```

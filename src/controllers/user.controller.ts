@@ -4,6 +4,7 @@ import userService from "../services/user.service";
 import { ApiError } from "../middleware/validate.request";
 import { IUser } from "types/req.user.type";
 import { SystemRoleEnum } from "../models/system-role.model";
+import userActivityService from "../services/user-activity.service";
 
 export const findById = async (req: ARequest, res: Response, next: NextFunction) => {
   try {
@@ -63,10 +64,30 @@ export const updateSystemRoles = async (req: ARequest, res: Response, next: Next
     }
 
     const { id } = req.params;
+
+    // Self-assignment prevention
+    if (id === caller._id) {
+      throw ApiError.forbidden('Super admins cannot modify their own roles');
+    }
+
     const { systemRoles } = req.body;
 
+    const targetUser = await userService.findById(id);
+    if (!targetUser) throw ApiError.notFound('User not found');
+
     const user = await userService.updateSystemRoles(id, systemRoles);
-    if (!user) throw ApiError.notFound('User not found');
+
+    userActivityService.auditLog({
+      userId: caller._id, userName: caller.userName, email: caller.email,
+      sessionId: caller.sessionId,
+      eventType: 'ADMIN_ACTION', eventSubtype: 'ROLE_ASSIGNED',
+      resourceType: 'USER', resourceId: id,
+      action: 'UPDATE',
+      result: 'SUCCESS',
+      beforeValue: { systemRoles: targetUser.systemRoles },
+      afterValue:  { systemRoles },
+      apiUrl: req.originalUrl, method: req.method,
+    }).catch(() => {});
 
     res.json({ message: 'System roles updated', user });
   } catch (error) {
@@ -89,6 +110,16 @@ export const updatePassword = async (req: ARequest, res: Response, next: NextFun
     if (!user) throw ApiError.notFound('User not found');
 
     await userService.updatePassword(id, password);
+
+    userActivityService.auditLog({
+      userId: caller._id, userName: caller.userName, email: caller.email,
+      sessionId: caller.sessionId,
+      eventType: 'ADMIN_ACTION', eventSubtype: 'PASSWORD_RESET',
+      resourceType: 'USER', resourceId: id,
+      action: 'UPDATE', result: 'SUCCESS',
+      apiUrl: req.originalUrl, method: req.method,
+    }).catch(() => {});
+
     res.json({ message: 'Password updated successfully' });
   } catch (error) {
     console.error(error);

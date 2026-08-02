@@ -49,20 +49,20 @@ Creates a new user account.
 |---|---|---|---|
 | `userName` | Yes | 3–50 characters | Display name |
 | `email` | Yes | Valid email | Stored lowercase, must be unique |
-| `password` | Yes | Min 8 chars + uppercase + lowercase + special character | Hashed before storing |
+| `password` | Yes | Min 14 chars + uppercase + lowercase + number + special character | Hashed before storing. Last 12 passwords cannot be reused. |
 | `departmentId` | Yes | Valid MongoDB ObjectId | Must match an existing active department |
 | `systemRoles` | No | Array of valid role keys | Defaults to `["control_owner"]` if omitted |
 | `role` | No | String | Legacy field, defaults to `"guest"` — safe to omit |
 
 Valid `systemRoles` values:
-`compliance_specialist` `compliance_manager` `control_owner` `executive` `auditor` `super_admin`
+`compliance_specialist` `compliance_manager` `control_owner` `executive` `auditor` `assessment_reviewer` `super_admin`
 
 **Example:**
 ```json
 {
   "userName": "Jane Smith",
   "email": "jane@example.com",
-  "password": "Pass@1234",
+  "password": "SecurePass@1234!!",
   "departmentId": "64abc123def456",
   "systemRoles": ["compliance_specialist"]
 }
@@ -187,7 +187,7 @@ GET /api/user/by-departments?departmentIds=64abc...,64def...
 
 ### `PATCH /api/user/:id/system-roles`
 
-> `super_admin` only.
+> `super_admin` only. A super admin **cannot modify their own roles** — returns `403`.
 
 Replaces the `systemRoles` array for a user. This is a **full replace** — whatever array you send becomes the new value. Do not send partial/incremental updates.
 
@@ -206,8 +206,9 @@ Replaces the `systemRoles` array for a user. This is a **full replace** — what
 
 **Error Responses:**
 ```json
-{ "error": "Only super admins can update system roles" }  // 403
-{ "error": "User not found" }                             // 404
+{ "error": "Only super admins can update system roles" }       // 403
+{ "error": "Super admins cannot modify their own roles" }      // 403
+{ "error": "User not found" }                                  // 404
 ```
 
 ---
@@ -220,12 +221,12 @@ Updates the password for any user. The new password is hashed before storing. Th
 
 **Request Body:**
 ```json
-{ "password": "NewPass@1234" }
+{ "password": "NewSecurePass@1234!!" }
 ```
 
 | Field | Required | Validation |
 |---|---|---|
-| `password` | Yes | Min 6 characters |
+| `password` | Yes | Min 14 characters, uppercase, lowercase, number, special character. Cannot match any of the last 12 passwords. |
 
 **Response:**
 ```json
@@ -234,9 +235,9 @@ Updates the password for any user. The new password is hashed before storing. Th
 
 **Error Responses:**
 ```json
-{ "error": "Only super admins can update user passwords" }  // 403
-{ "error": "User not found" }                               // 404
-{ "error": "Password must be at least 6 characters" }       // 400
+{ "error": "Only super admins can update user passwords" }                    // 403
+{ "error": "User not found" }                                                 // 404
+{ "error": "Password was used recently. Choose a different password." }       // 400
 ```
 
 ---
@@ -389,9 +390,10 @@ useEffect(() => {
 | `systemRoles` | Multi-select checkboxes | At least one recommended | Defaults to `control_owner` if left empty |
 
 **Password strength indicator** should check and display in real time:
-- Min 8 characters
+- Min 14 characters
 - At least one uppercase letter
 - At least one lowercase letter
+- At least one number
 - At least one special character (`!@#$%^&*(),.?":{}|<>`)
 
 **On submit:**
@@ -476,10 +478,11 @@ Triggered by the "Edit Roles" action on a user row. Only `super_admin` sees this
 | Role Key | Label | Description |
 |---|---|---|
 | `compliance_specialist` | Compliance Specialist | Creates assessments, assigns controls and findings |
-| `compliance_manager` | Compliance Manager | Validates and approves assessments |
-| `control_owner` | Control Owner | Raises evidence, provides action plans |
+| `compliance_manager` | Compliance Manager | Uploads evidence, approves evidence, closes assessments |
+| `control_owner` | Control Owner | Uploads evidence for assigned controls only |
 | `executive` | Executive | Views dashboard and reports only |
-| `auditor` | Auditor | Compliance Specialist + validates closure assessments |
+| `auditor` | Auditor | Read-only access to assessments, controls, evidence and reports |
+| `assessment_reviewer` | Assessment Reviewer | Independent second sign-off on evidence approval |
 | `super_admin` | Super Admin | System administration only — users, roles, departments, frameworks, controls and platform settings. **Cannot create or modify assessments or evidence.** |
 
 **On save:** send the full checked array — this is a replace, not an append:
@@ -554,8 +557,10 @@ const handleUpdatePassword = async (userId: string, newPassword: string) => {
 - [ ] Pre-populated with user's current `systemRoles`
 - [ ] Sends full array on save (full replace, not diff)
 - [ ] Save button disabled if zero roles selected
+- [ ] Super admin cannot edit their own roles — hide the "Edit Roles" button on their own row
 
 **Reset password modal**
 - [ ] Only `super_admin` can open it
-- [ ] Single password input, min 6 characters enforced client-side
+- [ ] Single password input, min 14 characters enforced client-side
+- [ ] Show strength indicator: uppercase, lowercase, number, special character
 - [ ] On success — show success toast and close modal

@@ -22,16 +22,26 @@ export const register_validation = validateRequest([
   body("email").isEmail().withMessage("Please enter a valid email."),
   body("password")
     .trim()
-    .isLength({ min: 8 })
-    .withMessage("Password must be at least 8 characters")
+    .isLength({ min: 14 })
+    .withMessage("Password must be at least 14 characters")
     .matches(/[a-z]/)
     .withMessage("Password must contain at least one lowercase letter")
     .matches(/[A-Z]/)
     .withMessage("Password must contain at least one uppercase letter")
+    .matches(/[0-9]/)
+    .withMessage("Password must contain at least one number")
     .matches(/[!@#$%^&*(),.?":{}|<>]/)
     .withMessage("Password must contain at least one special character"),
   body("role").optional().trim(),
   body("departmentId").isMongoId().withMessage("Department ID must be valid"),
   body("systemRoles").optional().isArray().withMessage("systemRoles must be an array"),
-  body("systemRoles.*").optional().isIn(['compliance_specialist','compliance_manager','control_owner','executive','auditor','super_admin']).withMessage("Invalid system role"),
+  body("systemRoles.*").optional().isIn(Object.values({
+    compliance_specialist: 'compliance_specialist',
+    compliance_manager: 'compliance_manager',
+    control_owner: 'control_owner',
+    executive: 'executive',
+    auditor: 'auditor',
+    assessment_reviewer: 'assessment_reviewer',
+    super_admin: 'super_admin',
+  })).withMessage("Invalid system role"),
 ]);

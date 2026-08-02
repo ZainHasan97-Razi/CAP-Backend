@@ -24,7 +24,10 @@ export const userSchema = new Schema(
       enum: Object.values(SystemRoleEnum),
       default: ['control_owner'],
     },
-    sessionId: { type: String, default: null },
+    sessionId:   { type: String, default: null },
+    failedLoginAttempts: { type: Number, default: 0 },
+    lockedUntil: { type: Date, default: null },
+    passwordHistory: { type: [String], default: [] }, // last 12 hashed passwords
   },
   { timestamps: true },
 );

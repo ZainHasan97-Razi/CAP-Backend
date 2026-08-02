@@ -1,4 +1,5 @@
-import UserActivityModel, { UserActivityDocument } from '../models/user-activity.model';
+import crypto from 'crypto';
+import UserActivityModel, { EventTypeEnumType, UserActivityDocument } from '../models/user-activity.model';
 
 export interface ActivityFilters {
   userId?:     string;
@@ -8,6 +9,26 @@ export interface ActivityFilters {
   action?:     string;
   method?:     string;
   statusCode?: string;
+}
+
+export interface AuditLogPayload {
+  userId:        string;
+  userName:      string;
+  email:         string;
+  sessionId?:    string;
+  ipAddress?:    string;
+  userAgent?:    string;
+  eventType:     EventTypeEnumType;
+  eventSubtype:  string;
+  resourceType?: string;
+  resourceId?:   string;
+  action?:       string;
+  result:        'SUCCESS' | 'FAILURE' | 'DENIED';
+  failureReason?: string;
+  beforeValue?:  any;
+  afterValue?:   any;
+  apiUrl?:       string;
+  method?:       string;
 }
 
 const buildQuery = (filters: ActivityFilters) => {
@@ -53,4 +74,42 @@ const create = async (data: Partial<UserActivityDocument>) => {
   await UserActivityModel.create(data);
 };
 
-export default { list, exportData, create };
+const auditLog = async (payload: AuditLogPayload) => {
+  try {
+    const logContent = JSON.stringify({
+      userId: payload.userId,
+      eventType: payload.eventType,
+      eventSubtype: payload.eventSubtype,
+      resourceType: payload.resourceType,
+      resourceId: payload.resourceId,
+      result: payload.result,
+      timestamp: new Date().toISOString(),
+    });
+    const logHash = crypto.createHash('sha256').update(logContent).digest('hex');
+
+    await UserActivityModel.create({
+      userId:        payload.userId,
+      userName:      payload.userName,
+      email:         payload.email,
+      apiUrl:        payload.apiUrl || '',
+      method:        payload.method || '',
+      eventType:     payload.eventType,
+      eventSubtype:  payload.eventSubtype,
+      sessionId:     payload.sessionId,
+      resourceType:  payload.resourceType,
+      resourceId:    payload.resourceId,
+      action:        payload.action,
+      result:        payload.result,
+      failureReason: payload.failureReason,
+      beforeValue:   payload.beforeValue,
+      afterValue:    payload.afterValue,
+      ipAddress:     payload.ipAddress,
+      device:        payload.userAgent ? { userAgent: payload.userAgent } : undefined,
+      logHash,
+    });
+  } catch (err) {
+    console.error('[AuditLog] failed to write:', err);
+  }
+};
+
+export default { list, exportData, create, auditLog };

@@ -5,7 +5,8 @@ let jwt = require('jsonwebtoken');
 // key will come from env
 
 export const issueJwt = (user: UserDocument, sessionId: string) => {
-  const expiresIn = '10d';
+  const isSuperAdmin = (user.systemRoles as string[])?.includes('super_admin');
+  const expiresIn = isSuperAdmin ? '4h' : '8h';
 
   const payload: IUser = {
     _id: user._id.toString(),

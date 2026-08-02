@@ -10,6 +10,12 @@ export const AssesmentStatusEnum = {
 } as const
 export type AssesmentStatusEnumType = keyof typeof AssesmentStatusEnum;
 
+export const ReviewerApprovalEnum = {
+  pending: "pending",
+  approved: "approved",
+} as const
+export type ReviewerApprovalEnumType = keyof typeof ReviewerApprovalEnum;
+
 export const assesmentSchema = new Schema(
   {
     assesmentId: {type: String, required: true}, // uuid so we can group multiple controlIds over an assesmentId (like one assesment)
@@ -32,6 +38,7 @@ export const assesmentSchema = new Schema(
     startDate: {type: Number, required: true}, // unix seconds
     dueDate: {type: Number, required: true}, // unix seconds
     createdBy: {type: String, required: true}, // some auditor person
+    reviewerApproval: { type: String, enum: ReviewerApprovalEnum, default: null }, // null = not requested, pending = awaiting reviewer, approved = reviewer signed off
   },
   { timestamps: true },
 );
@@ -39,7 +46,7 @@ export const assesmentSchema = new Schema(
 // export type AssesmentSchemaType = InferSchemaType<typeof assesmentSchema>;
 export type AssesmentSchemaType = ExtractAndFix<InferSchemaType<typeof assesmentSchema>>;
 export type AssesmentDocument = HydratedDocument<AssesmentSchemaType>;
-export type CreateAssesmentDto = Omit<AssesmentSchemaType, "createdAt" | "updatedAt" | "status" | "commonAssessmentId" | "complianceMetricValue" | "aiResult" | "auditorNotes">;
+export type CreateAssesmentDto = Omit<AssesmentSchemaType, "createdAt" | "updatedAt" | "status" | "commonAssessmentId" | "complianceMetricValue" | "aiResult" | "auditorNotes" | "reviewerApproval">;
 export type UpdateAssesmentDto = Omit<AssesmentSchemaType, "createdAt" | "updatedAt">;
 
 const AssesmentModel = model('Assesment', assesmentSchema);

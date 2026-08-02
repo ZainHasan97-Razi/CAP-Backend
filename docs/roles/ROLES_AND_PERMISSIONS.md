@@ -59,11 +59,12 @@ Permissions follow a **module-based convention**:
 
 | Key | Label | Description |
 |---|---|---|
-| `compliance_specialist` | Compliance Specialist | Creates assessments, assigns controls, updates maturity level, handles approval workflow |
-| `compliance_manager` | Compliance Manager | Creates, manages, validates and closes assessments, updates maturity level, bulk-closes controls |
-| `control_owner` | Control Owner | Raises evidence, provides action plans and target date commitments |
+| `compliance_specialist` | Compliance Specialist | Creates assessments, assigns controls, updates maturity level, evaluates controls |
+| `compliance_manager` | Compliance Manager | Creates, manages, uploads evidence, approves evidence, closes assessments, bulk-closes controls |
+| `control_owner` | Control Owner | Uploads evidence and views evidence for their assigned controls only |
 | `executive` | Executive | Views the executive dashboard and reports |
-| `auditor` | Auditor | Same as Compliance Specialist plus validates compliance closure assessments |
+| `auditor` | Auditor | Read-only access to assessments, controls, evidence and reports |
+| `assessment_reviewer` | Assessment Reviewer | Mandatory second sign-off on assessment approval and closure — independent validation role |
 | `super_admin` | Super Admin | System administration — manages users, roles, departments, frameworks, controls and platform settings. Cannot create or modify assessments or evidence. |
 
 ---
@@ -76,10 +77,15 @@ Permissions follow a **module-based convention**:
 | `compliance_manager` | `view_dashboard`, `view_assessment`, `manage_assessment`, `view_framework`, `view_control`, `view_evidence`, `manage_evidence`, `view_user`, `view_report` |
 | `control_owner` | `view_evidence`, `manage_evidence` |
 | `executive` | `view_dashboard`, `view_report` |
-| `auditor` | `view_dashboard`, `view_assessment`, `view_framework`, `view_control`, `view_evidence`, `manage_evidence`, `view_user`, `view_report` |
+| `auditor` | `view_dashboard`, `view_assessment`, `view_framework`, `view_control`, `view_evidence`, `view_user`, `view_report` |
+| `assessment_reviewer` | `view_dashboard`, `view_assessment`, `view_evidence`, `view_report` |
 | `super_admin` | `view_dashboard`, `view_framework`, `manage_framework`, `view_control`, `manage_control`, `view_user`, `manage_user`, `view_department`, `manage_department`, `view_report`, `manage_roles_permissions`, `manage_platform` |
 
 > `super_admin` can fully manage frameworks and controls but is intentionally blocked from all assessment and evidence operations. Assessment creation, updates, assign-controls, import-evidence, and approval are blocked at the route level — a `super_admin` will receive a `403` on any of those actions.
+
+> `auditor` is strictly read-only — `manage_evidence` has been removed to preserve audit independence.
+
+> `assessment_reviewer` is a read-only role with mandatory second sign-off capability on evidence approval. They cannot upload or modify evidence.
 
 ---
 
@@ -87,20 +93,45 @@ Permissions follow a **module-based convention**:
 
 Quick reference for which roles can perform each assessment-related action. Use this to drive frontend button visibility.
 
-| Action | compliance_specialist | compliance_manager | auditor | control_owner | super_admin |
-|---|---|---|---|---|---|
-| Create assessment | ✅ | ✅ | ❌ | ❌ | ❌ |
-| Assign controls | ✅ | ✅ | ❌ | ❌ | ❌ |
-| Update maturity level (`complianceMetricValue`) | ✅ | ✅ | ❌ | ❌ | ❌ |
-| Close assessment (`status: closed`) | ✅ | ✅ | ❌ | ❌ | ❌ |
-| Bulk close controls | ❌ | ✅ | ❌ | ❌ | ❌ |
-| Upload evidence (comments) | ✅ | ✅ | ✅ | ✅ | ❌ |
-| Approve / reject evidence | ✅ | ❌ | ❌ | ❌ | ❌ |
-| Import evidence | ✅ | ✅ | ❌ | ❌ | ❌ |
-| Update password of any user | ❌ | ❌ | ❌ | ❌ | ✅ |
-| Assign system roles to users | ❌ | ❌ | ❌ | ❌ | ✅ |
+| Action | compliance_specialist | compliance_manager | assessment_reviewer | auditor | control_owner | super_admin |
+|---|---|---|---|---|---|---|
+| Create assessment | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ |
+| Assign controls | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ |
+| Update maturity level (`complianceMetricValue`) | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ |
+| Request reviewer sign-off | ❌ | ✅ | ❌ | ❌ | ❌ | ❌ |
+| Approve assessment for closure (sign-off) | ❌ | ❌ | ✅ | ❌ | ❌ | ❌ |
+| Close assessment (`status: closed`) | ❌ | ✅ (requires reviewer sign-off first) | ❌ | ❌ | ❌ | ❌ |
+| Bulk close controls | ❌ | ✅ | ❌ | ❌ | ❌ | ❌ |
+| Upload evidence (attachments) | ❌ | ✅ | ❌ | ❌ | ✅ (assigned controls only) | ❌ |
+| Post plain-text comments (no attachments) | ✅ | ✅ | ✅ | ✅ | ✅ | ❌ |
+| Approve / reject evidence | ❌ | ✅ | ✅ | ❌ | ❌ | ❌ |
+| Import evidence | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ |
+| View audit logs | ❌ | ❌ | ❌ | ✅ | ❌ | ✅ |
+| Update password of any user | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ |
+| Assign system roles to users | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ |
 
 > Rows marked ❌ for a role mean the backend will return `403` or the button should not be rendered in the UI.
+
+**SoD enforcement notes:**
+- The creator of an assessment (`createdBy`) cannot approve evidence on their own assessment — enforced at workflow level regardless of role.
+- The creator of an assessment cannot sign off as `assessment_reviewer` on their own assessment.
+- `compliance_specialist` can no longer upload evidence (attachments) — SoD violation. They can still post plain-text comments.
+- Closed assessments are **immutable** — no updates of any kind are accepted once `status: closed`.
+- `control_owner` is subject to row-level security — they can only access assessments where their email is in the `participants` array. Attempting to access any other assessment returns `403`.
+- Assessment closure requires a mandatory two-step flow: `compliance_manager` requests review → `assessment_reviewer` signs off → `compliance_manager` closes.
+
+## Session & Security Reference
+
+| Role | JWT Expiry | Notes |
+|---|---|---|
+| `super_admin` | 4 hours | JIT access — shorter session per governance requirements |
+| All other roles | 8 hours | Absolute session limit |
+
+**Account lockout:** 5 failed login attempts locks the account for 30 minutes.
+
+**Password policy:** Minimum 14 characters, must include uppercase, lowercase, number, and special character. Last 12 passwords cannot be reused.
+
+**Self-assignment prevention:** A `super_admin` cannot modify their own `systemRoles` — returns `403`.
 
 ---
 

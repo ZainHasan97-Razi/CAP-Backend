@@ -29,6 +29,8 @@ export const assesmentCommentSchema = new Schema(
     importedFrom: { type: mongoose.Types.ObjectId, default: null, ref: "Assesment" },
     isEdited: { type: Boolean, default: false },
     editedAt: { type: Date },
+    version: { type: Number, default: 1 },
+    previousVersionId: { type: mongoose.Types.ObjectId, default: null, ref: "AssesmentComment" },
   },
   { timestamps: true }
 );

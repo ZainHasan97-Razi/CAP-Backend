@@ -5,6 +5,11 @@ import { ApiError } from "../middleware/validate.request";
 import { CreateAssesmentDto, AssesmentStatusEnumType } from "../models/assesment.model";
 import framewaorkService from "../services/framewaork.service";
 import { IUser } from "types/req.user.type";
+import userActivityService from "../services/user-activity.service";
+
+const getIp = (req: any) =>
+  (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() ||
+  req.socket?.remoteAddress || 'unknown';
 
 type UpdateRequestDto = {
   attachments?: string[];
@@ -128,10 +133,36 @@ export const update = async (req: ARequest, res: Response, next: NextFunction) =
   try {
     const { id } = req.params;
     const body = req.body as UpdateRequestDto;
+    const user = req.user as IUser;
+
+    const existing = await assesmentService.findById(id);
+    if (!existing) throw ApiError.notFound('Assessment not found');
+
+    // Immutable archive: closed assessments cannot be modified
+    if (existing.status === 'closed') {
+      throw ApiError.forbidden('Closed assessments are immutable and cannot be modified');
+    }
+
+    // Only compliance_manager can close an assessment
+    if (body.status === 'closed' && !user.systemRoles?.includes('compliance_manager')) {
+      throw ApiError.forbidden('Only compliance managers can close assessments');
+    }
 
     const assesment = await assesmentService.update(id, body as any);
-    if (!assesment) {
-      throw ApiError.notFound("Assessment not found");
+    if (!assesment) throw ApiError.notFound('Assessment not found');
+
+    // Assessment lifecycle log on status change
+    if (body.status && body.status !== existing.status) {
+      userActivityService.auditLog({
+        userId: user._id, userName: user.userName, email: user.email,
+        sessionId: user.sessionId, ipAddress: getIp(req),
+        eventType: 'ASSESSMENT', eventSubtype: 'STATUS_CHANGE',
+        resourceType: 'ASSESSMENT', resourceId: id,
+        action: 'UPDATE', result: 'SUCCESS',
+        beforeValue: { status: existing.status },
+        afterValue:  { status: body.status },
+        apiUrl: req.originalUrl, method: req.method,
+      }).catch(() => {});
     }
 
     res.json(assesment);
@@ -274,12 +305,77 @@ export const bulkClose = async (req: ARequest, res: Response, next: NextFunction
     }
 
     const result = await assesmentService.bulkClose(assesmentId, recordIds);
+
+    userActivityService.auditLog({
+      userId: user._id, userName: user.userName, email: user.email,
+      sessionId: user.sessionId, ipAddress: getIp(req),
+      eventType: 'ASSESSMENT', eventSubtype: 'BULK_CLOSE',
+      resourceType: 'ASSESSMENT', resourceId: assesmentId,
+      action: 'UPDATE', result: 'SUCCESS',
+      afterValue: { closed: result.closed, skipped: result.skipped, recordIds },
+      apiUrl: req.originalUrl, method: req.method,
+    }).catch(() => {});
+
     res.json(result);
   } catch (error) {
     console.error(error);
     next(error);
   }
 }
+
+export const requestReview = async (req: ARequest, res: Response, next: NextFunction) => {
+  try {
+    const { id } = req.params;
+    const user = req.user as IUser;
+
+    if (!user.systemRoles?.includes('compliance_manager')) {
+      throw ApiError.forbidden('Only compliance managers can request reviewer sign-off');
+    }
+
+    const assessment = await assesmentService.requestReview(id, user.userName);
+
+    userActivityService.auditLog({
+      userId: user._id, userName: user.userName, email: user.email,
+      sessionId: user.sessionId, ipAddress: getIp(req),
+      eventType: 'ASSESSMENT', eventSubtype: 'REVIEW_REQUESTED',
+      resourceType: 'ASSESSMENT', resourceId: id,
+      action: 'UPDATE', result: 'SUCCESS',
+      apiUrl: req.originalUrl, method: req.method,
+    }).catch(() => {});
+
+    res.json({ message: 'Review requested', assessment });
+  } catch (error) {
+    console.error(error);
+    next(error);
+  }
+};
+
+export const reviewerSignoff = async (req: ARequest, res: Response, next: NextFunction) => {
+  try {
+    const { id } = req.params;
+    const user = req.user as IUser;
+
+    if (!user.systemRoles?.includes('assessment_reviewer')) {
+      throw ApiError.forbidden('Only assessment reviewers can sign off on assessments');
+    }
+
+    const assessment = await assesmentService.reviewerSignoff(id, user.userName);
+
+    userActivityService.auditLog({
+      userId: user._id, userName: user.userName, email: user.email,
+      sessionId: user.sessionId, ipAddress: getIp(req),
+      eventType: 'ASSESSMENT', eventSubtype: 'REVIEWER_SIGNOFF',
+      resourceType: 'ASSESSMENT', resourceId: id,
+      action: 'UPDATE', result: 'SUCCESS',
+      apiUrl: req.originalUrl, method: req.method,
+    }).catch(() => {});
+
+    res.json({ message: 'Assessment approved by reviewer', assessment });
+  } catch (error) {
+    console.error(error);
+    next(error);
+  }
+};
 
 export const triggerAiAnalysis = async (req: ARequest, res: Response, next: NextFunction) => {
   try {

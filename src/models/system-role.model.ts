@@ -6,6 +6,7 @@ export const SystemRoleEnum = {
   control_owner: 'control_owner',
   executive: 'executive',
   auditor: 'auditor',
+  assessment_reviewer: 'assessment_reviewer',
   super_admin: 'super_admin',
 } as const;
 export type SystemRoleEnumType = keyof typeof SystemRoleEnum;
@@ -71,7 +72,8 @@ export const ROLE_META: Record<SystemRoleEnumType, { label: string; description:
   compliance_manager:    { label: 'Compliance Manager',    description: 'Creates, manages, validates and approves assessments, assigns assessments to team' },
   control_owner:         { label: 'Control Owner',         description: 'Raises evidence, provides action plans and target date commitments' },
   executive:             { label: 'Executive',             description: 'Views the executive dashboard and reports' },
-  auditor:               { label: 'Auditor',               description: 'Same as Compliance Specialist plus validates compliance closure assessments' },
+  auditor:               { label: 'Auditor',               description: 'Read-only access to assessments, controls, evidence and reports' },
+  assessment_reviewer:   { label: 'Assessment Reviewer',   description: 'Mandatory second sign-off on assessment approval and closure — independent validation role' },
   super_admin:           { label: 'Super Admin',           description: 'System administration — manages users, roles, departments, frameworks and platform settings. Cannot create or modify assessments.' },
 };
 
@@ -113,6 +115,12 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<SystemRoleEnumType, PermissionEnum
     'view_control',
     'view_evidence',
     'view_user',
+    'view_report',
+  ],
+  assessment_reviewer: [
+    'view_dashboard',
+    'view_assessment',
+    'view_evidence',
     'view_report',
   ],
   super_admin: [

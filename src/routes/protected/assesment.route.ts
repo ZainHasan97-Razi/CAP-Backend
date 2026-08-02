@@ -1,7 +1,7 @@
 import { Router } from 'express';
-import { create, getAssignedControls, assignControls, updateAssignedControl, getMyControls, dashboardList, findById, update, getAnalytics, getFrameworkSummaries, getFrameworkAnalytics, getByMetric, importEvidence, triggerAiAnalysis, bulkClose } from '../../controllers/assesment.controller';
+import { create, getAssignedControls, assignControls, updateAssignedControl, getMyControls, dashboardList, findById, update, getAnalytics, getFrameworkSummaries, getFrameworkAnalytics, getByMetric, importEvidence, triggerAiAnalysis, bulkClose, requestReview, reviewerSignoff } from '../../controllers/assesment.controller';
 import { createAssesment_validation, assignControls_validation, dashboardList_validation, findById_validation, updateAssesment_validation, analytics_validation, frameworkAnalytics_validation, byMetric_validation, importEvidence_validation } from '../validators/assesment.validator';
-import { blockRoles } from '../../middleware/protect';
+import { blockRoles, requireAssessmentParticipant } from '../../middleware/protect';
 import { body, query, param } from 'express-validator';
 import { validateRequest } from '../../middleware/validate.request';
 
@@ -35,14 +35,16 @@ router.get(
   ]),
   getMyControls
 );
-router.put('/:id', blockRoles('super_admin'), updateAssesment_validation, update);
-router.patch('/:id/import-evidence', blockRoles('super_admin'), importEvidence_validation, importEvidence);
-router.post('/:id/trigger-ai', blockRoles('super_admin'), findById_validation, triggerAiAnalysis);
+router.patch('/:id/request-review', blockRoles('super_admin'), findById_validation, requestReview);
+router.patch('/:id/reviewer-signoff', blockRoles('super_admin'), findById_validation, reviewerSignoff);
+router.put('/:id', blockRoles('super_admin'), requireAssessmentParticipant, updateAssesment_validation, update);
+router.patch('/:id/import-evidence', blockRoles('super_admin'), requireAssessmentParticipant, importEvidence_validation, importEvidence);
+router.post('/:id/trigger-ai', blockRoles('super_admin'), requireAssessmentParticipant, findById_validation, triggerAiAnalysis);
 router.get('/dashboard', dashboardList_validation, dashboardList);
 router.get('/analytics', analytics_validation, getAnalytics);
 router.get('/framework-summaries', analytics_validation, getFrameworkSummaries);
 router.get('/framework-analytics/:frameworkId', frameworkAnalytics_validation, getFrameworkAnalytics);
 router.get('/by-metric', byMetric_validation, getByMetric);
-router.get('/:id', findById_validation, findById);
+router.get('/:id', requireAssessmentParticipant, findById_validation, findById);
 
 export default router;

@@ -2,6 +2,7 @@ import AssesmentModel, {
   CreateAssesmentDto,
   UpdateAssesmentDto,
   AssesmentStatusEnum,
+  ReviewerApprovalEnum,
 } from "../models/assesment.model";
 import { MongoIdType } from "types/mongoid.type";
 import assesmentCommentService from "./assesment-comment.service";
@@ -101,6 +102,16 @@ const assignControls = async (
 };
 
 const update = async (id: string | MongoIdType, data: UpdateAssesmentDto) => {
+  // Reviewer sign-off required before closure
+  if (data.status === AssesmentStatusEnum.closed) {
+    const { ApiError } = await import("../middleware/validate.request");
+    const assessment = await AssesmentModel.findById(id);
+    if (!assessment) throw ApiError.notFound('Assessment not found');
+    if (assessment.reviewerApproval !== ReviewerApprovalEnum.approved) {
+      throw ApiError.badRequest('Assessment must be approved by an assessment_reviewer before it can be closed');
+    }
+  }
+
   // Validate complianceMetricValue if provided
   if (data.complianceMetricValue !== undefined) {
     const assessment = await AssesmentModel.findById(id);
@@ -968,6 +979,40 @@ const getMyControls = async (email: string, filters: { status?: string; page?: n
   };
 };
 
+const requestReview = async (assessmentId: string, requestedBy: string) => {
+  const { ApiError } = await import("../middleware/validate.request");
+  const assessment = await AssesmentModel.findById(assessmentId);
+  if (!assessment) throw ApiError.notFound('Assessment not found');
+  if (!assessment.control) throw ApiError.badRequest('Cannot request review on a draft assessment');
+  if (assessment.status === AssesmentStatusEnum.closed) throw ApiError.badRequest('Assessment is already closed');
+  if (assessment.reviewerApproval === ReviewerApprovalEnum.pending) throw ApiError.badRequest('Review already requested');
+  if (assessment.reviewerApproval === ReviewerApprovalEnum.approved) throw ApiError.badRequest('Assessment already approved by reviewer');
+
+  return await AssesmentModel.findByIdAndUpdate(
+    assessmentId,
+    { reviewerApproval: ReviewerApprovalEnum.pending },
+    { new: true }
+  );
+};
+
+const reviewerSignoff = async (assessmentId: string, reviewerName: string) => {
+  const { ApiError } = await import("../middleware/validate.request");
+  const assessment = await AssesmentModel.findById(assessmentId);
+  if (!assessment) throw ApiError.notFound('Assessment not found');
+  if (assessment.reviewerApproval !== ReviewerApprovalEnum.pending) {
+    throw ApiError.badRequest('No pending review request for this assessment');
+  }
+  if (assessment.createdBy === reviewerName) {
+    throw ApiError.forbidden('Assessment creator cannot sign off as reviewer');
+  }
+
+  return await AssesmentModel.findByIdAndUpdate(
+    assessmentId,
+    { reviewerApproval: ReviewerApprovalEnum.approved },
+    { new: true }
+  );
+};
+
 export default {
   findById,
   create,
@@ -985,4 +1030,6 @@ export default {
   findByMetric,
   importEvidence,
   bulkClose,
+  requestReview,
+  reviewerSignoff,
 };

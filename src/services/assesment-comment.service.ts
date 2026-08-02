@@ -25,9 +25,43 @@ const create = async (data: CreateAssesmentCommentDto) => {
 };
 
 const update = async (id: string | MongoIdType, data: UpdateAssesmentCommentDto) => {
+  const existing = await AssesmentCommentModel.findById(id);
+  if (!existing) return null;
+
+  // If attachments are changing, snapshot the current doc as a previous version
+  const attachmentsChanging =
+    data.attachments !== undefined &&
+    JSON.stringify(data.attachments) !== JSON.stringify(existing.attachments);
+
+  if (attachmentsChanging) {
+    // Archive current state as a new document (previous version)
+    const archived = await AssesmentCommentModel.create({
+      assessmentId:       existing.assessmentId,
+      parentCommentId:    existing.parentCommentId,
+      content:            existing.content,
+      author:             existing.author,
+      authorName:         existing.authorName,
+      attachments:        existing.attachments,
+      evidenceType:       existing.evidenceType,
+      approvalStatus:     existing.approvalStatus,
+      evidenceValidatedAt: existing.evidenceValidatedAt,
+      importedFrom:       existing.importedFrom,
+      version:            existing.version,
+      previousVersionId:  existing.previousVersionId,
+      isEdited:           existing.isEdited,
+      editedAt:           existing.editedAt,
+    });
+
+    return await AssesmentCommentModel.findByIdAndUpdate(
+      id,
+      { ...data, isEdited: true, editedAt: new Date(), version: (existing.version ?? 1) + 1, previousVersionId: archived._id },
+      { new: true }
+    );
+  }
+
   return await AssesmentCommentModel.findByIdAndUpdate(
-    id, 
-    { ...data, isEdited: true, editedAt: new Date() }, 
+    id,
+    { ...data, isEdited: true, editedAt: new Date() },
     { new: true }
   );
 };
@@ -40,19 +74,23 @@ const findByAssessmentId = async (assessmentId: string | MongoIdType) => {
   const comments = await AssesmentCommentModel.find({ assessmentId })
     .sort({ createdAt: 1 })
     .lean();
-  
+
+  const twelveMonthsAgo = Math.floor(Date.now() / 1000) - (365 * 24 * 60 * 60);
+
   const commentMap = new Map();
   const topLevelComments: any[] = [];
-  
+
   comments.forEach((comment: any) => {
     comment.replies = [];
+    // Flag stale evidence: evidenceValidatedAt set and older than 12 months
+    comment.isStale = !!(comment.evidenceValidatedAt && comment.evidenceValidatedAt < twelveMonthsAgo);
     commentMap.set(comment._id.toString(), comment);
-    
+
     if (!comment.parentCommentId) {
       topLevelComments.push(comment);
     }
   });
-  
+
   comments.forEach((comment: any) => {
     if (comment.parentCommentId) {
       const parent = commentMap.get(comment.parentCommentId.toString());
@@ -61,7 +99,7 @@ const findByAssessmentId = async (assessmentId: string | MongoIdType) => {
       }
     }
   });
-  
+
   return topLevelComments;
 };
 
@@ -128,6 +166,18 @@ const findApprovedAttachmentsByAssessment = async (assessmentId: string | MongoI
   return approvedComments.flatMap(c => c.attachments);
 };
 
+const getVersionHistory = async (commentId: string | MongoIdType) => {
+  const versions: any[] = [];
+  let current = await AssesmentCommentModel.findById(commentId).lean();
+  while (current) {
+    versions.push(current);
+    current = current.previousVersionId
+      ? await AssesmentCommentModel.findById(current.previousVersionId).lean()
+      : null;
+  }
+  return versions;
+};
+
 export default {
   findById,
   create,
@@ -138,4 +188,5 @@ export default {
   deleteImportedComments,
   setApprovalStatus,
   findApprovedAttachmentsByAssessment,
+  getVersionHistory,
 };
