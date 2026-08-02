@@ -8,6 +8,37 @@ This document is intended for the **AI team** — how to fetch assessment data a
 
 ---
 
+## AI Feature Toggle (super_admin)
+
+The AI analysis feature can be enabled or disabled globally by a `super_admin`. When disabled, the backend will **not** trigger the LLM on comment creation. The webhook endpoint remains active regardless of this setting.
+
+### Get current AI status
+
+**Method:** `GET` | **URL:** `/api/settings` | **Auth:** Bearer token
+
+**Response:**
+```json
+{ "aiEnabled": true }
+```
+
+### Toggle AI on/off
+
+**Method:** `PATCH` | **URL:** `/api/settings/ai-toggle` | **Auth:** Bearer token — `super_admin` only
+
+**Request Body:**
+```json
+{ "aiEnabled": false }
+```
+
+**Response:**
+```json
+{ "message": "AI feature disabled", "aiEnabled": false }
+```
+
+> Frontend should show this toggle in the admin settings panel, visible only to `super_admin`. Read the current state on page load via `GET /api/settings` and call `PATCH /api/settings/ai-toggle` on change.
+
+---
+
 ## How the Trigger Works
 
 When a participant posts a top-level comment with attachments, the backend **immediately** calls the AI service — no approval required. The call is fire-and-forget; the comment creation response returns to the frontend without waiting for AI.
@@ -16,7 +47,7 @@ When a participant posts a top-level comment with attachments, the backend **imm
 Participant posts comment with attachment
         ↓
 Backend saves comment → responds 200 to frontend
-        ↓ (async, fire-and-forget)
+        ↓ (async, fire-and-forget — skipped if aiEnabled = false)
 POST <LLM_URL>/evaluate  →  AI service processes
         ↓
 POST /api/ai/webhook/result  →  backend saves aiResult on assessment

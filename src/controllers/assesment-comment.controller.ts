@@ -6,6 +6,7 @@ import { ApiError } from "../middleware/validate.request";
 import { IUser } from "types/req.user.type";
 import { ApprovalStatusEnum } from "../models/assesment-comment.model";
 import axios from "axios";
+import SettingsModel from "../models/settings.model";
 
 export const getComments = async (req: ARequest, res: Response, next: NextFunction) => {
   try {
@@ -36,7 +37,8 @@ export const createComment = async (req: ARequest, res: Response, next: NextFunc
     // Trigger AI when a top-level comment is posted with attachments
     if (!payload.parentCommentId && payload.attachments?.length > 0) {
       const llmUrl = process.env.LLM_URL;
-      if (llmUrl) {
+      const settings = await SettingsModel.findOne();
+      if (llmUrl && settings?.aiEnabled !== false) {
         const assessment = await assesmentService.findById(assessmentId);
         if (assessment) {
           (async () => {

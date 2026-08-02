@@ -12,6 +12,7 @@ import seederRoute from './seeder.route';
 import emailRoute from './email.route';
 import systemRoleRoute from './system-role.route';
 import userActivityRoute from './user-activity.route';
+import settingsRoute from './settings.route';
 
 const router = Router();
 
@@ -28,5 +29,6 @@ router.use('/seeder', seederRoute)
 router.use('/email', emailRoute)
 router.use('/system-roles', systemRoleRoute)
 router.use('/activity', userActivityRoute)
+router.use('/settings', settingsRoute)
 
 export default router;

@@ -103,6 +103,12 @@ CAP (Compliance Assessment Platform) is a backend system for managing compliance
 | GET | `/api/system-roles` | List all roles with permissions |
 | GET | `/api/system-roles/permissions` | List all available permissions |
 
+### Settings
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| GET | `/api/settings` | Bearer token | Get system settings (incl. `aiEnabled`) |
+| PATCH | `/api/settings/ai-toggle` | Bearer token — `super_admin` only | Enable or disable AI feature |
+
 ### AI (API Key Protected)
 | Method | Endpoint | Auth | Description |
 |--------|----------|------|-------------|
