@@ -288,7 +288,7 @@ const getAnalytics = async (filters: { startDate?: number; endDate?: number; dom
   const { startDate, endDate, domainCode } = filters;
   const FrameworkModel = (await import("../models/framework.model")).default;
   
-  const matchStage: any = {};
+  const matchStage: any = { status: AssesmentStatusEnum.closed };
   
   if (startDate) matchStage.startDate = { $gte: startDate };
   if (endDate) matchStage.dueDate = { $lte: endDate };
@@ -431,7 +431,7 @@ const getFrameworkSummaries = async (filters: { startDate?: number; endDate?: nu
   const { startDate, endDate, domainCode } = filters;
   const FrameworkModel = (await import("../models/framework.model")).default;
 
-  const matchStage: any = {};
+  const matchStage: any = { status: AssesmentStatusEnum.closed };
   if (startDate) matchStage.startDate = { $gte: startDate };
   if (endDate) matchStage.dueDate = { $lte: endDate };
 
@@ -570,7 +570,8 @@ const findByMetric = async (filters: ByMetricFilters) => {
   const ControlModel = (await import("../models/control.model")).default;
   
   const query: any = {
-    complianceMetricValue: String(metricValue)
+    complianceMetricValue: String(metricValue),
+    status: AssesmentStatusEnum.closed,
   };
   
   if (frameworkId) {
@@ -666,7 +667,7 @@ const getFrameworkAnalytics = async (frameworkId: string, filters: { startDate?:
   const framework = await FrameworkModel.findById(frameworkObjectId).lean();
   if (!framework) throw new Error('Framework not found');
 
-  const matchStage: any = { framework: frameworkObjectId };
+  const matchStage: any = { framework: frameworkObjectId, status: AssesmentStatusEnum.closed };
   if (startDate) matchStage.startDate = { $gte: startDate };
   if (endDate) matchStage.dueDate = { $lte: endDate };
 

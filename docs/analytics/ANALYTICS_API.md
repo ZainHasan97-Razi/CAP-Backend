@@ -371,8 +371,7 @@ Counts assessments based on their `complianceMetricValue`:
 - Both filters can be used together for a date range
 
 ### Assessment Status
-- **All statuses included**: open, in_progress, closed, discard
-- No status filtering applied by default
+- **Only `closed` assessments are included** in all analytics and distribution calculations. Open, in-progress, and drafted assessments are excluded — there is no point showing metric distributions for assessments that haven't been completed yet.
 
 ---
 
@@ -1232,7 +1231,7 @@ curl -X GET "http://localhost:9000/api/assessments/by-metric?frameworkName=NCA%2
 - ✅ Metric-specific distribution (maturity_level & percentage)
 - ✅ Total applicable controls per framework
 - ✅ Date range filtering
-- ✅ All assessment statuses included
+- ✅ Only `closed` assessments included in all distribution calculations
 - ✅ Framework list with average score and hover distribution
 - ✅ Per-graph domain filtering via `/framework-analytics/:frameworkId`
 - ✅ Available domains list returned for dropdown population
