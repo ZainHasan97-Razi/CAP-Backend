@@ -13,6 +13,7 @@ import emailRoute from './email.route';
 import systemRoleRoute from './system-role.route';
 import userActivityRoute from './user-activity.route';
 import settingsRoute from './settings.route';
+import systemLogRoute from './system-log.route';
 
 const router = Router();
 
@@ -30,5 +31,6 @@ router.use('/email', emailRoute)
 router.use('/system-roles', systemRoleRoute)
 router.use('/activity', userActivityRoute)
 router.use('/settings', settingsRoute)
+router.use('/system-logs', systemLogRoute)
 
 export default router;

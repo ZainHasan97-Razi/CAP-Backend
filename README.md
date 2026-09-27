@@ -20,6 +20,7 @@ CAP (Compliance Assessment Platform) is a backend system for managing compliance
 | AI Integration | AI-powered evidence analysis and grading | [→ AI Integration](docs/ai/AI_INTEGRATION.md) |
 | Users & Departments | User registration, listing, role assignment, department management | [→ User Management](docs/users/USER_MANAGEMENT.md) |
 | Roles & Permissions | System roles, permissions, and access control | [→ Roles & Permissions](docs/roles/ROLES_AND_PERMISSIONS.md) |
+| System Logs | Daily rotating log files — list and download (super_admin only) | [→ System Logs API](docs/system-logs/SYSTEM_LOGS_API.md) |
 
 ---
 
@@ -108,6 +109,12 @@ CAP (Compliance Assessment Platform) is a backend system for managing compliance
 |--------|----------|------|-------------|
 | GET | `/api/settings` | Bearer token | Get system settings (incl. `aiEnabled`) |
 | PATCH | `/api/settings/ai-toggle` | Bearer token — `super_admin` only | Enable or disable AI feature |
+
+### System Logs
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| GET | `/api/system-logs/list` | Bearer token — `super_admin` only | List available log files |
+| GET | `/api/system-logs/download/:filename` | Bearer token — `super_admin` only | Download a log file by date |
 
 ### AI (API Key Protected)
 | Method | Endpoint | Auth | Description |
