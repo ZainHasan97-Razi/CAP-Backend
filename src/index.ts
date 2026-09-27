@@ -6,6 +6,7 @@ import { connectDB } from "./database";
 import { ensureSystemRolesSeeded } from './controllers/system-role.controller';
 import { errorHandler } from "./middleware/error.handler";
 import { allowingCors } from "./utils/allow.cors";
+import { httpLoggerMiddleware } from './middleware/http-logger.middleware';
 
 dotenv.config();
 const app = express();
@@ -16,6 +17,7 @@ app.use((req, res, next) => allowingCors(req, res, next));
 
 // Middleware
 app.use(express.json());
+app.use(httpLoggerMiddleware);
 
 // Serve uploaded files statically
 app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));

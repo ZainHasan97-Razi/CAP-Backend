@@ -40,6 +40,7 @@
   },
   "homepage": "https://github.com/ZainHasan97-Razi/CAP-Backend#readme",
   "devDependencies": {
+    "@types/winston": "^2.4.4",
     "nodemon": "^3.1.11"
   },
   "dependencies": {
@@ -65,6 +66,8 @@
     "nodemailer": "^7.0.13",
     "ts-node": "^10.9.2",
     "ts-node-dev": "^2.0.0",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "winston": "^3.19.0",
+    "winston-daily-rotate-file": "^5.0.0"
   }
 }
